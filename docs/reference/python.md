@@ -4,6 +4,8 @@ description: Navigate kiyosi's instruments, market, and pricing Python modules.
 
 # Python API overview
 
+For signatures, members, exceptions, and docstrings for every public export, use the [complete Python API reference](../api/python/).
+
 Kiyosi groups its public Python API into three modules. This page is a navigation guide; consult the linked upstream modules for the current export list.
 
 ## `kiyosi.instruments`
@@ -37,5 +39,5 @@ Use `AnalyticVanillaEngine` for the European call example. `MonteCarloVanillaEng
 - [Upstream examples](https://github.com/lilkui/kiyosi/tree/main/examples) cover additional instrument and engine families.
 
 ::: info API stability
-This scaffold does not generate an exhaustive class reference. The upstream repository is the source of truth for signatures while the API is in alpha.
+The API is in alpha. Regenerate the complete reference whenever the upstream package changes.
 :::
