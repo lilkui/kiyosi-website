@@ -73,7 +73,7 @@ Then run the converter with the interpreter containing the built package. For th
   --output docs\api
 ```
 
-Use `out/build/linux-release/docs/xml` on Linux. The converter replaces `docs/api/`, emits a coverage page, and fails if a Python name listed in `__all__` is missing.
+Use `out/build/linux-release/docs/xml` on Linux. The converter replaces `docs/api/` and fails if a Python name listed in `__all__` is missing.
 
 Validate the converter and site:
 
