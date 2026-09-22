@@ -7,7 +7,7 @@ description: What kiyosi does, how its pricing API fits together, and the curren
 Kiyosi is an open-source derivatives-pricing library. Its native C++23 implementation is exposed through a Python-first API for vanilla options, exotic instruments, and structured products.
 
 ::: warning Alpha software
-The API may change without backward-compatibility guarantees. Check the upstream project when upgrading.
+The API may change without backward-compatibility guarantees. Check the kiyosi source repository when upgrading.
 :::
 
 ## How pricing fits together
@@ -28,7 +28,7 @@ The library includes trading calendars and observation schedule builders, includ
 
 ## Validation
 
-Upstream pricing tests compare against reference values generated independently using QuantLib. QuantLib supports reference generation and calendar maintenance; it is not a build or runtime dependency of the C++ core.
+Kiyosi pricing tests compare against reference values generated independently using QuantLib. QuantLib supports reference generation and calendar maintenance; it is not a build or runtime dependency of the C++ core.
 
 ## Where to begin
 

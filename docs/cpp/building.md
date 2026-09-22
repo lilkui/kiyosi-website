@@ -54,4 +54,4 @@ Include the umbrella header:
 
 The [all-pricing-engines example](https://github.com/lilkui/kiyosi/blob/main/examples/all_pricing_engines.cpp) demonstrates the native API across instrument families.
 
-Source: [upstream C++ build instructions](https://github.com/lilkui/kiyosi#c-library) and [CMake presets](https://github.com/lilkui/kiyosi/blob/main/CMakePresets.json).
+Source: [kiyosi C++ build instructions](https://github.com/lilkui/kiyosi#c-library) and [CMake presets](https://github.com/lilkui/kiyosi/blob/main/CMakePresets.json).
