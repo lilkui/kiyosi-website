@@ -15,7 +15,6 @@ export default defineConfig({
     nav: [
       { text: 'Guide', link: '/guide/introduction', activeMatch: '/guide/' },
       { text: 'API reference', link: '/api/', activeMatch: '/api/' },
-      { text: 'C++', link: '/cpp/building', activeMatch: '/cpp/' },
     ],
     sidebar: [
       {
@@ -40,7 +39,6 @@ export default defineConfig({
           { text: 'Overview', link: '/api/' },
           { text: 'C++ API', link: '/api/cpp/' },
           { text: 'Python API', link: '/api/python/' },
-          { text: 'Documentation coverage', link: '/api/coverage' },
         ],
       },
     ],

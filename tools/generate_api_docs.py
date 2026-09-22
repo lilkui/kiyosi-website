@@ -238,13 +238,11 @@ def slug_for_header(header: str) -> str:
     )
 
 
-def generate_cpp(xml_dir: Path, output: Path) -> dict[str, int]:
+def generate_cpp(xml_dir: Path, output: Path) -> int:
     index = ET.parse(xml_dir / "index.xml").getroot()
     headers: dict[str, dict[str, list[ET.Element]]] = defaultdict(
         lambda: {"files": [], "compounds": [], "members": []}
     )
-    documented = total = 0
-
     for entry in index.findall("compound"):
         if entry.get("kind") != "file":
             continue
@@ -273,11 +271,6 @@ def generate_cpp(xml_dir: Path, output: Path) -> dict[str, int]:
                 header = source_path(member)
                 if header and member.get("prot", "public") == "public":
                     headers[header]["members"].append(member)
-                    total += 1
-                    documented += bool(
-                        render_description(member.find("briefdescription"))
-                        or render_description(member.find("detaileddescription"))
-                    )
             continue
         if compound.get("prot", "public") != "public":
             continue
@@ -285,15 +278,6 @@ def generate_cpp(xml_dir: Path, output: Path) -> dict[str, int]:
         if not header:
             continue
         headers[header]["compounds"].append(compound)
-        items = [compound, *public_members(compound)]
-        total += len(items)
-        documented += sum(
-            bool(
-                render_description(item.find("briefdescription"))
-                or render_description(item.find("detaileddescription"))
-            )
-            for item in items
-        )
 
     cpp_dir = output / "cpp"
     cpp_dir.mkdir(parents=True, exist_ok=True)
@@ -342,7 +326,7 @@ def generate_cpp(xml_dir: Path, output: Path) -> dict[str, int]:
             "\n".join(page).rstrip() + "\n", encoding="utf-8"
         )
     (cpp_dir / "index.md").write_text("\n".join(index_lines) + "\n", encoding="utf-8")
-    return {"headers": len(headers), "items": total, "documented": documented}
+    return len(headers)
 
 
 def split_signature(doc: str, name: str) -> tuple[list[str], str]:
@@ -430,7 +414,7 @@ def callable_signature(obj: object, name: str) -> tuple[list[str], str]:
     return [display_signature(value) for value in signatures], body
 
 
-def class_markdown(name: str, cls: type) -> tuple[str, int, int]:
+def class_markdown(name: str, cls: type) -> str:
     parts = [f"## `{name}`", ""]
     init = vars(cls).get("__init__")
     if init is not None:
@@ -452,9 +436,8 @@ def class_markdown(name: str, cls: type) -> tuple[str, int, int]:
         parts.extend(("### Values", ""))
         for member_name, member in cls.__members__.items():
             parts.append(f"- `{member_name}` = `{member.value!r}`")
-        return "\n".join(parts).rstrip() + "\n", 1, bool(class_doc)
+        return "\n".join(parts).rstrip() + "\n"
 
-    member_total = member_documented = 0
     rendered_members = []
     for member_name, member in vars(cls).items():
         if member_name.startswith("_") and member_name not in PROTOCOL_METHODS:
@@ -465,9 +448,7 @@ def class_markdown(name: str, cls: type) -> tuple[str, int, int]:
             or inspect.ismethoddescriptor(member)
         ):
             continue
-        member_total += 1
         member_doc = inspect.getdoc(member) or ""
-        member_documented += bool(member_doc)
         signatures, body = (
             callable_signature(member, member_name)
             if callable(member)
@@ -480,18 +461,14 @@ def class_markdown(name: str, cls: type) -> tuple[str, int, int]:
             rendered_members.extend((python_doc_markdown(body), ""))
     if rendered_members:
         parts.extend(rendered_members)
-    return (
-        "\n".join(parts).rstrip() + "\n",
-        member_total + 1,
-        member_documented + bool(class_doc),
-    )
+    return "\n".join(parts).rstrip() + "\n"
 
 
 def module_slug(module_name: str) -> str:
     return module_name.replace(".", "-")
 
 
-def generate_python(output: Path) -> dict[str, int]:
+def generate_python(output: Path) -> int:
     python_dir = output / "python"
     python_dir.mkdir(parents=True, exist_ok=True)
     index_lines = [
@@ -504,7 +481,6 @@ def generate_python(output: Path) -> dict[str, int]:
         "The pages below are generated from each public module's `__all__`, runtime signatures, and docstrings, including native nanobind objects.",
         "",
     ]
-    exported = documented = public_members_count = documented_members = 0
     for module_name in PYTHON_MODULES:
         module = importlib.import_module(module_name)
         names = list(module.__all__)
@@ -529,14 +505,8 @@ def generate_python(output: Path) -> dict[str, int]:
             page.extend((module_doc, ""))
         for name in names:
             obj = getattr(module, name)
-            exported += 1
-            obj_doc = inspect.getdoc(obj) or ""
-            documented += bool(obj_doc) or not (inspect.isclass(obj) or callable(obj))
             if inspect.isclass(obj):
-                rendered, member_count, member_docs = class_markdown(name, obj)
-                page.append(rendered)
-                public_members_count += member_count
-                documented_members += member_docs
+                page.append(class_markdown(name, obj))
             elif callable(obj):
                 signatures, body = callable_signature(obj, name)
                 page.extend((f"## `{name}`", ""))
@@ -554,20 +524,10 @@ def generate_python(output: Path) -> dict[str, int]:
     (python_dir / "index.md").write_text(
         "\n".join(index_lines) + "\n", encoding="utf-8"
     )
-    return {
-        "modules": len(PYTHON_MODULES),
-        "exports": exported,
-        "documented": documented,
-        "members": public_members_count,
-        "documented_members": documented_members,
-    }
+    return len(PYTHON_MODULES)
 
 
-def percent(documented: int, total: int) -> str:
-    return "100%" if total == 0 else f"{documented / total:.1%}"
-
-
-def write_overview(output: Path, cpp: dict[str, int], python: dict[str, int]) -> None:
+def write_overview(output: Path) -> None:
     (output / "index.md").write_text(
         """---
 description: Complete generated C++ and Python API reference for kiyosi.
@@ -579,30 +539,10 @@ This reference is generated from the library's public C++ headers and installed 
 
 - [C++ API](./cpp/) — declarations and Doxygen comments from every public header.
 - [Python API](./python/) — public exports, signatures, members, and docstrings.
-- [Documentation coverage](./coverage) — extraction totals and comment coverage.
 
 ::: warning Alpha API
 Kiyosi currently makes no backward-compatibility guarantees. Regenerate these pages after updating the library.
 :::
-""",
-        encoding="utf-8",
-    )
-    (output / "coverage.md").write_text(
-        f"""---
-description: API documentation extraction coverage for kiyosi.
----
-
-# Documentation coverage
-
-The generator includes undocumented declarations and exports; the percentages measure source documentation, not API inclusion.
-
-| Surface | Included | Documented | Coverage |
-| --- | ---: | ---: | ---: |
-| C++ public headers | {cpp["headers"]} | — | — |
-| C++ declarations and members | {cpp["items"]} | {cpp["documented"]} | {percent(cpp["documented"], cpp["items"])} |
-| Python modules | {python["modules"]} | {python["modules"]} | 100% |
-| Python exports | {python["exports"]} | {python["documented"]} | {percent(python["documented"], python["exports"])} |
-| Python class members | {python["members"]} | {python["documented_members"]} | {percent(python["documented_members"], python["members"])} |
 """,
         encoding="utf-8",
     )
@@ -641,11 +581,11 @@ def main() -> None:
     (args.output / GENERATED_MARKER).write_text(
         "Generated by tools/generate_api_docs.py.\n", encoding="utf-8"
     )
-    cpp = generate_cpp(args.doxygen_xml, args.output)
-    python = generate_python(args.output)
-    write_overview(args.output, cpp, python)
+    cpp_headers = generate_cpp(args.doxygen_xml, args.output)
+    python_modules = generate_python(args.output)
+    write_overview(args.output)
     print(
-        f"Generated {cpp['headers']} C++ header pages and {python['modules']} Python module pages "
+        f"Generated {cpp_headers} C++ header pages and {python_modules} Python module pages "
         f"in {args.output}"
     )
 
