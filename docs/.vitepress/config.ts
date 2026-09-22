@@ -14,7 +14,7 @@ export default defineConfig({
     siteTitle: 'kiyosi',
     nav: [
       { text: 'Guide', link: '/guide/introduction', activeMatch: '/guide/' },
-      { text: 'Python API', link: '/reference/python', activeMatch: '/reference/' },
+      { text: 'API reference', link: '/api/', activeMatch: '/api/' },
       { text: 'C++', link: '/cpp/building', activeMatch: '/cpp/' },
     ],
     sidebar: [
@@ -32,6 +32,15 @@ export default defineConfig({
           { text: 'Pricing engines', link: '/guide/engines' },
           { text: 'Python API overview', link: '/reference/python' },
           { text: 'Build the C++ library', link: '/cpp/building' },
+        ],
+      },
+      {
+        text: 'API reference',
+        items: [
+          { text: 'Overview', link: '/api/' },
+          { text: 'C++ API', link: '/api/cpp/' },
+          { text: 'Python API', link: '/api/python/' },
+          { text: 'Documentation coverage', link: '/api/coverage' },
         ],
       },
     ],

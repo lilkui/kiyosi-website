@@ -1,6 +1,6 @@
 # kiyosi documentation
 
-A VitePress documentation site for [kiyosi](https://github.com/lilkui/kiyosi), with a custom homepage, light/dark themes, local search, and introductory Python and C++ guides.
+A VitePress documentation site for [kiyosi](https://github.com/lilkui/kiyosi), with a custom homepage, light/dark themes, local search, introductory guides, and generated C++ and Python API references.
 
 ## Local development
 
@@ -41,6 +41,43 @@ The host must serve `.html` files; URL rewriting is not required.
 
 ## Content maintenance
 
-The guides are based on the upstream README and link to the original source. They cover installation, a complete Python pricing example, engine coverage, the Python module structure, and native C++ builds. The API overview is intentionally not an exhaustive generated reference.
+The guides are based on the upstream README and link to the original source. They cover installation, a complete Python pricing example, engine coverage, the Python module structure, and native C++ builds.
 
-When kiyosi changes, review examples and installation requirements against upstream, then run the site build. The website requires no Python or C++ toolchain to build.
+The committed API pages are generated, so the website itself still requires no Python or C++ toolchain to build.
+
+## Regenerate the API reference
+
+The converter uses only the Python standard library. It requires:
+
+- Doxygen XML produced from the matching kiyosi checkout.
+- A Python interpreter that can import the matching built `kiyosi` package, including its native extension.
+
+Generate the upstream XML first. On Windows, from the kiyosi repository:
+
+```powershell
+.\generate-docs.bat
+```
+
+On Linux:
+
+```sh
+cmake --preset linux-release -DKIYOSI_BUILD_DOCS=ON
+cmake --build --preset linux-release --target kiyosi-docs
+```
+
+Then run the converter with the interpreter containing the built package. For the sibling checkout used by this repository on Windows:
+
+```powershell
+..\kiyosi\.venv\Scripts\python.exe tools\generate_api_docs.py `
+  --doxygen-xml ..\kiyosi\out\build\windows-release\docs\xml `
+  --output docs\api
+```
+
+Use `out/build/linux-release/docs/xml` on Linux. The converter replaces `docs/api/`, emits a coverage page, and fails if a Python name listed in `__all__` is missing.
+
+Validate the converter and site:
+
+```powershell
+..\kiyosi\.venv\Scripts\python.exe tools\test_generate_api_docs.py
+npm run docs:build
+```
