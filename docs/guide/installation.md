@@ -42,7 +42,7 @@ See [Select a backend](./engines#select-a-backend) for the engine configuration.
 
 ## Building from source
 
-On platforms without a prebuilt wheel, installation builds from source. You need CMake 3.28+, Ninja, and a C++23-capable compiler. Consult the [upstream build configuration](https://github.com/lilkui/kiyosi/blob/main/CMakeLists.txt) for current toolchain requirements.
+On platforms without a prebuilt wheel, installation builds from source. You need CMake 3.28+, Ninja, and a C++23-capable compiler. Consult the [kiyosi build configuration](https://github.com/lilkui/kiyosi/blob/main/CMakeLists.txt) for current toolchain requirements.
 
 For native C++ development, follow [Build the C++ library](../cpp/building).
 
@@ -55,4 +55,4 @@ For native C++ development, follow [Build the C++ library](../cpp/building).
 | A source build cannot find CMake or a compiler | Install the source-build prerequisites and make them available in your shell. |
 | CUDA pricing fails | Check the NVIDIA driver and GPU compatibility. Use the default CPU backend to verify the basic pricing setup. |
 
-Sources: [upstream installation notes](https://github.com/lilkui/kiyosi#quick-start-with-python), [PyPI package](https://pypi.org/project/kiyosi/).
+Sources: [kiyosi installation notes](https://github.com/lilkui/kiyosi#quick-start-with-python), [PyPI package](https://pypi.org/project/kiyosi/).

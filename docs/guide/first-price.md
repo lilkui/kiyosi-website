@@ -70,4 +70,4 @@ print(estimate.price)
 
 A Monte Carlo estimate can differ from an analytic result because it uses numerical simulation. See [Pricing engines](./engines) for instrument coverage and CUDA selection.
 
-Example adapted from the [upstream Python quick start](https://github.com/lilkui/kiyosi#quick-start-with-python).
+Example adapted from the [kiyosi Python quick start](https://github.com/lilkui/kiyosi#quick-start-with-python).

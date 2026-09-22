@@ -41,7 +41,7 @@ The host must serve `.html` files; URL rewriting is not required.
 
 ## Content maintenance
 
-The guides are based on the upstream README and link to the original source. They cover installation, a complete Python pricing example, engine coverage, the Python module structure, and native C++ builds.
+The guides are based on the kiyosi README and link to the source repository. They cover installation, a complete Python pricing example, engine coverage, the Python module structure, and native C++ builds.
 
 The committed API pages are generated, so the website itself still requires no Python or C++ toolchain to build.
 
@@ -52,7 +52,7 @@ The converter uses only the Python standard library. It requires:
 - Doxygen XML produced from the matching kiyosi checkout.
 - A Python interpreter that can import the matching built `kiyosi` package, including its native extension.
 
-Generate the upstream XML first. On Windows, from the kiyosi repository:
+Generate the Doxygen XML first. On Windows, from the kiyosi repository:
 
 ```powershell
 .\generate-docs.bat

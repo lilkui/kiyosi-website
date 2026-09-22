@@ -20,7 +20,7 @@ Choose an engine supported by your instrument. A common `price(instrument, conte
 | Accumulator | Finite difference, Monte Carlo |
 | Phoenix and snowball variants | Finite difference, Monte Carlo |
 
-This coverage follows the [upstream pricing matrix](https://github.com/lilkui/kiyosi#pricing-coverage). Check upstream for changes as the alpha API evolves.
+This coverage follows the [kiyosi pricing matrix](https://github.com/lilkui/kiyosi#pricing-coverage). Check the source repository for changes as the alpha API evolves.
 
 ## Select a backend
 
@@ -38,6 +38,6 @@ CUDA requires a compatible NVIDIA GPU and driver. It is a Monte Carlo backend; s
 
 ## Compare methods carefully
 
-Keep the contract and market inputs identical when comparing engines. Analytic methods evaluate a formula; numerical methods introduce approximation or simulation error. Review engine-specific settings in the [pricing module](https://github.com/lilkui/kiyosi/blob/main/python/kiyosi/pricing.py) and upstream examples.
+Keep the contract and market inputs identical when comparing engines. Analytic methods evaluate a formula; numerical methods introduce approximation or simulation error. Review engine-specific settings in the [pricing module](https://github.com/lilkui/kiyosi/blob/main/python/kiyosi/pricing.py) and [source examples](https://github.com/lilkui/kiyosi/tree/main/examples).
 
 All current models share the [Black-Scholes-Merton model scope](./introduction#model-scope).

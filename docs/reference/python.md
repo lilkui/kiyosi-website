@@ -6,7 +6,7 @@ description: Navigate kiyosi's instruments, market, and pricing Python modules.
 
 For signatures, members, exceptions, and docstrings for every public export, use the [complete Python API reference](../api/python/).
 
-Kiyosi groups its public Python API into three modules. This page is a navigation guide; consult the linked upstream modules for the current export list.
+Kiyosi groups its public Python API into three modules. This page is a navigation guide; consult the linked source modules for the current export list.
 
 ## `kiyosi.instruments`
 
@@ -36,8 +36,8 @@ Use `AnalyticVanillaEngine` for the European call example. `MonteCarloVanillaEng
 
 - [Your first price](../guide/first-price) contains a complete Python script.
 - [Select a backend](../guide/engines#select-a-backend) demonstrates CUDA configuration.
-- [Upstream examples](https://github.com/lilkui/kiyosi/tree/main/examples) cover additional instrument and engine families.
+- [Source examples](https://github.com/lilkui/kiyosi/tree/main/examples) cover additional instrument and engine families.
 
 ::: info API stability
-The API is in alpha. Regenerate the complete reference whenever the upstream package changes.
+The API is in alpha. Regenerate the complete reference whenever the kiyosi package changes.
 :::
