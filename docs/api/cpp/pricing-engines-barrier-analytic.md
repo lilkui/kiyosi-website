@@ -22,7 +22,7 @@ Closed-form Reiner-Rubinstein barrier valuation with a BGK shift for scheduled m
 #### `price`
 
 ```cpp
-Result< PricingResult > kiyosi::AnalyticBarrierEngine::price(const BarrierOption &, const PricingContext &) const
+Result<PricingResult> kiyosi::AnalyticBarrierEngine::price(const BarrierOption &, const PricingContext &) const
 ```
 
 Prices a barrier option analytically. 

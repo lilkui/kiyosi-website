@@ -40,13 +40,13 @@ Barrier events known before valuation.
 
 ```cpp
 template <typename Note>
-Result< void > kiyosi::validate_autocallable_note(const Note &note)
+Result<void> kiyosi::validate_autocallable_note(const Note &note)
 ```
 
 Authoritative domain validation for every autocallable product; optional features are detected structurally so each product only pays for the checks it needs. 
 **Template parameters**
 
-- `` — Autocallable note exposing the required term accessors.
+- `Note` — Autocallable note exposing the required term accessors.
 
 **Returns:** Success, or an `invalid_parameter` or `invalid_schedule` error.
 
@@ -71,7 +71,7 @@ Returns the reference spot used to normalize contract levels.
 #### `knock_out_levels`
 
 ```cpp
-const std::vector< double > & kiyosi::AutocallableNote::knock_out_levels() const noexcept
+const std::vector<double> & kiyosi::AutocallableNote::knock_out_levels() const noexcept
 ```
 
 Returns one positive knock-out level per observation date.
@@ -95,7 +95,7 @@ Returns the lower settlement strike.
 #### `observation_dates`
 
 ```cpp
-const std::vector< Date > & kiyosi::AutocallableNote::observation_dates() const noexcept
+const std::vector<Date> & kiyosi::AutocallableNote::observation_dates() const noexcept
 ```
 
 Returns the strictly ordered knock-out observation dates.
@@ -153,7 +153,7 @@ Returns the reference spot used to normalize contract levels.
 #### `knock_out_levels`
 
 ```cpp
-const std::vector< double > & kiyosi::KnockInAutocallableNote::knock_out_levels() const noexcept
+const std::vector<double> & kiyosi::KnockInAutocallableNote::knock_out_levels() const noexcept
 ```
 
 Returns one positive knock-out level per observation date.
@@ -177,7 +177,7 @@ Returns the lower settlement strike.
 #### `observation_dates`
 
 ```cpp
-const std::vector< Date > & kiyosi::KnockInAutocallableNote::observation_dates() const noexcept
+const std::vector<Date> & kiyosi::KnockInAutocallableNote::observation_dates() const noexcept
 ```
 
 Returns the strictly ordered knock-out observation dates.

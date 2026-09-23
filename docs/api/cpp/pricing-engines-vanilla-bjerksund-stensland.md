@@ -23,7 +23,7 @@ Bjerksund-Stensland (2002) two-step American approximation.
 
 ```cpp
 template <OptionPayoff Payoff, OptionExercise Exercise>
-Result< PricingResult > kiyosi::BjerksundStenslandVanillaEngine::price(const ExerciseBasedOption< Payoff, Exercise > &option, const PricingContext &context) const
+Result<PricingResult> kiyosi::BjerksundStenslandVanillaEngine::price(const ExerciseBasedOption<Payoff, Exercise> &option, const PricingContext &context) const
 ```
 
 Prices an American vanilla option with the two-step approximation. 

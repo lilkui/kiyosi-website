@@ -12,14 +12,14 @@ outline: [2, 4]
 ## `make_trading_calendar`
 
 ```cpp
-Result< TradingCalendar > kiyosi::make_trading_calendar(TradingCalendar::TradingDayPredicate predicate, int trading_days_per_year)
+Result<TradingCalendar> kiyosi::make_trading_calendar(TradingCalendar::TradingDayPredicate predicate, int trading_days_per_year)
 ```
 
 Creates a validated trading calendar. 
 **Parameters**
 
-- `` — Callable returning whether a date is a trading day.
-- `` — Positive annualization basis.
+- `predicate` — Callable returning whether a date is a trading day.
+- `trading_days_per_year` — Positive annualization basis.
 
 **Returns:** The calendar, or an `invalid_calendar` error.
 
@@ -79,7 +79,7 @@ Returns the positive annual trading-day basis.
 #### `trading_days_between`
 
 ```cpp
-Result< int > kiyosi::TradingCalendar::trading_days_between(Date start, Date end) const
+Result<int> kiyosi::TradingCalendar::trading_days_between(Date start, Date end) const
 ```
 
 Counts trading days in the half-open interval `[start, end)`. 
@@ -88,7 +88,7 @@ Counts trading days in the half-open interval `[start, end)`.
 #### `trading_year_fraction`
 
 ```cpp
-Result< double > kiyosi::TradingCalendar::trading_year_fraction(Date start, Date end) const
+Result<double> kiyosi::TradingCalendar::trading_year_fraction(Date start, Date end) const
 ```
 
 Computes a trading-day year fraction over `[start, end)`. 

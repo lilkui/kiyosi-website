@@ -22,7 +22,7 @@ Simpson quadrature over the terminal lognormal density.
 #### `price`
 
 ```cpp
-Result< PricingResult > kiyosi::QuadratureDigitalEngine::price(const CashOrNothingOption &, const PricingContext &) const
+Result<PricingResult> kiyosi::QuadratureDigitalEngine::price(const CashOrNothingOption &, const PricingContext &) const
 ```
 
 Prices a cash-or-nothing option by numerical quadrature. 
@@ -31,7 +31,7 @@ Prices a cash-or-nothing option by numerical quadrature.
 #### `price`
 
 ```cpp
-Result< PricingResult > kiyosi::QuadratureDigitalEngine::price(const AssetOrNothingOption &, const PricingContext &) const
+Result<PricingResult> kiyosi::QuadratureDigitalEngine::price(const AssetOrNothingOption &, const PricingContext &) const
 ```
 
 Prices an asset-or-nothing option by numerical quadrature. 

@@ -126,7 +126,7 @@ Returns the validated monitoring schedule.
 #### `observation_dates`
 
 ```cpp
-const std::vector< Date > & kiyosi::BarrierTerms::observation_dates() const noexcept
+const std::vector<Date> & kiyosi::BarrierTerms::observation_dates() const noexcept
 ```
 
 Returns the ordered monitoring dates; empty for continuous monitoring.
@@ -188,7 +188,7 @@ bool kiyosi::BarrierTerms::is_monitored_on(Date date) const noexcept
 Tests whether the barrier is monitored on a date. 
 **Parameters**
 
-- `` — `Date` to test.
+- `date` — `Date` to test.
 
 **Returns:** `true` for continuous monitoring or a scheduled observation date.
 
@@ -201,6 +201,6 @@ bool kiyosi::BarrierTerms::is_breached_by(double spot) const noexcept
 Tests whether a spot lies on the triggered side of the barrier. 
 **Parameters**
 
-- `` — Spot value to test.
+- `spot` — Spot value to test.
 
 **Returns:** `true` when `spot` breaches the barrier.

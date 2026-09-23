@@ -45,7 +45,7 @@ Finite-difference engine for ternary snowball options.
 
 ```cpp
 template <typename Note>
-KIYOSI_EXPORT Result< PricingResult > kiyosi::price_autocallable_finite_difference(const Note &, const PricingContext &, FiniteDifferenceSettings)
+KIYOSI_EXPORT Result<PricingResult> kiyosi::price_autocallable_finite_difference(const Note &, const PricingContext &, FiniteDifferenceSettings)
 ```
 
 Prices an autocallable note with the finite-difference implementation. 
@@ -65,7 +65,7 @@ One- or two-layer backward induction, depending on whether the note has knock-in
 #### `FiniteDifferenceAutocallableEngine`
 
 ```cpp
-kiyosi::FiniteDifferenceAutocallableEngine< Note >::FiniteDifferenceAutocallableEngine(FiniteDifferenceSettings settings={})
+kiyosi::FiniteDifferenceAutocallableEngine<Note>::FiniteDifferenceAutocallableEngine(FiniteDifferenceSettings settings={})
 ```
 
 Creates an engine with aggregate finite-difference settings.
@@ -73,7 +73,7 @@ Creates an engine with aggregate finite-difference settings.
 #### `FiniteDifferenceAutocallableEngine`
 
 ```cpp
-kiyosi::FiniteDifferenceAutocallableEngine< Note >::FiniteDifferenceAutocallableEngine(int asset_step_count, int time_step_count, FiniteDifferenceScheme scheme=FiniteDifferenceSettings{}.scheme)
+kiyosi::FiniteDifferenceAutocallableEngine<Note>::FiniteDifferenceAutocallableEngine(int asset_step_count, int time_step_count, FiniteDifferenceScheme scheme=FiniteDifferenceSettings{}.scheme)
 ```
 
 Creates an engine with explicit grid dimensions and scheme.
@@ -81,7 +81,7 @@ Creates an engine with explicit grid dimensions and scheme.
 #### `price`
 
 ```cpp
-Result< PricingResult > kiyosi::FiniteDifferenceAutocallableEngine< Note >::price(const Note &note, const PricingContext &context) const
+Result<PricingResult> kiyosi::FiniteDifferenceAutocallableEngine<Note>::price(const Note &note, const PricingContext &context) const
 ```
 
 Prices an autocallable note by finite differences. 
@@ -90,7 +90,7 @@ Prices an autocallable note by finite differences.
 #### `settings`
 
 ```cpp
-FiniteDifferenceSettings kiyosi::FiniteDifferenceAutocallableEngine< Note >::settings() const noexcept
+FiniteDifferenceSettings kiyosi::FiniteDifferenceAutocallableEngine<Note>::settings() const noexcept
 ```
 
 Returns the engine settings.

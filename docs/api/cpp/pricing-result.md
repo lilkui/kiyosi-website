@@ -47,7 +47,7 @@ Number of defined `RiskMeasure` values.
 ## `risk_measure_index`
 
 ```cpp
-std::optional< std::size_t > kiyosi::risk_measure_index(RiskMeasure measure) noexcept
+std::optional<std::size_t> kiyosi::risk_measure_index(RiskMeasure measure) noexcept
 ```
 
 Converts a risk measure to its `PricingResult` storage index. 
@@ -56,7 +56,7 @@ Converts a risk measure to its `PricingResult` storage index.
 ## `make_pricing_result`
 
 ```cpp
-Result< PricingResult > kiyosi::make_pricing_result(std::initializer_list< std::pair< RiskMeasure, std::optional< double > > > entries)
+Result<PricingResult> kiyosi::make_pricing_result(std::initializer_list<std::pair<RiskMeasure, std::optional<double>>> entries)
 ```
 
 Builds a result from runtime risk-measure entries. Unknown measures are rejected with `invalid_parameter`. Later duplicate entries replace earlier entries for the same measure. 
@@ -99,7 +99,7 @@ Reports whether the measure is available; a stored zero is available.
 #### `get`
 
 ```cpp
-Result< std::optional< double > > kiyosi::PricingResult::get(RiskMeasure measure) const
+Result<std::optional<double>> kiyosi::PricingResult::get(RiskMeasure measure) const
 ```
 
 Retrieves a measure when its enumerator is valid. 
@@ -108,7 +108,7 @@ Retrieves a measure when its enumerator is valid.
 #### `require`
 
 ```cpp
-Result< double > kiyosi::PricingResult::require(RiskMeasure measure) const
+Result<double> kiyosi::PricingResult::require(RiskMeasure measure) const
 ```
 
 Retrieves a required measure. 

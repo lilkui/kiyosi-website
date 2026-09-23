@@ -38,7 +38,7 @@ Creates an engine with explicit grid dimensions and scheme.
 #### `price`
 
 ```cpp
-Result< PricingResult > kiyosi::FiniteDifferenceBarrierEngine::price(const BarrierOption &option, const PricingContext &context) const
+Result<PricingResult> kiyosi::FiniteDifferenceBarrierEngine::price(const BarrierOption &option, const PricingContext &context) const
 ```
 
 Prices a barrier option by finite differences. 

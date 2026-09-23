@@ -39,7 +39,7 @@ PayoffType kiyosi::payoff_type(const BinaryPayoff &payoff) noexcept
 Identifies the denomination of a binary payoff. 
 **Parameters**
 
-- `` — Payoff to inspect.
+- `payoff` — Payoff to inspect.
 
 **Returns:** `PayoffType::cash` or `PayoffType::asset`.
 

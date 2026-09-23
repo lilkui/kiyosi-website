@@ -23,7 +23,7 @@ Wraps any price-only engine so it also reports bump-derived risk and implied qua
 #### `NumericalAnalyticsEngine`
 
 ```cpp
-kiyosi::NumericalAnalyticsEngine< Engine >::NumericalAnalyticsEngine(Engine engine={}, NumericalShiftSettings settings={})
+kiyosi::NumericalAnalyticsEngine<Engine>::NumericalAnalyticsEngine(Engine engine={}, NumericalShiftSettings settings={})
 ```
 
 Creates an analytics adapter around an engine and numerical-shift settings.
@@ -32,7 +32,7 @@ Creates an analytics adapter around an engine and numerical-shift settings.
 
 ```cpp
 template <typename Option>
-Result< PricingResult > kiyosi::NumericalAnalyticsEngine< Engine >::price(const Option &option, const PricingContext &context) const
+Result<PricingResult> kiyosi::NumericalAnalyticsEngine<Engine>::price(const Option &option, const PricingContext &context) const
 ```
 
 Prices an option and derives risk measures by revaluation. 
@@ -42,7 +42,7 @@ Prices an option and derives risk measures by revaluation.
 
 ```cpp
 template <typename Option>
-Result< double > kiyosi::NumericalAnalyticsEngine< Engine >::implied_volatility(const Option &option, const PricingContext &context, double observed_price, ImpliedVolatilitySettings settings={}) const
+Result<double> kiyosi::NumericalAnalyticsEngine<Engine>::implied_volatility(const Option &option, const PricingContext &context, double observed_price, ImpliedVolatilitySettings settings={}) const
 ```
 
 Solves for the volatility matching an observed price. 
@@ -52,7 +52,7 @@ Solves for the volatility matching an observed price.
 
 ```cpp
 template <typename Option>
-Result< double > kiyosi::NumericalAnalyticsEngine< Engine >::implied_coupon(const Option &option, const PricingContext &context, double observed_price, ImpliedCouponSettings settings={}) const
+Result<double> kiyosi::NumericalAnalyticsEngine<Engine>::implied_coupon(const Option &option, const PricingContext &context, double observed_price, ImpliedCouponSettings settings={}) const
 ```
 
 Solves for an unambiguous product coupon matching an observed price. 
@@ -62,7 +62,7 @@ Solves for an unambiguous product coupon matching an observed price.
 
 ```cpp
 template <typename Option>
-Result< double > kiyosi::NumericalAnalyticsEngine< Engine >::implied_coupon(const Option &option, const PricingContext &context, double observed_price, CouponQuoteConvention convention, ImpliedCouponSettings settings={}) const
+Result<double> kiyosi::NumericalAnalyticsEngine<Engine>::implied_coupon(const Option &option, const PricingContext &context, double observed_price, CouponQuoteConvention convention, ImpliedCouponSettings settings={}) const
 ```
 
 Solves for a quoted coupon using an explicit maturity-coupon convention. 
@@ -71,7 +71,7 @@ Solves for a quoted coupon using an explicit maturity-coupon convention.
 #### `engine`
 
 ```cpp
-const Engine & kiyosi::NumericalAnalyticsEngine< Engine >::engine() const noexcept
+const Engine & kiyosi::NumericalAnalyticsEngine<Engine>::engine() const noexcept
 ```
 
 Returns the wrapped pricing engine.
@@ -79,7 +79,7 @@ Returns the wrapped pricing engine.
 #### `settings`
 
 ```cpp
-NumericalShiftSettings kiyosi::NumericalAnalyticsEngine< Engine >::settings() const noexcept
+NumericalShiftSettings kiyosi::NumericalAnalyticsEngine<Engine>::settings() const noexcept
 ```
 
 Returns the numerical-shift settings.

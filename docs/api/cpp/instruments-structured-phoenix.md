@@ -12,7 +12,7 @@ outline: [2, 4]
 ## `make_phoenix_option`
 
 ```cpp
-Result< PhoenixOption > kiyosi::make_phoenix_option(PhoenixTerms terms)
+Result<PhoenixOption> kiyosi::make_phoenix_option(PhoenixTerms terms)
 ```
 
 Creates a validated Phoenix autocallable. 
@@ -39,7 +39,7 @@ Returns the finite conditional coupon rate.
 #### `coupon_barrier_levels`
 
 ```cpp
-const std::vector< double > & kiyosi::PhoenixOption::coupon_barrier_levels() const noexcept
+const std::vector<double> & kiyosi::PhoenixOption::coupon_barrier_levels() const noexcept
 ```
 
 Returns one non-negative coupon barrier per observation date.

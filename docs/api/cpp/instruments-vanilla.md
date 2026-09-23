@@ -28,7 +28,7 @@ American vanilla call or put.
 ## `make_european_option`
 
 ```cpp
-Result< EuropeanOption > kiyosi::make_european_option(OptionType option_type, double strike, Date effective_date, Date expiry_date)
+Result<EuropeanOption> kiyosi::make_european_option(OptionType option_type, double strike, Date effective_date, Date expiry_date)
 ```
 
 Creates a validated European vanilla option. 
@@ -37,7 +37,7 @@ Creates a validated European vanilla option.
 ## `make_american_option`
 
 ```cpp
-Result< AmericanOption > kiyosi::make_american_option(OptionType option_type, double strike, Date effective_date, Date expiry_date)
+Result<AmericanOption> kiyosi::make_american_option(OptionType option_type, double strike, Date effective_date, Date expiry_date)
 ```
 
 Creates a validated American vanilla option. 

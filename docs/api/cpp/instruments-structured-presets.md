@@ -12,7 +12,7 @@ outline: [2, 4]
 ## `make_standard_snowball`
 
 ```cpp
-Result< SnowballOption > kiyosi::make_standard_snowball(StandardSnowballTerms terms)
+Result<SnowballOption> kiyosi::make_standard_snowball(StandardSnowballTerms terms)
 ```
 
 Creates a standard snowball from named market terms. 
@@ -21,7 +21,7 @@ Creates a standard snowball from named market terms.
 ## `make_step_down_snowball`
 
 ```cpp
-Result< SnowballOption > kiyosi::make_step_down_snowball(StepDownSnowballTerms terms)
+Result<SnowballOption> kiyosi::make_step_down_snowball(StepDownSnowballTerms terms)
 ```
 
 Creates a step-down snowball from named market terms. 
@@ -30,7 +30,7 @@ Creates a step-down snowball from named market terms.
 ## `make_both_down_snowball`
 
 ```cpp
-Result< SnowballOption > kiyosi::make_both_down_snowball(BothDownSnowballTerms terms)
+Result<SnowballOption> kiyosi::make_both_down_snowball(BothDownSnowballTerms terms)
 ```
 
 Creates a both-down snowball from named market terms. 
@@ -39,7 +39,7 @@ Creates a both-down snowball from named market terms.
 ## `make_dual_coupon_snowball`
 
 ```cpp
-Result< SnowballOption > kiyosi::make_dual_coupon_snowball(DualCouponSnowballTerms terms)
+Result<SnowballOption> kiyosi::make_dual_coupon_snowball(DualCouponSnowballTerms terms)
 ```
 
 Creates a dual-coupon snowball from named market terms. 
@@ -48,7 +48,7 @@ Creates a dual-coupon snowball from named market terms.
 ## `make_parachute_snowball`
 
 ```cpp
-Result< SnowballOption > kiyosi::make_parachute_snowball(ParachuteSnowballTerms terms)
+Result<SnowballOption> kiyosi::make_parachute_snowball(ParachuteSnowballTerms terms)
 ```
 
 Creates a parachute snowball from named market terms. 
@@ -57,7 +57,7 @@ Creates a parachute snowball from named market terms.
 ## `make_otm_snowball`
 
 ```cpp
-Result< SnowballOption > kiyosi::make_otm_snowball(OtmSnowballTerms terms)
+Result<SnowballOption> kiyosi::make_otm_snowball(OtmSnowballTerms terms)
 ```
 
 Creates an out-of-the-money snowball from named market terms. 
@@ -66,7 +66,7 @@ Creates an out-of-the-money snowball from named market terms.
 ## `make_loss_capped_snowball`
 
 ```cpp
-Result< SnowballOption > kiyosi::make_loss_capped_snowball(LossCappedSnowballTerms terms)
+Result<SnowballOption> kiyosi::make_loss_capped_snowball(LossCappedSnowballTerms terms)
 ```
 
 Creates a loss-capped snowball from named market terms. 
@@ -75,7 +75,7 @@ Creates a loss-capped snowball from named market terms.
 ## `make_european_snowball`
 
 ```cpp
-Result< SnowballOption > kiyosi::make_european_snowball(EuropeanSnowballTerms terms)
+Result<SnowballOption> kiyosi::make_european_snowball(EuropeanSnowballTerms terms)
 ```
 
 Creates a European-knock-in snowball from named market terms. 

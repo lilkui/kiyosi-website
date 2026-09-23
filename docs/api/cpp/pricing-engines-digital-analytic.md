@@ -23,7 +23,7 @@ Closed-form cash-or-nothing and asset-or-nothing valuation with analytic delta a
 
 ```cpp
 template <OptionPayoff Payoff, OptionExercise Exercise>
-Result< PricingResult > kiyosi::AnalyticDigitalEngine::price(const ExerciseBasedOption< Payoff, Exercise > &option, const PricingContext &context) const
+Result<PricingResult> kiyosi::AnalyticDigitalEngine::price(const ExerciseBasedOption<Payoff, Exercise> &option, const PricingContext &context) const
 ```
 
 Prices a European cash-or-nothing or asset-or-nothing option. 

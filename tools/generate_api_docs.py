@@ -69,7 +69,7 @@ def markdown_node(node: ET.Element, *, inline: bool = False) -> str:
         }
         rows = []
         for item in node.findall("parameteritem"):
-            names = [text_of(name) for name in item.findall("parametername")]
+            names = [text_of(name) for name in item.findall("parameternamelist/parametername")]
             description = render_description(item.find("parameterdescription"))
             rows.append(f"- `{', '.join(names)}` — {description}")
         label = labels.get(node.get("kind", ""), "Parameters")
@@ -125,9 +125,10 @@ def member_signature(member: ET.Element) -> str:
     if kind == "enum":
         scoped = " class" if member.get("strong") == "yes" else ""
         return f"enum{scoped} {text_of(member.find('name'))}"
-    if definition:
-        return template_prefix(member) + definition + args
-    return template_prefix(member) + text_of(member.find("name")) + args
+    signature = (definition or text_of(member.find("name"))) + args
+    return template_prefix(member) + re.sub(
+        r"<\s+|\s+>", lambda match: match.group().strip(), signature
+    )
 
 
 def member_markdown(member: ET.Element, level: int = 4) -> str:

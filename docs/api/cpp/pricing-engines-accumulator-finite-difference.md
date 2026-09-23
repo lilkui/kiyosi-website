@@ -38,7 +38,7 @@ Creates an engine with explicit grid dimensions and scheme.
 #### `price`
 
 ```cpp
-Result< PricingResult > kiyosi::FiniteDifferenceAccumulatorEngine::price(const Accumulator &, const PricingContext &) const
+Result<PricingResult> kiyosi::FiniteDifferenceAccumulatorEngine::price(const Accumulator &, const PricingContext &) const
 ```
 
 Prices an accumulator by finite differences. 

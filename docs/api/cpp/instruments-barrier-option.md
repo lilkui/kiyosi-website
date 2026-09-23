@@ -12,7 +12,7 @@ outline: [2, 4]
 ## `make_barrier_option`
 
 ```cpp
-Result< BarrierOption > kiyosi::make_barrier_option(BarrierOptionTerms terms)
+Result<BarrierOption> kiyosi::make_barrier_option(BarrierOptionTerms terms)
 ```
 
 Creates a validated barrier option. 
@@ -103,7 +103,7 @@ Returns the validated observation schedule.
 #### `observation_dates`
 
 ```cpp
-const std::vector< Date > & kiyosi::BarrierOption::observation_dates() const noexcept
+const std::vector<Date> & kiyosi::BarrierOption::observation_dates() const noexcept
 ```
 
 Returns the ordered observation dates.
