@@ -37,20 +37,20 @@ Default realized average for a contract whose averaging has not begun.
 
 ```cpp
 template <typename Averaging>
-Result< AveragePriceOption< Averaging > > kiyosi::make_average_option(OptionType option_type, double strike, Date averaging_start_date, Date effective_date, Date expiry_date, double realized_average=default_realized_average)
+Result<AveragePriceOption<Averaging>> kiyosi::make_average_option(OptionType option_type, double strike, Date averaging_start_date, Date effective_date, Date expiry_date, double realized_average=default_realized_average)
 ```
 
 `Date` arguments are ordered `averaging_start_date`, `effective_date`, `expiry_date`; valid terms satisfy `effective_date <= averaging_start_date <= expiry_date`. 
 **Template parameters**
 
-- `` — `GeometricAveraging` or `ArithmeticAveraging`.
+- `Averaging` — `GeometricAveraging` or `ArithmeticAveraging`.
 
 **Returns:** The option, or an input-validation error.
 
 ## `make_geometric_average_option`
 
 ```cpp
-Result< GeometricAveragePriceOption > kiyosi::make_geometric_average_option(OptionType option_type, double strike, Date averaging_start_date, Date effective_date, Date expiry_date, double realized_average=default_realized_average)
+Result<GeometricAveragePriceOption> kiyosi::make_geometric_average_option(OptionType option_type, double strike, Date averaging_start_date, Date effective_date, Date expiry_date, double realized_average=default_realized_average)
 ```
 
 Creates a geometric-average option; dates follow make_average_option ordering. 
@@ -59,7 +59,7 @@ Creates a geometric-average option; dates follow make_average_option ordering.
 ## `make_arithmetic_average_option`
 
 ```cpp
-Result< ArithmeticAveragePriceOption > kiyosi::make_arithmetic_average_option(OptionType option_type, double strike, Date averaging_start_date, Date effective_date, Date expiry_date, double realized_average=default_realized_average)
+Result<ArithmeticAveragePriceOption> kiyosi::make_arithmetic_average_option(OptionType option_type, double strike, Date averaging_start_date, Date effective_date, Date expiry_date, double realized_average=default_realized_average)
 ```
 
 Creates an arithmetic-average option; dates follow make_average_option ordering. 
@@ -87,7 +87,7 @@ Average-rate option; `Averaging` distinguishes the geometric and arithmetic conv
 #### `option_type`
 
 ```cpp
-OptionType kiyosi::AveragePriceOption< Averaging >::option_type() const noexcept
+OptionType kiyosi::AveragePriceOption<Averaging>::option_type() const noexcept
 ```
 
 Returns the call-or-put direction.
@@ -95,7 +95,7 @@ Returns the call-or-put direction.
 #### `strike`
 
 ```cpp
-double kiyosi::AveragePriceOption< Averaging >::strike() const noexcept
+double kiyosi::AveragePriceOption<Averaging>::strike() const noexcept
 ```
 
 Returns the positive strike price.
@@ -103,7 +103,7 @@ Returns the positive strike price.
 #### `averaging_start_date`
 
 ```cpp
-Date kiyosi::AveragePriceOption< Averaging >::averaging_start_date() const noexcept
+Date kiyosi::AveragePriceOption<Averaging>::averaging_start_date() const noexcept
 ```
 
 Returns the first date included in the average.
@@ -111,7 +111,7 @@ Returns the first date included in the average.
 #### `effective_date`
 
 ```cpp
-Date kiyosi::AveragePriceOption< Averaging >::effective_date() const noexcept
+Date kiyosi::AveragePriceOption<Averaging>::effective_date() const noexcept
 ```
 
 Returns the first date of the contract life.
@@ -119,7 +119,7 @@ Returns the first date of the contract life.
 #### `realized_average`
 
 ```cpp
-double kiyosi::AveragePriceOption< Averaging >::realized_average() const noexcept
+double kiyosi::AveragePriceOption<Averaging>::realized_average() const noexcept
 ```
 
 Returns the non-negative average realized before valuation.
@@ -127,7 +127,7 @@ Returns the non-negative average realized before valuation.
 #### `expiry_date`
 
 ```cpp
-Date kiyosi::AveragePriceOption< Averaging >::expiry_date() const noexcept
+Date kiyosi::AveragePriceOption<Averaging>::expiry_date() const noexcept
 ```
 
 Returns the final date of the contract life and averaging window.
@@ -135,7 +135,7 @@ Returns the final date of the contract life and averaging window.
 #### `terms`
 
 ```cpp
-const AveragePriceOptionTerms & kiyosi::AveragePriceOption< Averaging >::terms() const noexcept
+const AveragePriceOptionTerms & kiyosi::AveragePriceOption<Averaging>::terms() const noexcept
 ```
 
 Returns the validated average-price terms.

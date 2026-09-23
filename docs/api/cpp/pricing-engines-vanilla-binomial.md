@@ -39,7 +39,7 @@ Creates an engine with an explicit tree step count.
 
 ```cpp
 template <OptionPayoff Payoff, OptionExercise Exercise>
-Result< PricingResult > kiyosi::CoxRossRubinsteinVanillaEngine::price(const ExerciseBasedOption< Payoff, Exercise > &option, const PricingContext &context) const
+Result<PricingResult> kiyosi::CoxRossRubinsteinVanillaEngine::price(const ExerciseBasedOption<Payoff, Exercise> &option, const PricingContext &context) const
 ```
 
 Prices a European or American vanilla option. 

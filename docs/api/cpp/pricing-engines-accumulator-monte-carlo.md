@@ -30,7 +30,7 @@ Creates an engine with aggregate trading-day simulation settings.
 #### `MonteCarloAccumulatorEngine`
 
 ```cpp
-kiyosi::MonteCarloAccumulatorEngine::MonteCarloAccumulatorEngine(int path_count, std::optional< std::uint64_t > seed=TradingDayMonteCarloSettings{}.seed, MonteCarloBackend backend=TradingDayMonteCarloSettings{}.backend)
+kiyosi::MonteCarloAccumulatorEngine::MonteCarloAccumulatorEngine(int path_count, std::optional<std::uint64_t> seed=TradingDayMonteCarloSettings{}.seed, MonteCarloBackend backend=TradingDayMonteCarloSettings{}.backend)
 ```
 
 Creates an engine with explicit path count, seed, and backend.
@@ -38,7 +38,7 @@ Creates an engine with explicit path count, seed, and backend.
 #### `price`
 
 ```cpp
-Result< PricingResult > kiyosi::MonteCarloAccumulatorEngine::price(const Accumulator &, const PricingContext &) const
+Result<PricingResult> kiyosi::MonteCarloAccumulatorEngine::price(const Accumulator &, const PricingContext &) const
 ```
 
 Prices an accumulator by Monte Carlo simulation. 

@@ -22,7 +22,7 @@ Closed-form geometric average-rate option under lognormal spot.
 #### `price`
 
 ```cpp
-Result< PricingResult > kiyosi::AnalyticGeometricAveragePriceEngine::price(const GeometricAveragePriceOption &, const PricingContext &) const
+Result<PricingResult> kiyosi::AnalyticGeometricAveragePriceEngine::price(const GeometricAveragePriceOption &, const PricingContext &) const
 ```
 
 Prices a geometric-average option. 
@@ -41,7 +41,7 @@ Turnbull-Wakeman moment-matched approximation for arithmetic averaging.
 #### `price`
 
 ```cpp
-Result< PricingResult > kiyosi::TurnbullWakemanArithmeticAveragePriceEngine::price(const ArithmeticAveragePriceOption &, const PricingContext &) const
+Result<PricingResult> kiyosi::TurnbullWakemanArithmeticAveragePriceEngine::price(const ArithmeticAveragePriceOption &, const PricingContext &) const
 ```
 
 Prices an arithmetic-average option using moment matching. 

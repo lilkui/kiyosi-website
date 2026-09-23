@@ -12,7 +12,7 @@ outline: [2, 4]
 ## `validate_date_schedule`
 
 ```cpp
-Result< void > kiyosi::validate_date_schedule(std::span< const Date > observation_dates, Date instrument_start, Date instrument_end)
+Result<void> kiyosi::validate_date_schedule(std::span<const Date> observation_dates, Date instrument_start, Date instrument_end)
 ```
 
 Validates ordering and instrument-life bounds for a date schedule. 
@@ -21,7 +21,7 @@ Validates ordering and instrument-life bounds for a date schedule.
 ## `validate_observation_date`
 
 ```cpp
-Result< void > kiyosi::validate_observation_date(Date observation_date, Date instrument_start, Date instrument_end, const TradingCalendar &calendar)
+Result<void> kiyosi::validate_observation_date(Date observation_date, Date instrument_start, Date instrument_end, const TradingCalendar &calendar)
 ```
 
 Validates one observation date against an instrument life and calendar. 
@@ -30,7 +30,7 @@ Validates one observation date against an instrument life and calendar.
 ## `validate_observation_dates`
 
 ```cpp
-Result< void > kiyosi::validate_observation_dates(std::span< const Date > observation_dates, Date instrument_start, Date instrument_end, const TradingCalendar &calendar)
+Result<void> kiyosi::validate_observation_dates(std::span<const Date> observation_dates, Date instrument_start, Date instrument_end, const TradingCalendar &calendar)
 ```
 
 Validates ordering, life bounds, and trading-day status for observation dates. 
@@ -49,7 +49,7 @@ Immutable, strictly ordered collection of contract observation dates.
 #### `dates`
 
 ```cpp
-const std::vector< Date > & kiyosi::ObservationSchedule::dates() const noexcept
+const std::vector<Date> & kiyosi::ObservationSchedule::dates() const noexcept
 ```
 
 Returns the underlying ordered dates.

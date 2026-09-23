@@ -55,7 +55,7 @@ Steps the trading calendar path by path, applying knock-in, knock-out, and coupo
 #### `MonteCarloAutocallableEngine`
 
 ```cpp
-kiyosi::MonteCarloAutocallableEngine< Note >::MonteCarloAutocallableEngine(TradingDayMonteCarloSettings settings={})
+kiyosi::MonteCarloAutocallableEngine<Note>::MonteCarloAutocallableEngine(TradingDayMonteCarloSettings settings={})
 ```
 
 Creates an engine with aggregate trading-day simulation settings.
@@ -63,7 +63,7 @@ Creates an engine with aggregate trading-day simulation settings.
 #### `MonteCarloAutocallableEngine`
 
 ```cpp
-kiyosi::MonteCarloAutocallableEngine< Note >::MonteCarloAutocallableEngine(int path_count, std::optional< std::uint64_t > seed=TradingDayMonteCarloSettings{}.seed, MonteCarloBackend backend=TradingDayMonteCarloSettings{}.backend)
+kiyosi::MonteCarloAutocallableEngine<Note>::MonteCarloAutocallableEngine(int path_count, std::optional<std::uint64_t> seed=TradingDayMonteCarloSettings{}.seed, MonteCarloBackend backend=TradingDayMonteCarloSettings{}.backend)
 ```
 
 Creates an engine with explicit path count, seed, and backend.
@@ -71,7 +71,7 @@ Creates an engine with explicit path count, seed, and backend.
 #### `price`
 
 ```cpp
-Result< PricingResult > kiyosi::MonteCarloAutocallableEngine< Note >::price(const Note &, const PricingContext &) const
+Result<PricingResult> kiyosi::MonteCarloAutocallableEngine<Note>::price(const Note &, const PricingContext &) const
 ```
 
 Prices an autocallable note by Monte Carlo simulation. 
@@ -80,7 +80,7 @@ Prices an autocallable note by Monte Carlo simulation.
 #### `settings`
 
 ```cpp
-TradingDayMonteCarloSettings kiyosi::MonteCarloAutocallableEngine< Note >::settings() const noexcept
+TradingDayMonteCarloSettings kiyosi::MonteCarloAutocallableEngine<Note>::settings() const noexcept
 ```
 
 Returns the engine settings.

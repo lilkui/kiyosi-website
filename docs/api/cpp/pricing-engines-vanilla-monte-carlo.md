@@ -30,7 +30,7 @@ Creates an engine with aggregate Monte Carlo settings.
 #### `MonteCarloVanillaEngine`
 
 ```cpp
-kiyosi::MonteCarloVanillaEngine::MonteCarloVanillaEngine(int path_count, int step_count, std::optional< std::uint64_t > seed=MonteCarloSettings{}.seed, MonteCarloBackend backend=MonteCarloSettings{}.backend)
+kiyosi::MonteCarloVanillaEngine::MonteCarloVanillaEngine(int path_count, int step_count, std::optional<std::uint64_t> seed=MonteCarloSettings{}.seed, MonteCarloBackend backend=MonteCarloSettings{}.backend)
 ```
 
 Creates an engine with explicit path count, step count, seed, and backend.
@@ -39,7 +39,7 @@ Creates an engine with explicit path count, step count, seed, and backend.
 
 ```cpp
 template <OptionPayoff Payoff, OptionExercise Exercise>
-Result< PricingResult > kiyosi::MonteCarloVanillaEngine::price(const ExerciseBasedOption< Payoff, Exercise > &option, const PricingContext &context) const
+Result<PricingResult> kiyosi::MonteCarloVanillaEngine::price(const ExerciseBasedOption<Payoff, Exercise> &option, const PricingContext &context) const
 ```
 
 Prices a European or American vanilla option. 

@@ -23,7 +23,7 @@ Closed-form Black-Scholes-Merton engine for European vanilla options.
 
 ```cpp
 template <OptionPayoff Payoff, OptionExercise Exercise>
-Result< PricingResult > kiyosi::AnalyticVanillaEngine::price(const ExerciseBasedOption< Payoff, Exercise > &option, const PricingContext &context) const
+Result<PricingResult> kiyosi::AnalyticVanillaEngine::price(const ExerciseBasedOption<Payoff, Exercise> &option, const PricingContext &context) const
 ```
 
 Returns intrinsic value with Greeks unavailable when valued at expiry_date. 

@@ -12,13 +12,13 @@ outline: [2, 4]
 ## `make_accumulator`
 
 ```cpp
-Result< Accumulator > kiyosi::make_accumulator(AccumulatorTerms terms)
+Result<Accumulator> kiyosi::make_accumulator(AccumulatorTerms terms)
 ```
 
 Creates a validated accumulator contract. 
 **Parameters**
 
-- `` — Contract terms.
+- `terms` — Contract terms.
 
 **Returns:** The accumulator, or an input-validation error.
 

@@ -39,7 +39,7 @@ Creates an engine with explicit grid dimensions and scheme.
 
 ```cpp
 template <OptionPayoff Payoff, OptionExercise Exercise>
-Result< PricingResult > kiyosi::FiniteDifferenceVanillaEngine::price(const ExerciseBasedOption< Payoff, Exercise > &option, const PricingContext &context) const
+Result<PricingResult> kiyosi::FiniteDifferenceVanillaEngine::price(const ExerciseBasedOption<Payoff, Exercise> &option, const PricingContext &context) const
 ```
 
 Prices a European or American vanilla option. 

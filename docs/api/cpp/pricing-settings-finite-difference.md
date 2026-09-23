@@ -26,13 +26,13 @@ Time-marching schemes supported by finite-difference engines.
 ## `validate_finite_difference_settings`
 
 ```cpp
-Result< void > kiyosi::validate_finite_difference_settings(const FiniteDifferenceSettings &settings)
+Result<void> kiyosi::validate_finite_difference_settings(const FiniteDifferenceSettings &settings)
 ```
 
 Validates finite-difference grid settings. 
 **Parameters**
 
-- `` — Settings to validate.
+- `settings` — Settings to validate.
 
 **Returns:** Success, or an `invalid_parameter` error.
 

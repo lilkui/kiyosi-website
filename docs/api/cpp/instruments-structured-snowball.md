@@ -12,7 +12,7 @@ outline: [2, 4]
 ## `make_snowball_option`
 
 ```cpp
-Result< SnowballOption > kiyosi::make_snowball_option(SnowballTerms terms)
+Result<SnowballOption> kiyosi::make_snowball_option(SnowballTerms terms)
 ```
 
 Creates a validated knock-in snowball. 
@@ -21,7 +21,7 @@ Creates a validated knock-in snowball.
 ## `make_ternary_snowball_option`
 
 ```cpp
-Result< TernarySnowballOption > kiyosi::make_ternary_snowball_option(TernarySnowballTerms terms)
+Result<TernarySnowballOption> kiyosi::make_ternary_snowball_option(TernarySnowballTerms terms)
 ```
 
 Creates a validated ternary snowball. 
@@ -30,7 +30,7 @@ Creates a validated ternary snowball.
 ## `make_binary_snowball_option`
 
 ```cpp
-Result< BinarySnowballOption > kiyosi::make_binary_snowball_option(BinarySnowballTerms terms)
+Result<BinarySnowballOption> kiyosi::make_binary_snowball_option(BinarySnowballTerms terms)
 ```
 
 Creates a validated binary snowball. 
@@ -49,7 +49,7 @@ Snowball variant settling a flat coupon at maturity regardless of the terminal s
 #### `knock_out_coupon_rates`
 
 ```cpp
-const std::vector< double > & kiyosi::BinarySnowballOption::knock_out_coupon_rates() const noexcept
+const std::vector<double> & kiyosi::BinarySnowballOption::knock_out_coupon_rates() const noexcept
 ```
 
 Returns one finite knock-out coupon rate per observation date.
@@ -173,7 +173,7 @@ Knock-in autocallable accruing a coupon until knock-out, with downside participa
 #### `knock_out_coupon_rates`
 
 ```cpp
-const std::vector< double > & kiyosi::SnowballOption::knock_out_coupon_rates() const noexcept
+const std::vector<double> & kiyosi::SnowballOption::knock_out_coupon_rates() const noexcept
 ```
 
 Returns one finite knock-out coupon rate per observation date.
@@ -313,7 +313,7 @@ Snowball variant whose maturity coupon steps down to a floor once knocked in.
 #### `knock_out_coupon_rates`
 
 ```cpp
-const std::vector< double > & kiyosi::TernarySnowballOption::knock_out_coupon_rates() const noexcept
+const std::vector<double> & kiyosi::TernarySnowballOption::knock_out_coupon_rates() const noexcept
 ```
 
 Returns one finite knock-out coupon rate per observation date.

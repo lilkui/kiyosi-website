@@ -22,7 +22,7 @@ Closed-form Rubinstein-Reiner binary barrier and touch valuation.
 #### `price`
 
 ```cpp
-Result< PricingResult > kiyosi::AnalyticBinaryBarrierEngine::price(const BinaryBarrierOption &, const PricingContext &) const
+Result<PricingResult> kiyosi::AnalyticBinaryBarrierEngine::price(const BinaryBarrierOption &, const PricingContext &) const
 ```
 
 Prices a strike-based binary barrier option. 
@@ -31,7 +31,7 @@ Prices a strike-based binary barrier option.
 #### `price`
 
 ```cpp
-Result< PricingResult > kiyosi::AnalyticBinaryBarrierEngine::price(const TouchOption &, const PricingContext &) const
+Result<PricingResult> kiyosi::AnalyticBinaryBarrierEngine::price(const TouchOption &, const PricingContext &) const
 ```
 
 Prices a one-touch or no-touch option. 
