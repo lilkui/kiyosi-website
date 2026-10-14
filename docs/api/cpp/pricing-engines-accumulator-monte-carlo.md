@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/pricing/engines/accumulator/monte_carlo.hpp.
+description: kiyosi/pricing/engines/accumulator/monte_carlo.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -17,7 +17,7 @@ class kiyosi::MonteCarloAccumulatorEngine
 
 Simulates the trading-day accrual, terminating each path at the knock-out level. Accepts 1..10,000,000 paths.
 
-### Members
+### 成员
 
 #### `MonteCarloAccumulatorEngine`
 
@@ -42,7 +42,7 @@ Result<double> kiyosi::MonteCarloAccumulatorEngine::price(const Accumulator &opt
 ```
 
 Prices an accumulator by Monte Carlo simulation.
-**Returns:** Price, or a contract, context, settings, or backend error.
+**返回值:** Price, or a contract, context, settings, or backend error.
 
 #### `price_with_greeks`
 

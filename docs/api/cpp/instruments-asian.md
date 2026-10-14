@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/instruments/asian.hpp.
+description: kiyosi/instruments/asian.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -41,11 +41,11 @@ Result<AveragePriceOption<Averaging>> kiyosi::make_average_option(OptionType opt
 ```
 
 `Date` arguments are ordered `effective_date`, `averaging_start_date`, `expiry_date`; valid terms satisfy `effective_date <= averaging_start_date <= expiry_date`. Equal averaging start and expiry dates denote a single fixing at expiry.
-**Template parameters**
+**模板参数**
 
 - `Averaging` — `GeometricAveraging` or `ArithmeticAveraging`.
 
-**Returns:** The option, or an input-validation error.
+**返回值:** The option, or an input-validation error.
 
 ## `make_geometric_average_option`
 
@@ -54,7 +54,7 @@ Result<GeometricAveragePriceOption> kiyosi::make_geometric_average_option(Option
 ```
 
 Creates a geometric-average option; dates follow make_average_option ordering.
-**Returns:** The option, or an input-validation error.
+**返回值:** The option, or an input-validation error.
 
 ## `make_arithmetic_average_option`
 
@@ -63,7 +63,7 @@ Result<ArithmeticAveragePriceOption> kiyosi::make_arithmetic_average_option(Opti
 ```
 
 Creates an arithmetic-average option; dates follow make_average_option ordering.
-**Returns:** The option, or an input-validation error.
+**返回值:** The option, or an input-validation error.
 
 ## `kiyosi::ArithmeticAveraging`
 
@@ -82,7 +82,7 @@ class kiyosi::AveragePriceOption
 
 Average-rate option; `Averaging` distinguishes the geometric and arithmetic conventions.
 
-### Members
+### 成员
 
 #### `option_type`
 

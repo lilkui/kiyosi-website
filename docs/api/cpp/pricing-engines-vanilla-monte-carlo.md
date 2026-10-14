@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/pricing/engines/vanilla/monte_carlo.hpp.
+description: kiyosi/pricing/engines/vanilla/monte_carlo.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -17,7 +17,7 @@ class kiyosi::MonteCarloVanillaEngine
 
 Monte Carlo valuation for vanilla European and American options. Accepts 1..10,000,000 paths and 2..10,000 steps; American pricing before expiry needs 3 steps. European prices sample the exact terminal distribution; the validated step count has no effect. American calls with nonpositive dividends and nonnegative rates use that distribution too, retaining the immediate-exercise lower bound. Rate stencils crossing zero use exercise-grid simulations on both sides to avoid mixing sampled estimators. American implied-volatility solves reuse request-local path and cash-flow buffers on CPU and device workspaces on CUDA; every trial recomputes its exercise decisions.
 
-### Members
+### 成员
 
 #### `MonteCarloVanillaEngine`
 
@@ -42,7 +42,7 @@ Result<double> kiyosi::MonteCarloVanillaEngine::price(const EuropeanOption &opti
 ```
 
 Prices a European or American vanilla option.
-**Returns:** Price, or a contract, context, settings, or backend error.
+**返回值:** Price, or a contract, context, settings, or backend error.
 
 #### `price`
 

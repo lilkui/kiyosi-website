@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/instruments/exercise.hpp.
+description: kiyosi/instruments/exercise.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 

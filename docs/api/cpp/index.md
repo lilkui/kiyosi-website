@@ -1,10 +1,10 @@
 ---
-description: Complete C++ API generated from kiyosi Doxygen XML.
+description: 根据 kiyosi Doxygen XML 自动生成的完整 C++ API 参考文档。
 ---
 
-# C++ API reference
+# C++ API 参考
 
-This reference is generated from the public headers and Doxygen XML. Declarations without comments are included so the surface remains complete.
+本参考文档根据公开头文件和 Doxygen XML 自动生成，包含没有注释的声明，以完整列出 API。
 
 - [`<kiyosi/core/day_count.hpp>`](./core-day-count)
 - [`<kiyosi/core/error.hpp>`](./core-error)

@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/pricing/engines/autocallable/finite_difference.hpp.
+description: kiyosi/pricing/engines/autocallable/finite_difference.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -17,7 +17,7 @@ class kiyosi::FiniteDifferenceAutocallableEngine
 
 One- or two-layer backward induction, depending on whether the note has knock-in state, with knock-out and coupon events anchored onto the time grid. Accepts 3..2,000 asset steps and 1..2,000 time steps.
 
-### Members
+### 成员
 
 #### `FiniteDifferenceAutocallableEngine`
 
@@ -43,7 +43,7 @@ Result<double> kiyosi::FiniteDifferenceAutocallableEngine::price(const Note &not
 ```
 
 Prices an autocallable note by finite differences.
-**Returns:** Price, or a contract, context, or settings error.
+**返回值:** Price, or a contract, context, or settings error.
 
 #### `price_with_greeks`
 

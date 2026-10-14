@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/pricing/settings/numerical_shift.hpp.
+description: kiyosi/pricing/settings/numerical_shift.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -17,7 +17,7 @@ struct kiyosi::NumericalShiftSettings
 
 Absolute bump sizes for finite-difference Greeks computed by revaluing any engine. Spot uses asset-price units, volatility and rates use decimal units, and time uses calendar days. Reported vega, vanna, zomma, and rho are still scaled per percentage point. Calculations use the representable symmetric spacing after rounding each bump. Collapsed or asymmetric stencils leave the affected Greeks unavailable.
 
-### Members
+### 成员
 
 #### `spot_shift`
 

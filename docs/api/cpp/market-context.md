@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/market/context.hpp.
+description: kiyosi/market/context.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -16,7 +16,7 @@ Result<PricingContext> kiyosi::make_pricing_context(BlackScholesMertonParameters
 ```
 
 Creates a pricing context at an intraday valuation time with an explicit calendar.
-**Returns:** The context, or an `invalid_spot_price` or `invalid_date` error.
+**返回值:** The context, or an `invalid_spot_price` or `invalid_date` error.
 
 ## `make_pricing_context`
 
@@ -25,7 +25,7 @@ Result<PricingContext> kiyosi::make_pricing_context(BlackScholesMertonParameters
 ```
 
 Creates a pricing context at an intraday valuation time using `weekdays_calendar()`.
-**Returns:** The context, or an `invalid_spot_price` or `invalid_date` error.
+**返回值:** The context, or an `invalid_spot_price` or `invalid_date` error.
 
 ## `make_pricing_context`
 
@@ -34,7 +34,7 @@ Result<PricingContext> kiyosi::make_pricing_context(BlackScholesMertonParameters
 ```
 
 Creates a midnight pricing context for a date with an explicit calendar.
-**Returns:** The context, or an `invalid_spot_price` or `invalid_date` error.
+**返回值:** The context, or an `invalid_spot_price` or `invalid_date` error.
 
 ## `make_pricing_context`
 
@@ -43,7 +43,7 @@ Result<PricingContext> kiyosi::make_pricing_context(BlackScholesMertonParameters
 ```
 
 Creates a midnight pricing context for a date using `weekdays_calendar()`.
-**Returns:** The context, or an `invalid_spot_price` or `invalid_date` error.
+**返回值:** The context, or an `invalid_spot_price` or `invalid_date` error.
 
 ## `kiyosi::PricingContext`
 
@@ -53,7 +53,7 @@ class kiyosi::PricingContext
 
 Valuation-time snapshot: model parameters, the observable spot, and the trading calendar.
 
-### Members
+### 成员
 
 #### `model_parameters`
 

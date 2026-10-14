@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/instruments/barrier/option.hpp.
+description: kiyosi/instruments/barrier/option.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -16,7 +16,7 @@ Result<BarrierOption> kiyosi::make_barrier_option(BarrierOptionTerms terms)
 ```
 
 Creates a validated barrier option.
-**Returns:** The option, or an input-validation error.
+**返回值:** The option, or an input-validation error.
 
 ## `kiyosi::BarrierOption`
 
@@ -26,7 +26,7 @@ class kiyosi::BarrierOption
 
 Knock-in or knock-out vanilla payoff with an optional rebate.
 
-### Members
+### 成员
 
 #### `option_type`
 
@@ -148,7 +148,7 @@ struct kiyosi::BarrierOptionTerms
 
 Input terms used to construct a `BarrierOption`.
 
-### Members
+### 成员
 
 #### `option_type`
 

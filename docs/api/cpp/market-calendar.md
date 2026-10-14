@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/market/calendar.hpp.
+description: kiyosi/market/calendar.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -17,7 +17,7 @@ enum class BusinessDayConvention
 
 Direction used to move a nominal contract date onto a trading day.
 
-**Values**
+**枚举值**
 
 - `following` — Move to the next trading day, including the nominal date.
 - `preceding` — Move to the previous trading day, including the nominal date.
@@ -29,12 +29,12 @@ Result<TradingCalendar> kiyosi::make_trading_calendar(TradingCalendar::TradingDa
 ```
 
 Creates a validated trading calendar.
-**Parameters**
+**参数**
 
 - `predicate` — Callable returning whether a date is a trading day.
 - `trading_days_per_year` — Positive annualization basis.
 
-**Returns:** The calendar, or an `invalid_calendar` error.
+**返回值:** The calendar, or an `invalid_calendar` error.
 
 ## `all_days_calendar`
 
@@ -43,7 +43,7 @@ TradingCalendar kiyosi::all_days_calendar()
 ```
 
 Creates a calendar in which every supported date is a trading day.
-**Returns:** Calendar with a 365-day annualization basis.
+**返回值:** Calendar with a 365-day annualization basis.
 
 ## `weekdays_calendar`
 
@@ -52,7 +52,7 @@ TradingCalendar kiyosi::weekdays_calendar()
 ```
 
 Holiday-unaware Monday-through-Friday calendar with a 252-day annualization basis.
-**Returns:** A weekday-only calendar.
+**返回值:** A weekday-only calendar.
 
 ## `kiyosi::TradingCalendar`
 
@@ -62,7 +62,7 @@ class kiyosi::TradingCalendar
 
 Calendar queries follow the library thread-safety default. Predicates supplied to make_trading_calendar must return the same answer for a `Date` throughout each operation; callers must not depend on query frequency or order. The caller must also ensure that the predicate and any state shared by its copies support concurrent invocation.
 
-### Members
+### 成员
 
 #### `TradingDayPredicate`
 
@@ -79,7 +79,7 @@ bool kiyosi::TradingCalendar::is_trading_day(Date value) const
 ```
 
 Tests whether a supported date is a trading day.
-**Returns:** `false` for unsupported dates or when the predicate rejects the date.
+**返回值:** `false` for unsupported dates or when the predicate rejects the date.
 
 #### `adjust`
 
@@ -88,7 +88,7 @@ Result<Date> kiyosi::TradingCalendar::adjust(Date nominal, BusinessDayConvention
 ```
 
 Adjusts a nominal date to a trading day under the chosen convention.
-**Returns:** The adjusted date, or `invalid_date` if no trading day exists in the supported direction; an unknown convention returns `invalid_parameter`.
+**返回值:** The adjusted date, or `invalid_date` if no trading day exists in the supported direction; an unknown convention returns `invalid_parameter`.
 
 #### `trading_days_per_year`
 
@@ -105,7 +105,7 @@ Result<int> kiyosi::TradingCalendar::trading_days_between(Date start, Date end) 
 ```
 
 Counts trading days in the half-open interval `[start, end)`.
-**Returns:** The count, or an `invalid_date` or `invalid_time_range` error.
+**返回值:** The count, or an `invalid_date` or `invalid_time_range` error.
 
 #### `trading_year_fraction`
 
@@ -114,4 +114,4 @@ Result<double> kiyosi::TradingCalendar::trading_year_fraction(Date start, Date e
 ```
 
 Computes a trading-day year fraction over `[start, end)`.
-**Returns:** Trading days divided by `trading_days_per_year()`, or a range error.
+**返回值:** Trading days divided by `trading_days_per_year()`, or a range error.

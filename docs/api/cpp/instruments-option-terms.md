@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/instruments/option_terms.hpp.
+description: kiyosi/instruments/option_terms.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -17,7 +17,7 @@ enum class OptionType
 
 Direction of an option payoff.
 
-**Values**
+**枚举值**
 
 - `call` — Right to benefit from prices above the strike.
 - `put` — Right to benefit from prices below the strike.
@@ -30,7 +30,7 @@ class kiyosi::OptionTerms
 
 Contractual essentials shared by every strike-and-life option: option_type, strike, and life dates.
 
-### Members
+### 成员
 
 #### `option_type`
 

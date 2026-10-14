@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/instruments/payoff.hpp.
+description: kiyosi/instruments/payoff.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -17,7 +17,7 @@ enum class PayoffType
 
 Binary payoff denomination.
 
-**Values**
+**枚举值**
 
 - `cash` — Fixed cash payout.
 - `asset` — Underlying-asset payout.
@@ -37,11 +37,11 @@ PayoffType kiyosi::payoff_type(const BinaryPayoff &payoff) noexcept
 ```
 
 Identifies the denomination of a binary payoff.
-**Parameters**
+**参数**
 
 - `payoff` — Payoff to inspect.
 
-**Returns:** `PayoffType::cash` or `PayoffType::asset`.
+**返回值:** `PayoffType::cash` or `PayoffType::asset`.
 
 ## `kiyosi::AssetOrNothingPayoff`
 
@@ -59,7 +59,7 @@ class kiyosi::CashOrNothingPayoff
 
 Validated fixed-cash binary payoff.
 
-### Members
+### 成员
 
 #### `payout`
 

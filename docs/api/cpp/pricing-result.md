@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/pricing/result.hpp.
+description: kiyosi/pricing/result.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -21,7 +21,7 @@ Public `Greek` contract:
 - rho is the price change per one interest-rate percentage point (an absolute rate change of 0.01);
 - theta, charm, and color are price, delta, and gamma changes per calendar day as valuation time moves forward. Unrequested, undefined, or unsupported Greeks are unavailable (`std::nullopt`), never zero sentinels.
 
-**Values**
+**枚举值**
 
 - `delta` — First derivative with respect to spot.
 - `gamma` — Second derivative with respect to spot.
@@ -49,7 +49,7 @@ std::optional<std::size_t> kiyosi::greek_index(Greek greek) noexcept
 ```
 
 Converts a `Greek` to its `PricingResult` storage index.
-**Returns:** The index, or `std::nullopt` for an unknown enumerator.
+**返回值:** The index, or `std::nullopt` for an unknown enumerator.
 
 ## `make_pricing_result`
 
@@ -58,7 +58,7 @@ Result<PricingResult> kiyosi::make_pricing_result(double price, std::initializer
 ```
 
 Builds a result from a price and runtime `Greek` entries. Unknown Greeks are rejected with `invalid_parameter`. Later duplicate entries replace earlier entries for the same `Greek`. The final price and every available `Greek` must be finite.
-**Returns:** The populated result, or an `invalid_parameter` or `invalid_result` error.
+**返回值:** The populated result, or an `invalid_parameter` or `invalid_result` error.
 
 ## `kiyosi::GreeksRequest`
 
@@ -68,7 +68,7 @@ class kiyosi::GreeksRequest
 
 Greeks requested from a joint valuation. Price is always included separately. Construct from one or more `Greek` values, or from true for every `Greek`. Duplicates are ignored; empty requests and unknown values are rejected by price_with_greeks() with an invalid_parameter error.
 
-### Members
+### 成员
 
 #### `GreeksRequest`
 
@@ -123,7 +123,7 @@ class kiyosi::PricingResult
 
 Finite price and a fixed-size collection of optional finite Greeks.
 
-### Members
+### 成员
 
 #### `GreekValues`
 
@@ -156,7 +156,7 @@ Result<std::optional<double>> kiyosi::PricingResult::get(Greek greek) const
 ```
 
 Retrieves a `Greek` when its enumerator is valid.
-**Returns:** The optional value, or an `invalid_parameter` error for an unknown `Greek`.
+**返回值:** The optional value, or an `invalid_parameter` error for an unknown `Greek`.
 
 #### `require`
 
@@ -165,7 +165,7 @@ Result<double> kiyosi::PricingResult::require(Greek greek) const
 ```
 
 Retrieves a required `Greek`.
-**Returns:** The value, or an `invalid_parameter` or `invalid_result` error.
+**返回值:** The value, or an `invalid_parameter` or `invalid_result` error.
 
 #### `values_view`
 
@@ -174,7 +174,7 @@ const GreekValues & kiyosi::PricingResult::values_view() const noexcept
 ```
 
 Returns a read-only view of all `Greek` slots.
-**Note:** The reference remains valid until this result is destroyed, moved from, or assigned.
+**注意:** The reference remains valid until this result is destroyed, moved from, or assigned.
 
 #### `selected`
 

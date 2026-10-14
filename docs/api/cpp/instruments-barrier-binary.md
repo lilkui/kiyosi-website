@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/instruments/barrier/binary.hpp.
+description: kiyosi/instruments/barrier/binary.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -32,12 +32,12 @@ Result<BinaryBarrierOption> kiyosi::make_cash_binary_barrier_option(BinaryBarrie
 ```
 
 Creates a validated cash-paying binary barrier option.
-**Parameters**
+**参数**
 
 - `terms` — Strike, life, and barrier terms.
 - `payout` — Positive finite cash payout.
 
-**Returns:** The option, or an input-validation error.
+**返回值:** The option, or an input-validation error.
 
 ## `make_asset_binary_barrier_option`
 
@@ -46,7 +46,7 @@ Result<BinaryBarrierOption> kiyosi::make_asset_binary_barrier_option(BinaryBarri
 ```
 
 Creates a validated asset-paying binary barrier option.
-**Returns:** The option, or an input-validation error.
+**返回值:** The option, or an input-validation error.
 
 ## `make_cash_one_touch_up`
 
@@ -55,7 +55,7 @@ Result<TouchOption> kiyosi::make_cash_one_touch_up(Date effective_date, Date exp
 ```
 
 Creates an up one-touch option with a fixed cash payout.
-**Returns:** The option, or an input-validation error.
+**返回值:** The option, or an input-validation error.
 
 ## `make_cash_one_touch_down`
 
@@ -64,7 +64,7 @@ Result<TouchOption> kiyosi::make_cash_one_touch_down(Date effective_date, Date e
 ```
 
 Creates a down one-touch option with a fixed cash payout.
-**Returns:** The option, or an input-validation error.
+**返回值:** The option, or an input-validation error.
 
 ## `make_cash_no_touch_up`
 
@@ -73,7 +73,7 @@ Result<TouchOption> kiyosi::make_cash_no_touch_up(Date effective_date, Date expi
 ```
 
 Creates an up no-touch option with a fixed cash payout at expiry.
-**Returns:** The option, or an input-validation error.
+**返回值:** The option, or an input-validation error.
 
 ## `make_cash_no_touch_down`
 
@@ -82,7 +82,7 @@ Result<TouchOption> kiyosi::make_cash_no_touch_down(Date effective_date, Date ex
 ```
 
 Creates a down no-touch option with a fixed cash payout at expiry.
-**Returns:** The option, or an input-validation error.
+**返回值:** The option, or an input-validation error.
 
 ## `make_asset_one_touch_up`
 
@@ -91,7 +91,7 @@ Result<TouchOption> kiyosi::make_asset_one_touch_up(Date effective_date, Date ex
 ```
 
 Creates an up one-touch option paying the underlying asset.
-**Returns:** The option, or an input-validation error.
+**返回值:** The option, or an input-validation error.
 
 ## `make_asset_one_touch_down`
 
@@ -100,7 +100,7 @@ Result<TouchOption> kiyosi::make_asset_one_touch_down(Date effective_date, Date 
 ```
 
 Creates a down one-touch option paying the underlying asset.
-**Returns:** The option, or an input-validation error.
+**返回值:** The option, or an input-validation error.
 
 ## `make_asset_no_touch_up`
 
@@ -109,7 +109,7 @@ Result<TouchOption> kiyosi::make_asset_no_touch_up(Date effective_date, Date exp
 ```
 
 Creates an up no-touch option paying the underlying asset at expiry.
-**Returns:** The option, or an input-validation error.
+**返回值:** The option, or an input-validation error.
 
 ## `make_asset_no_touch_down`
 
@@ -118,7 +118,7 @@ Result<TouchOption> kiyosi::make_asset_no_touch_down(Date effective_date, Date e
 ```
 
 Creates a down no-touch option paying the underlying asset at expiry.
-**Returns:** The option, or an input-validation error.
+**返回值:** The option, or an input-validation error.
 
 ## `kiyosi::BinaryBarrierOption`
 
@@ -128,7 +128,7 @@ class kiyosi::BinaryBarrierOption
 
 Strike-based binary option whose payoff also depends on a barrier_level event.
 
-### Members
+### 成员
 
 #### `option_type`
 
@@ -250,7 +250,7 @@ struct kiyosi::BinaryBarrierTerms
 
 Input terms shared by cash and asset binary barrier options.
 
-### Members
+### 成员
 
 #### `option_type`
 
@@ -332,7 +332,7 @@ class kiyosi::TouchOption
 
 Strike-free one-touch or no-touch contract paying cash or the asset.
 
-### Members
+### 成员
 
 #### `payoff`
 

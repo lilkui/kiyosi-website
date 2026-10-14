@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/pricing/engines/digital/integral.hpp.
+description: kiyosi/pricing/engines/digital/integral.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -17,7 +17,7 @@ class kiyosi::QuadratureDigitalEngine
 
 Simpson quadrature over the terminal lognormal density.
 
-### Members
+### 成员
 
 #### `price`
 
@@ -26,7 +26,7 @@ Result<double> kiyosi::QuadratureDigitalEngine::price(const CashOrNothingOption 
 ```
 
 Prices a cash-or-nothing option by numerical quadrature.
-**Returns:** Price, or a contract or context error.
+**返回值:** Price, or a contract or context error.
 
 #### `price_with_greeks`
 
@@ -43,7 +43,7 @@ Result<double> kiyosi::QuadratureDigitalEngine::price(const AssetOrNothingOption
 ```
 
 Prices an asset-or-nothing option by numerical quadrature.
-**Returns:** Price, or a contract or context error.
+**返回值:** Price, or a contract or context error.
 
 #### `price_with_greeks`
 

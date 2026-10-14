@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/pricing/settings/monte_carlo.hpp.
+description: kiyosi/pricing/settings/monte_carlo.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -17,7 +17,7 @@ enum class MonteCarloBackend
 
 Execution backends supported by Monte Carlo engines. CUDA operations use the calling thread's current device and leave it unchanged. Each call owns a nonblocking stream and waits only for its own work, including cleanup. The device and runtime must support CUDA stream-ordered memory allocation.
 
-**Values**
+**枚举值**
 
 - `cpu` — Host CPU implementation.
 - `cuda` — CUDA implementation, when built and available.
@@ -30,7 +30,7 @@ struct kiyosi::MonteCarloSettings
 
 Vanilla simulation settings, validated when price() is called; an absent seed draws from the system entropy source. Vanilla engines accept 1..10,000,000 paths and 2..10,000 steps; American pricing before expiry requires at least 3 steps. European pricing samples the exact terminal distribution without intermediate steps.
 
-### Members
+### 成员
 
 #### `path_count`
 
@@ -72,7 +72,7 @@ struct kiyosi::TradingDayMonteCarloSettings
 
 `Accumulator` and autocallable products step the trading calendar directly, so no step count is needed; settings are validated when price() is called. These engines accept 1..10,000,000 paths. CPU paths use separate PCG32 streams, so early knock-out cannot shift later paths' draws. Seeded prices are reproducible within a library version, standard-library implementation and backend.
 
-### Members
+### 成员
 
 #### `path_count`
 

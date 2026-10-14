@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/pricing/engines/vanilla/binomial.hpp.
+description: kiyosi/pricing/engines/vanilla/binomial.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -17,7 +17,7 @@ class kiyosi::CoxRossRubinsteinVanillaEngine
 
 Cox-Ross-Rubinstein binomial-tree engine for vanilla European and American options. Value is tree-derived; delta and gamma are numerical tree estimates; higher Greeks use numerical differences. Before expiry, volatility must be at least abs(r - q) * sqrt(T / step_count).
 
-### Members
+### 成员
 
 #### `CoxRossRubinsteinVanillaEngine`
 
@@ -42,7 +42,7 @@ Result<double> kiyosi::CoxRossRubinsteinVanillaEngine::price(const EuropeanOptio
 ```
 
 Prices a European or American vanilla option.
-**Returns:** Price, or a contract, context, or settings error.
+**返回值:** Price, or a contract, context, or settings error.
 
 #### `price`
 

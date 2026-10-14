@@ -1,5 +1,5 @@
 ---
-description: Python API reference for kiyosi.
+description: kiyosi 的 Python API 参考文档。
 outline: [2, 4]
 ---
 
@@ -59,7 +59,7 @@ Stable category for a core domain error.
 - `BACKEND_FAILURE` — Requested computation backend failed.
 - `UNSUPPORTED_OPERATION` — Engine or instrument does not support the requested operation.
 
-### Values
+### 枚举值
 
 - `INVALID_OPTION` = `1`
 - `INVALID_STRIKE` = `2`

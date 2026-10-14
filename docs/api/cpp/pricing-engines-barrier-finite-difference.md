@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/pricing/engines/barrier/finite_difference.hpp.
+description: kiyosi/pricing/engines/barrier/finite_difference.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -17,7 +17,7 @@ class kiyosi::FiniteDifferenceBarrierEngine
 
 Uniform-grid finite-difference engine for barrier options. Accepts 3..10,000 asset steps and 1..100,000 time steps.
 
-### Members
+### 成员
 
 #### `FiniteDifferenceBarrierEngine`
 
@@ -42,7 +42,7 @@ Result<double> kiyosi::FiniteDifferenceBarrierEngine::price(const BarrierOption 
 ```
 
 Prices a barrier option by finite differences.
-**Returns:** Price, or a contract, context, or settings error.
+**返回值:** Price, or a contract, context, or settings error.
 
 #### `price_with_greeks`
 

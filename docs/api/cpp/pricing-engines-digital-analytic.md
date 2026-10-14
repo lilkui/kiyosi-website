@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/pricing/engines/digital/analytic.hpp.
+description: kiyosi/pricing/engines/digital/analytic.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -17,7 +17,7 @@ class kiyosi::AnalyticDigitalEngine
 
 Closed-form cash-or-nothing and asset-or-nothing valuation with analytic delta and gamma.
 
-### Members
+### 成员
 
 #### `price`
 
@@ -26,7 +26,7 @@ Result<double> kiyosi::AnalyticDigitalEngine::price(const CashOrNothingOption &o
 ```
 
 Prices a European cash-or-nothing or asset-or-nothing option.
-**Returns:** Price, or a contract or context error.
+**返回值:** Price, or a contract or context error.
 
 #### `price`
 

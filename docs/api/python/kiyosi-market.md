@@ -1,5 +1,5 @@
 ---
-description: Python API reference for kiyosi.market.
+description: kiyosi.market 的 Python API 参考文档。
 outline: [2, 4]
 ---
 
@@ -15,7 +15,7 @@ BlackScholesMertonParameters(self, *, risk_free_rate: float, dividend_yield: flo
 
 Immutable validated Black-Scholes-Merton market parameters.
 
-### Constructor
+### 构造函数
 
 Create validated Black-Scholes-Merton parameters.
 
@@ -85,7 +85,7 @@ PricingContext(self, *, model_parameters: BlackScholesMertonParameters, spot_pri
 
 Immutable validated market state for a valuation instant.
 
-### Constructor
+### 构造函数
 
 Create a validated pricing context.
 

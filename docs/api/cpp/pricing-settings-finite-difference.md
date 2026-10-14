@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/pricing/settings/finite_difference.hpp.
+description: kiyosi/pricing/settings/finite_difference.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -17,7 +17,7 @@ enum class FiniteDifferenceScheme
 
 Time-marching schemes supported by finite-difference engines.
 
-**Values**
+**枚举值**
 
 - `explicit_euler` — First-order explicit Euler scheme.
 - `implicit_euler` — First-order implicit Euler scheme.
@@ -30,11 +30,11 @@ Result<void> kiyosi::validate_finite_difference_settings(const FiniteDifferenceS
 ```
 
 Validates shared finite-difference grid settings; engine-specific limits are checked by price().
-**Parameters**
+**参数**
 
 - `settings` — Settings to validate.
 
-**Returns:** Success, or an `invalid_parameter` error.
+**返回值:** Success, or an `invalid_parameter` error.
 
 ## `kiyosi::FiniteDifferenceSettings`
 
@@ -44,7 +44,7 @@ struct kiyosi::FiniteDifferenceSettings
 
 Aggregate configuration validated by finite-difference engines when price() is called. The shared validator checks asset steps >= 3 and time steps >= 1. Vanilla, digital, and barrier engines accept at most 10,000 asset and 100,000 time steps; accumulator and autocallable engines accept at most 2,000 of each. An explicit scheme may impose a further stability constraint for the chosen market and grid. American vanilla engines stretch the asset grid and widen automatic domains with volatility and maturity. Explicit upper boundaries still require a domain-convergence check.
 
-### Members
+### 成员
 
 #### `asset_step_count`
 

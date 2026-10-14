@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/instruments/exercise_based_option.hpp.
+description: kiyosi/instruments/exercise_based_option.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -17,12 +17,12 @@ class kiyosi::ExerciseBasedOption
 ```
 
 An option built from an independent payoff and exercise style over shared option terms.
-**Template parameters**
+**模板参数**
 
 - `Payoff` — Copyable payoff tag satisfying `OptionPayoff`.
 - `Exercise` — Copyable exercise-style tag satisfying `OptionExercise`.
 
-### Members
+### 成员
 
 #### `option_type`
 
