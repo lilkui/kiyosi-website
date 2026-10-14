@@ -141,7 +141,7 @@ class GeneratorTests(unittest.TestCase):
             '<para>Value.</para></simplesect></para></detaileddescription>'
         )
 
-        self.assertEqual(render_description(description), "Text.\n**Returns:** Value.")
+        self.assertEqual(render_description(description), "Text.\n**返回值:** Value.")
 
 
 if __name__ == "__main__":

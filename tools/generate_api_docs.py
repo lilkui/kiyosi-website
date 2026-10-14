@@ -63,32 +63,41 @@ def markdown_node(node: ET.Element, *, inline: bool = False) -> str:
         return "\n" + "\n".join(items) + "\n"
     if tag == "parameterlist":
         labels = {
-            "param": "Parameters",
-            "retval": "Return values",
-            "exception": "Exceptions",
-            "templateparam": "Template parameters",
+            "param": "参数",
+            "retval": "返回值",
+            "exception": "异常",
+            "templateparam": "模板参数",
         }
         rows = []
         for item in node.findall("parameteritem"):
             names = [text_of(name) for name in item.findall("parameternamelist/parametername")]
             description = render_description(item.find("parameterdescription"))
             rows.append(f"- `{', '.join(names)}` — {description}")
-        label = labels.get(node.get("kind", ""), "Parameters")
+        label = labels.get(node.get("kind", ""), "参数")
         return f"\n**{label}**\n\n" + "\n".join(rows) + "\n"
     if tag == "simplesect":
         labels = {
-            "return": "Returns",
-            "note": "Note",
-            "warning": "Warning",
-            "see": "See also",
-            "pre": "Precondition",
-            "post": "Postcondition",
-            "remark": "Remarks",
+            "return": "返回值",
+            "note": "注意",
+            "warning": "警告",
+            "see": "另请参阅",
+            "pre": "前置条件",
+            "post": "后置条件",
+            "remark": "备注",
+            "author": "作者",
+            "authors": "作者",
+            "copyright": "版权",
+            "date": "日期",
+            "version": "版本",
+            "since": "起始版本",
+            "invariant": "不变条件",
+            "par": "说明",
+            "rcs": "版本控制信息",
         }
-        label = labels.get(node.get("kind", ""), node.get("kind", "").title())
+        label = labels.get(node.get("kind", ""), "说明")
         return f"\n**{label}:** {markdown_inline(node)}\n"
     if tag == "xrefsect":
-        title = text_of(node.find("xreftitle")) or "Note"
+        title = text_of(node.find("xreftitle")) or "注意"
         description = render_description(node.find("xrefdescription"))
         return f"\n**{title}:** {description}\n"
     if tag == "para":
@@ -155,7 +164,7 @@ def member_markdown(member: ET.Element, level: int = 4) -> str:
         parts.extend((description, ""))
     enum_values = member.findall("enumvalue")
     if enum_values:
-        parts.extend(("**Values**", ""))
+        parts.extend(("**枚举值**", ""))
         for value in enum_values:
             value_name = text_of(value.find("name"))
             initializer = text_of(value.find("initializer"))
@@ -213,7 +222,7 @@ def compound_markdown(compound: ET.Element) -> str:
         parts.extend((description, ""))
     members = public_members(compound)
     if members:
-        parts.extend(("### Members", ""))
+        parts.extend(("### 成员", ""))
         for member in members:
             parts.append(member_markdown(member))
     return "\n".join(parts).rstrip() + "\n"
@@ -292,12 +301,12 @@ def generate_cpp(xml_dir: Path, output: Path) -> int:
     cpp_dir.mkdir(parents=True, exist_ok=True)
     index_lines = [
         "---",
-        "description: Complete C++ API generated from kiyosi Doxygen XML.",
+        "description: 根据 kiyosi Doxygen XML 自动生成的完整 C++ API 参考文档。",
         "---",
         "",
-        "# C++ API reference",
+        "# C++ API 参考",
         "",
-        "This reference is generated from the public headers and Doxygen XML. Declarations without comments are included so the surface remains complete.",
+        "本参考文档根据公开头文件和 Doxygen XML 自动生成，包含没有注释的声明，以完整列出 API。",
         "",
     ]
     for header in sorted(headers):
@@ -306,7 +315,7 @@ def generate_cpp(xml_dir: Path, output: Path) -> int:
         index_lines.append(f"- [`<{title}>`](./{slug})")
         page = [
             "---",
-            f"description: C++ API declarations from {title}.",
+            f"description: {title} 中的 C++ API 声明。",
             "outline: [2, 4]",
             "---",
             "",
@@ -439,10 +448,10 @@ def class_markdown(name: str, cls: type) -> str:
     if class_doc:
         parts.extend((python_doc_markdown(class_doc), ""))
     if init_body and init_body not in class_doc:
-        parts.extend(("### Constructor", "", python_doc_markdown(init_body), ""))
+        parts.extend(("### 构造函数", "", python_doc_markdown(init_body), ""))
 
     if issubclass(cls, enum.Enum):
-        parts.extend(("### Values", ""))
+        parts.extend(("### 枚举值", ""))
         for member_name, member in cls.__members__.items():
             parts.append(f"- `{member_name}` = `{member.value!r}`")
         return "\n".join(parts).rstrip() + "\n"
@@ -482,12 +491,12 @@ def generate_python(output: Path) -> int:
     python_dir.mkdir(parents=True, exist_ok=True)
     index_lines = [
         "---",
-        "description: Complete Python API generated from kiyosi runtime docstrings.",
+        "description: 根据 kiyosi 运行时文档字符串自动生成的完整 Python API 参考文档。",
         "---",
         "",
-        "# Python API reference",
+        "# Python API 参考",
         "",
-        "The pages below are generated from each public module's exports (`__all__` when declared, otherwise public names), runtime signatures, and docstrings, including native nanobind objects.",
+        "以下页面根据各公开模块的导出对象、运行时签名和文档字符串自动生成，也包含 nanobind 原生绑定对象。导出对象以 `__all__` 为准；未声明 `__all__` 时，使用模块中的公开名称。",
         "",
     ]
     for module_name in PYTHON_MODULES:
@@ -506,7 +515,7 @@ def generate_python(output: Path) -> int:
         index_lines.append(f"- [`{module_name}`](./{slug})")
         page = [
             "---",
-            f"description: Python API reference for {module_name}.",
+            f"description: {module_name} 的 Python API 参考文档。",
             "outline: [2, 4]",
             "---",
             "",
