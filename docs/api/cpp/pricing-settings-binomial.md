@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/pricing/settings/binomial.hpp.
+description: kiyosi/pricing/settings/binomial.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -17,7 +17,7 @@ struct kiyosi::BinomialSettings
 
 Aggregate configuration validated by binomial engines when price() is called.
 
-### Members
+### 成员
 
 #### `step_count`
 

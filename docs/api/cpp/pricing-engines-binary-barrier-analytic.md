@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/pricing/engines/binary_barrier/analytic.hpp.
+description: kiyosi/pricing/engines/binary_barrier/analytic.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -17,7 +17,7 @@ class kiyosi::AnalyticBinaryBarrierEngine
 
 Closed-form Rubinstein-Reiner binary barrier and touch valuation. Scheduled monitoring uses a BGK barrier shift. Untouched contracts with future observations require a final observation at expiry; shorter windows return unsupported_operation. Spot must lie strictly on the unbreached side of the shifted barrier; otherwise the approximation returns unsupported_operation. Resolved settlements remain supported. `Greek` requests validate scheduled dates once per call against the context's calendar.
 
-### Members
+### 成员
 
 #### `price`
 
@@ -26,7 +26,7 @@ Result<double> kiyosi::AnalyticBinaryBarrierEngine::price(const BinaryBarrierOpt
 ```
 
 Prices a strike-based binary barrier option.
-**Returns:** Price, or a contract, context, or unsupported-operation error.
+**返回值:** Price, or a contract, context, or unsupported-operation error.
 
 #### `price_with_greeks`
 
@@ -43,7 +43,7 @@ Result<double> kiyosi::AnalyticBinaryBarrierEngine::price(const TouchOption &opt
 ```
 
 Prices a one-touch or no-touch option.
-**Returns:** Price, or a contract, context, or unsupported-operation error.
+**返回值:** Price, or a contract, context, or unsupported-operation error.
 
 #### `price_with_greeks`
 

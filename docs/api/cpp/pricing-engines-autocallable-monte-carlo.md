@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/pricing/engines/autocallable/monte_carlo.hpp.
+description: kiyosi/pricing/engines/autocallable/monte_carlo.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -17,7 +17,7 @@ class kiyosi::MonteCarloAutocallableEngine
 
 Simulates observation dates and expiry, adding trading days for daily knock-in monitoring. Accepts 1..10,000,000 paths.
 
-### Members
+### 成员
 
 #### `MonteCarloAutocallableEngine`
 
@@ -43,7 +43,7 @@ Result<double> kiyosi::MonteCarloAutocallableEngine::price(const Note &note, con
 ```
 
 Prices an autocallable note by Monte Carlo simulation.
-**Returns:** Price, or a contract, context, settings, or backend error.
+**返回值:** Price, or a contract, context, settings, or backend error.
 
 #### `price_with_greeks`
 

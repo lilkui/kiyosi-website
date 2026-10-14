@@ -1,5 +1,5 @@
 ---
-description: Python API reference for kiyosi.instruments.
+description: kiyosi.instruments 的 Python API 参考文档。
 outline: [2, 4]
 ---
 
@@ -15,7 +15,7 @@ Accumulator(self, *, strike: float, knock_out_level: float, daily_quantity: floa
 
 Immutable validated accumulator contract.
 
-### Constructor
+### 构造函数
 
 Create a validated accumulator contract.
 
@@ -70,7 +70,7 @@ Immutable validated American vanilla option.
 
 The payoff may be exercised from the effective date through expiry.
 
-### Constructor
+### 构造函数
 
 Create a validated American option.
 
@@ -109,7 +109,7 @@ ArithmeticAveragePriceOption(self, *, option_type: typing.Literal['call', 'put']
 
 Immutable validated average-price option.
 
-### Constructor
+### 构造函数
 
 Create a validated average-price option.
 
@@ -158,7 +158,7 @@ AssetOrNothingOption(self, *, option_type: typing.Literal['call', 'put'], strike
 
 Immutable validated asset-or-nothing digital option.
 
-### Constructor
+### 构造函数
 
 Create a validated asset-or-nothing option.
 
@@ -230,7 +230,7 @@ Immutable validated barrier option.
 Scheduled barriers are observed only on ``observation_dates``; continuous
 barriers require no schedule.
 
-### Constructor
+### 构造函数
 
 Create a validated barrier option.
 
@@ -366,7 +366,7 @@ BinarySnowballOption(self, *, maturity_coupon_rate: float, barrier_state: typing
 
 Immutable validated binary snowball option.
 
-### Constructor
+### 构造函数
 
 Create a validated binary snowball option.
 
@@ -429,7 +429,7 @@ CashOrNothingOption(self, *, option_type: typing.Literal['call', 'put'], strike:
 
 Immutable validated cash-or-nothing digital option.
 
-### Constructor
+### 构造函数
 
 Create a validated cash-or-nothing option.
 
@@ -475,7 +475,7 @@ Immutable validated European vanilla option.
 
 The payoff can be exercised only at expiry.
 
-### Constructor
+### 构造函数
 
 Create a validated European option.
 
@@ -514,7 +514,7 @@ GeometricAveragePriceOption(self, *, option_type: typing.Literal['call', 'put'],
 
 Immutable validated average-price option.
 
-### Constructor
+### 构造函数
 
 Create a validated average-price option.
 
@@ -587,7 +587,7 @@ PhoenixOption(self, *, coupon_rate: float, initial_spot: float, knock_in_level: 
 
 Immutable validated Phoenix autocallable option.
 
-### Constructor
+### 构造函数
 
 Create a validated Phoenix option.
 
@@ -683,7 +683,7 @@ SnowballOption(self, *, maturity_coupon_rate: float, initial_spot: float, knock_
 
 Immutable validated snowball option.
 
-### Constructor
+### 构造函数
 
 Create a validated snowball option.
 
@@ -770,7 +770,7 @@ TernarySnowballOption(self, *, maturity_coupon_rate: float, minimum_coupon_rate:
 
 Immutable validated ternary snowball option.
 
-### Constructor
+### 构造函数
 
 Create a validated ternary snowball option.
 

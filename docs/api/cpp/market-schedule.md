@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/market/schedule.hpp.
+description: kiyosi/market/schedule.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -16,7 +16,7 @@ Result<void> kiyosi::validate_date_schedule(std::span<const Date> observation_da
 ```
 
 Validates ordering and instrument-life bounds for a date schedule.
-**Returns:** Success, or `invalid_date`, `invalid_time_range`, or `invalid_schedule`.
+**返回值:** Success, or `invalid_date`, `invalid_time_range`, or `invalid_schedule`.
 
 ## `validate_observation_dates`
 
@@ -25,7 +25,7 @@ Result<void> kiyosi::validate_observation_dates(std::span<const Date> observatio
 ```
 
 Validates ordering, life bounds, and trading-day status for observation dates.
-**Returns:** Success, or `invalid_date`, `invalid_time_range`, or `invalid_schedule`.
+**返回值:** Success, or `invalid_date`, `invalid_time_range`, or `invalid_schedule`.
 
 ## `kiyosi::ObservationSchedule`
 
@@ -35,7 +35,7 @@ class kiyosi::ObservationSchedule
 
 Immutable, strictly ordered collection of contract observation dates.
 
-### Members
+### 成员
 
 #### `dates`
 

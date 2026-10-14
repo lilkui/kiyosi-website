@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/market/bsm_parameters.hpp.
+description: kiyosi/market/bsm_parameters.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -16,7 +16,7 @@ Result<BlackScholesMertonParameters> kiyosi::make_bsm_parameters(double risk_fre
 ```
 
 Creates validated Black-Scholes-Merton model parameters.
-**Returns:** The parameters, or a rate, yield, or volatility validation error.
+**返回值:** The parameters, or a rate, yield, or volatility validation error.
 
 ## `kiyosi::BlackScholesMertonParameters`
 
@@ -26,7 +26,7 @@ class kiyosi::BlackScholesMertonParameters
 
 Black-Scholes-Merton model parameters: continuously compounded rates and a flat volatility.
 
-### Members
+### 成员
 
 #### `risk_free_rate`
 

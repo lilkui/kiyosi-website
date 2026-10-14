@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/pricing/settings/implied.hpp.
+description: kiyosi/pricing/settings/implied.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -17,7 +17,7 @@ enum class CouponQuoteConvention
 
 Determines whether a Snowball maturity coupon moves with its quoted knock-out coupon.
 
-**Values**
+**枚举值**
 
 - `shift_maturity_coupon` — Shift the maturity coupon with the quoted knock-out coupon.
 - `preserve_maturity_coupon` — Keep the maturity coupon fixed while solving.
@@ -30,7 +30,7 @@ struct kiyosi::ImpliedCouponSettings
 
 Bracketing bounds and convergence controls for the implied-coupon solver. Stops when either the price error or the parameter interval meets its own tolerance.
 
-### Members
+### 成员
 
 #### `lower_bound`
 
@@ -80,7 +80,7 @@ struct kiyosi::ImpliedVolatilitySettings
 
 Bracketing bounds and convergence controls for the implied-volatility solver. Stops when either the price error or the parameter interval meets its own tolerance.
 
-### Members
+### 成员
 
 #### `lower_bound`
 

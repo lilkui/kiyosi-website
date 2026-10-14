@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/market/calendars/sse.hpp.
+description: kiyosi/market/calendars/sse.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -16,4 +16,4 @@ TradingCalendar kiyosi::sse_calendar()
 ```
 
 Shanghai Stock Exchange: weekdays excluding recorded XSHG and forecast holidays. The table spans 1991..2099; dates beyond the upstream list are estimates. Outside that span, queries fall back to a holiday-unaware weekday calendar.
-**Returns:** The SSE trading calendar with a 243-day annualization basis.
+**返回值:** The SSE trading calendar with a 243-day annualization basis.

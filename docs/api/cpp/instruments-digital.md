@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/instruments/digital.hpp.
+description: kiyosi/instruments/digital.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -32,7 +32,7 @@ Result<CashOrNothingOption> kiyosi::make_cash_or_nothing_option(OptionType optio
 ```
 
 Creates a validated cash-or-nothing European option.
-**Parameters**
+**参数**
 
 - `option_type` — Call-or-put direction.
 - `strike` — Positive strike price.
@@ -40,7 +40,7 @@ Creates a validated cash-or-nothing European option.
 - `effective_date` — First date of the option life.
 - `expiry_date` — Final date of the option life.
 
-**Returns:** The option, or an input-validation error.
+**返回值:** The option, or an input-validation error.
 
 ## `make_asset_or_nothing_option`
 
@@ -49,4 +49,4 @@ Result<AssetOrNothingOption> kiyosi::make_asset_or_nothing_option(OptionType opt
 ```
 
 Creates a validated asset-or-nothing European option.
-**Returns:** The option, or an input-validation error.
+**返回值:** The option, or an input-validation error.

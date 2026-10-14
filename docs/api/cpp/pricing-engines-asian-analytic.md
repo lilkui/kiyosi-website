@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/pricing/engines/asian/analytic.hpp.
+description: kiyosi/pricing/engines/asian/analytic.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -17,7 +17,7 @@ class kiyosi::AnalyticGeometricAveragePriceEngine
 
 Closed-form continuous geometric average-price option under lognormal spot.
 
-### Members
+### 成员
 
 #### `price`
 
@@ -26,7 +26,7 @@ Result<double> kiyosi::AnalyticGeometricAveragePriceEngine::price(const Geometri
 ```
 
 Prices a geometric-average option. Once averaging has begun, its realized average must be positive. Before averaging begins, the realized average must be zero.
-**Returns:** Price, or a contract or context error.
+**返回值:** Price, or a contract or context error.
 
 #### `price_with_greeks`
 
@@ -44,7 +44,7 @@ class kiyosi::TurnbullWakemanArithmeticAveragePriceEngine
 
 Turnbull-Wakeman moment-matched approximation for arithmetic averaging.
 
-### Members
+### 成员
 
 #### `price`
 
@@ -53,7 +53,7 @@ Result<double> kiyosi::TurnbullWakemanArithmeticAveragePriceEngine::price(const 
 ```
 
 Prices an arithmetic-average option using moment matching. For a nonzero averaging window, the realized average must be zero before averaging begins and positive afterward. A zero-length window is a single fixing at expiry and follows European vanilla pricing before expiry.
-**Returns:** Price, or a contract or context error.
+**返回值:** Price, or a contract or context error.
 
 #### `price_with_greeks`
 

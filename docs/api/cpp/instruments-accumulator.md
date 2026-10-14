@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/instruments/accumulator.hpp.
+description: kiyosi/instruments/accumulator.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -16,11 +16,11 @@ Result<Accumulator> kiyosi::make_accumulator(AccumulatorTerms terms)
 ```
 
 Creates a validated accumulator contract.
-**Parameters**
+**参数**
 
 - `terms` — Contract terms.
 
-**Returns:** The accumulator, or an input-validation error.
+**返回值:** The accumulator, or an input-validation error.
 
 ## `kiyosi::Accumulator`
 
@@ -30,7 +30,7 @@ class kiyosi::Accumulator
 
 Outstanding forward accrual that buys a fixed daily quantity, accelerating below strike and terminating once spot reaches the knock-out level. Do not value an already terminated contract; prices exclude cashflows settled before valuation.
 
-### Members
+### 成员
 
 #### `strike`
 
@@ -96,7 +96,7 @@ struct kiyosi::AccumulatorTerms
 
 Input terms used to construct an `Accumulator`.
 
-### Members
+### 成员
 
 #### `strike`
 

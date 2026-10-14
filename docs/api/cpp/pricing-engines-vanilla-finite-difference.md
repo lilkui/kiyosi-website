@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/pricing/engines/vanilla/finite_difference.hpp.
+description: kiyosi/pricing/engines/vanilla/finite_difference.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -17,7 +17,7 @@ class kiyosi::FiniteDifferenceVanillaEngine
 
 Uniform-grid finite-difference engine for vanilla European and American options. European upper-edge values include exact BSM time value; American edges also permit immediate exercise. Accepts 3..10,000 asset steps and 1..100,000 time steps.
 
-### Members
+### 成员
 
 #### `FiniteDifferenceVanillaEngine`
 
@@ -42,7 +42,7 @@ Result<double> kiyosi::FiniteDifferenceVanillaEngine::price(const EuropeanOption
 ```
 
 Prices a European or American vanilla option.
-**Returns:** Price, or a contract, context, or settings error.
+**返回值:** Price, or a contract, context, or settings error.
 
 #### `price`
 

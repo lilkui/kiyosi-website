@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/instruments/autocallable/phoenix.hpp.
+description: kiyosi/instruments/autocallable/phoenix.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -16,7 +16,7 @@ Result<PhoenixOption> kiyosi::make_phoenix_option(PhoenixTerms terms)
 ```
 
 Creates a validated Phoenix product, owning its supplied terms.
-**Returns:** The option, or an input-validation error with a stable category.
+**返回值:** The option, or an input-validation error with a stable category.
 
 ## `kiyosi::PhoenixTerms`
 
@@ -26,7 +26,7 @@ struct kiyosi::PhoenixTerms
 
 Input terms used to construct a `PhoenixOption`.
 
-### Members
+### 成员
 
 #### `coupon_rate`
 

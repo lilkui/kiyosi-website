@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/pricing/engines/vanilla/integral.hpp.
+description: kiyosi/pricing/engines/vanilla/integral.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -17,7 +17,7 @@ class kiyosi::QuadratureVanillaEngine
 
 Simpson quadrature over the terminal lognormal density.
 
-### Members
+### 成员
 
 #### `price`
 
@@ -26,7 +26,7 @@ Result<double> kiyosi::QuadratureVanillaEngine::price(const EuropeanOption &opti
 ```
 
 Prices a European vanilla option by numerical quadrature.
-**Returns:** Price, or a contract or context error.
+**返回值:** Price, or a contract or context error.
 
 #### `price_with_greeks`
 

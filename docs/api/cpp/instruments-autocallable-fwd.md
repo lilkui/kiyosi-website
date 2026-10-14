@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/instruments/autocallable/fwd.hpp.
+description: kiyosi/instruments/autocallable/fwd.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 

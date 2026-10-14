@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/pricing/implied.hpp.
+description: kiyosi/pricing/implied.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -17,12 +17,12 @@ Result<double> kiyosi::implied_volatility(const Engine &engine, const Option &op
 ```
 
 Uses safeguarded Brent interpolation in volatility; the caller's bounds must bracket the quote. For CRR trees, the interval is intersected with the tree's admissible volatility range.
-**Template parameters**
+**模板参数**
 
 - `Engine` — Pricing engine providing `price(option, context)`.
 - `Option` — Instrument accepted by the engine.
 
-**Parameters**
+**参数**
 
 - `engine` — Pricing engine used for each trial volatility.
 - `option` — Instrument to value.
@@ -30,7 +30,7 @@ Uses safeguarded Brent interpolation in volatility; the caller's bounds must bra
 - `observed_price` — Finite market price to match.
 - `settings` — Positive bounds and convergence controls. Built-in Monte Carlo trials share one seed per solve when the engine has no explicit seed; tolerance applies to that sampled price curve and does not bound sampling error. CPU European Monte Carlo trials reuse per-solve samples with storage linear in path count. CUDA accumulator and autocallable trials reuse a workspace local to each solve. A root is not guaranteed unique; known states with volatility-independent remaining cashflows, including fixed touch payments, are rejected. Built-in autocallable Monte Carlo engines reject fixed cashflows after input validation, before executing a simulation backend.
 
-**Returns:** Implied volatility, or a validation, bracketing, pricing, or convergence error.
+**返回值:** Implied volatility, or a validation, bracketing, pricing, or convergence error.
 
 ## `implied_volatility< AnalyticBarrierEngine, BarrierOption >`
 
@@ -106,7 +106,7 @@ Result<double> kiyosi::implied_coupon(const Engine &engine, const Option &option
 ```
 
 Solves a Snowball engine's price curve in its knock-out coupon.
-**Parameters**
+**参数**
 
 - `engine` — Pricing engine used for each trial coupon.
 - `option` — Snowball-family instrument to value.
@@ -115,7 +115,7 @@ Solves a Snowball engine's price curve in its knock-out coupon.
 - `convention` — Whether the maturity coupon shifts with the quoted coupon.
 - `settings` — Finite coupon bounds and convergence controls. Built-in Monte Carlo trials share one seed per solve when the engine has no explicit seed; tolerance applies to that sampled price curve and does not bound sampling error. Built-in Monte Carlo engines share paths between coupon bounds. Built-in Monte Carlo and FD engines try interpolation, verify its price residual, then bisect if needed. States with no quoted coupon exposure on the engine's sampled price curve are rejected.
 
-**Returns:** Implied coupon, or a validation, bracketing, pricing, or convergence error.
+**返回值:** Implied coupon, or a validation, bracketing, pricing, or convergence error.
 
 ## `implied_coupon`
 
@@ -125,7 +125,7 @@ Result<double> kiyosi::implied_coupon(const Engine &engine, const Option &option
 ```
 
 Solves the engine's price curve in an unambiguous product coupon, such as a Phoenix coupon. Built-in Monte Carlo trials share one seed per solve when the engine has no explicit seed; tolerance applies to that sampled price curve and does not bound sampling error. Built-in Monte Carlo engines share paths between coupon bounds. Built-in Monte Carlo and FD engines try interpolation, verify its price residual, then bisect if needed. States with no quoted coupon exposure on the engine's sampled price curve are rejected.
-**Returns:** Implied coupon, or a validation, bracketing, pricing, or convergence error.
+**返回值:** Implied coupon, or a validation, bracketing, pricing, or convergence error.
 
 ## `implied_coupon`
 

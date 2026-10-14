@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/instruments/vanilla.hpp.
+description: kiyosi/instruments/vanilla.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -32,7 +32,7 @@ Result<EuropeanOption> kiyosi::make_european_option(OptionType option_type, doub
 ```
 
 Creates a validated European vanilla option.
-**Returns:** The option, or an `invalid_option`, `invalid_strike`, `invalid_date`, or `invalid_time_range` error.
+**返回值:** The option, or an `invalid_option`, `invalid_strike`, `invalid_date`, or `invalid_time_range` error.
 
 ## `make_american_option`
 
@@ -41,4 +41,4 @@ Result<AmericanOption> kiyosi::make_american_option(OptionType option_type, doub
 ```
 
 Creates a validated American vanilla option.
-**Returns:** The option, or an `invalid_option`, `invalid_strike`, `invalid_date`, or `invalid_time_range` error.
+**返回值:** The option, or an `invalid_option`, `invalid_strike`, `invalid_date`, or `invalid_time_range` error.

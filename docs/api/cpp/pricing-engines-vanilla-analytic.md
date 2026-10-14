@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/pricing/engines/vanilla/analytic.hpp.
+description: kiyosi/pricing/engines/vanilla/analytic.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -17,7 +17,7 @@ class kiyosi::AnalyticVanillaEngine
 
 Closed-form Black-Scholes-Merton engine for European vanilla options.
 
-### Members
+### 成员
 
 #### `price`
 
@@ -26,7 +26,7 @@ Result<double> kiyosi::AnalyticVanillaEngine::price(const EuropeanOption &option
 ```
 
 Computes only price; returns intrinsic value at expiry_date.
-**Returns:** Price, or a contract or context error.
+**返回值:** Price, or a contract or context error.
 
 #### `price_with_greeks`
 

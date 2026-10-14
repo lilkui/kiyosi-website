@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/instruments/autocallable/note.hpp.
+description: kiyosi/instruments/autocallable/note.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -17,7 +17,7 @@ enum class KnockInObservationMode
 
 Monitoring frequency for an autocallable knock-in barrier.
 
-**Values**
+**枚举值**
 
 - `every_trading_day` — Observe on every trading day in the contract life.
 - `at_expiry` — Observe only at expiry.
@@ -30,7 +30,7 @@ enum class AutocallableBarrierState
 
 Barrier events known before valuation.
 
-**Values**
+**枚举值**
 
 - `none` — No barrier event has occurred.
 - `knocked_out` — The note has already knocked out.
@@ -71,7 +71,7 @@ class kiyosi::AutocallableNote
 
 Complete immutable autocallable product, owning its validated construction terms. Valuation excludes cashflows settled before the valuation time. Principal, coupons and downside components use normalized payoff units and are added independently. Observation views borrow this note. Destruction, moving from, or assignment invalidates them. Convenience getters return owning copies independent of this note. Concurrent const access follows the library default; assignment must not overlap access.
 
-### Members
+### 成员
 
 #### `AutocallableNote`
 
@@ -249,7 +249,7 @@ struct kiyosi::AutocallableObservation
 
 One contractual observation; its date, knock-out level, and coupon terms travel together.
 
-### Members
+### 成员
 
 #### `date`
 

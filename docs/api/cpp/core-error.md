@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/core/error.hpp.
+description: kiyosi/core/error.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -17,7 +17,7 @@ enum class ErrorCategory
 
 Stable categories for errors returned by the public API.
 
-**Values**
+**枚举值**
 
 - `invalid_option= 1` — An option type or combination is unsupported.
 - `invalid_strike= 2` — A strike is non-finite or outside its valid range.
@@ -56,7 +56,7 @@ struct kiyosi::Error
 
 Describes a failed domain or operational result.
 
-### Members
+### 成员
 
 #### `category`
 

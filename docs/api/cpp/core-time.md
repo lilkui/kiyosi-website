@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/core/time.hpp.
+description: kiyosi/core/time.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -32,11 +32,11 @@ bool kiyosi::is_supported_date(Date value) noexcept
 ```
 
 Tests whether a date is representable by `std::chrono::year`.
-**Parameters**
+**参数**
 
 - `value` — `Date` to test.
 
-**Returns:** `true` when `value` is in the supported inclusive civil-date range.
+**返回值:** `true` when `value` is in the supported inclusive civil-date range.
 
 ## `start_of_day`
 
@@ -45,11 +45,11 @@ Timestamp kiyosi::start_of_day(Date value) noexcept
 ```
 
 Converts a date to its midnight timestamp.
-**Parameters**
+**参数**
 
 - `value` — `Date` to convert.
 
-**Returns:** `Timestamp` at the start of `value`.
+**返回值:** `Timestamp` at the start of `value`.
 
 ## `date_of`
 
@@ -58,11 +58,11 @@ Date kiyosi::date_of(Timestamp value) noexcept
 ```
 
 Extracts the civil date containing a timestamp.
-**Parameters**
+**参数**
 
 - `value` — `Timestamp` to convert.
 
-**Returns:** `Date` obtained by flooring `value` to whole days.
+**返回值:** `Date` obtained by flooring `value` to whole days.
 
 ## `validate_instrument_life`
 
@@ -71,7 +71,7 @@ Result<void> kiyosi::validate_instrument_life(Date effective_date, Date expiry_d
 ```
 
 Validates the inclusive dates of an instrument's life.
-**Returns:** Success, `invalid_date` for unsupported dates, or `invalid_time_range` for reversed dates.
+**返回值:** Success, `invalid_date` for unsupported dates, or `invalid_time_range` for reversed dates.
 
 ## `validate_valuation_within_instrument_life`
 
@@ -80,7 +80,7 @@ Result<void> kiyosi::validate_valuation_within_instrument_life(Date valuation_da
 ```
 
 Validates that a valuation date lies within an instrument's inclusive life.
-**Returns:** Success, or an `invalid_date` or `invalid_time_range` error.
+**返回值:** Success, or an `invalid_date` or `invalid_time_range` error.
 
 ## `validate_valuation_within_instrument_life`
 
@@ -89,4 +89,4 @@ Result<void> kiyosi::validate_valuation_within_instrument_life(Timestamp valuati
 ```
 
 Validates that a valuation timestamp lies within an instrument's inclusive life.
-**Returns:** Success, or an `invalid_date` or `invalid_time_range` error.
+**返回值:** Success, or an `invalid_date` or `invalid_time_range` error.

@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/instruments/autocallable/snowball.hpp.
+description: kiyosi/instruments/autocallable/snowball.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -16,7 +16,7 @@ Result<SnowballOption> kiyosi::make_snowball_option(SnowballTerms terms)
 ```
 
 Creates a validated Snowball product, owning its supplied terms.
-**Returns:** The option, or an input-validation error with a stable category.
+**返回值:** The option, or an input-validation error with a stable category.
 
 ## `make_ternary_snowball_option`
 
@@ -25,7 +25,7 @@ Result<TernarySnowballOption> kiyosi::make_ternary_snowball_option(TernarySnowba
 ```
 
 Creates a validated TernarySnowball product, owning its supplied terms.
-**Returns:** The option, or an input-validation error with a stable category.
+**返回值:** The option, or an input-validation error with a stable category.
 
 ## `make_binary_snowball_option`
 
@@ -34,7 +34,7 @@ Result<BinarySnowballOption> kiyosi::make_binary_snowball_option(BinarySnowballT
 ```
 
 Creates a validated BinarySnowball product, owning its supplied terms.
-**Returns:** The option, or an input-validation error with a stable category.
+**返回值:** The option, or an input-validation error with a stable category.
 
 ## `kiyosi::BinarySnowballTerms`
 
@@ -44,7 +44,7 @@ struct kiyosi::BinarySnowballTerms
 
 Input terms used to construct a `BinarySnowballOption`.
 
-### Members
+### 成员
 
 #### `maturity_coupon_rate`
 
@@ -102,7 +102,7 @@ struct kiyosi::SnowballTerms
 
 Input terms used to construct a `SnowballOption`.
 
-### Members
+### 成员
 
 #### `maturity_coupon_rate`
 
@@ -200,7 +200,7 @@ struct kiyosi::TernarySnowballTerms
 
 Input terms used to construct a `TernarySnowballOption`.
 
-### Members
+### 成员
 
 #### `maturity_coupon_rate`
 

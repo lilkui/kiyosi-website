@@ -1,5 +1,5 @@
 ---
-description: Python API reference for kiyosi.pricing.
+description: kiyosi.pricing 的 Python API 参考文档。
 outline: [2, 4]
 ---
 
@@ -24,7 +24,7 @@ windows raise KiyosiError with category UNSUPPORTED_OPERATION. Spot must lie str
 on the unbreached side of the shifted barrier; otherwise the approximation raises
 the same error. Resolved settlements remain supported.
 
-### Constructor
+### 构造函数
 
 Create a stateless pricing engine.
 
@@ -111,7 +111,7 @@ windows raise KiyosiError with category UNSUPPORTED_OPERATION. Spot must lie str
 on the unbreached side of the shifted barrier; otherwise the approximation raises
 the same error. Resolved settlements remain supported.
 
-### Constructor
+### 构造函数
 
 Create a stateless pricing engine.
 
@@ -194,7 +194,7 @@ Stateless pricing engine.
 The engine has no configuration and may be reused across supported instruments
 and contexts. Concurrent calls are safe.
 
-### Constructor
+### 构造函数
 
 Create a stateless pricing engine.
 
@@ -277,7 +277,7 @@ Stateless pricing engine.
 The engine has no configuration and may be reused across supported instruments
 and contexts. Concurrent calls are safe.
 
-### Constructor
+### 构造函数
 
 Create a stateless pricing engine.
 
@@ -358,7 +358,7 @@ Stateless pricing engine.
 The engine has no configuration and may be reused across supported instruments
 and contexts. Concurrent calls are safe.
 
-### Constructor
+### 构造函数
 
 Create a stateless pricing engine.
 
@@ -439,7 +439,7 @@ Stateless pricing engine.
 The engine has no configuration and may be reused across supported instruments
 and contexts. Concurrent calls are safe.
 
-### Constructor
+### 构造函数
 
 Create a stateless pricing engine.
 
@@ -526,7 +526,7 @@ Cox-Ross-Rubinstein binomial vanilla-option engine.
 Configuration is immutable. Settings are stored without domain validation and
 are validated when price() is called.
 
-### Constructor
+### 构造函数
 
 Store Cox-Ross-Rubinstein settings.
 
@@ -622,7 +622,7 @@ Vanilla, digital, and barrier engines accept 3..10,000 asset steps and 1..100,00
 time steps. Accumulator and autocallable engines accept 3..2,000 asset steps and
 1..2,000 time steps. The shared validator checks only the common lower bounds.
 
-### Constructor
+### 构造函数
 
 Store finite-difference settings.
 
@@ -731,7 +731,7 @@ Vanilla, digital, and barrier engines accept 3..10,000 asset steps and 1..100,00
 time steps. Accumulator and autocallable engines accept 3..2,000 asset steps and
 1..2,000 time steps. The shared validator checks only the common lower bounds.
 
-### Constructor
+### 构造函数
 
 Store finite-difference settings.
 
@@ -846,7 +846,7 @@ Vanilla, digital, and barrier engines accept 3..10,000 asset steps and 1..100,00
 time steps. Accumulator and autocallable engines accept 3..2,000 asset steps and
 1..2,000 time steps. The shared validator checks only the common lower bounds.
 
-### Constructor
+### 构造函数
 
 Store finite-difference settings.
 
@@ -955,7 +955,7 @@ Vanilla, digital, and barrier engines accept 3..10,000 asset steps and 1..100,00
 time steps. Accumulator and autocallable engines accept 3..2,000 asset steps and
 1..2,000 time steps. The shared validator checks only the common lower bounds.
 
-### Constructor
+### 构造函数
 
 Store finite-difference settings.
 
@@ -1072,7 +1072,7 @@ Vanilla, digital, and barrier engines accept 3..10,000 asset steps and 1..100,00
 time steps. Accumulator and autocallable engines accept 3..2,000 asset steps and
 1..2,000 time steps. The shared validator checks only the common lower bounds.
 
-### Constructor
+### 构造函数
 
 Store finite-difference settings.
 
@@ -1181,7 +1181,7 @@ Trading-day Monte Carlo engine with immutable configuration.
 Settings are stored without domain validation and are validated when price() is called.
 Accumulator and autocallable engines accept 1..10,000,000 paths.
 
-### Constructor
+### 构造函数
 
 Store Monte Carlo settings.
 
@@ -1282,7 +1282,7 @@ Trading-day Monte Carlo engine with immutable configuration.
 Settings are stored without domain validation and are validated when price() is called.
 Accumulator and autocallable engines accept 1..10,000,000 paths.
 
-### Constructor
+### 构造函数
 
 Store Monte Carlo settings.
 
@@ -1400,7 +1400,7 @@ American calls with nonpositive dividends and nonnegative rates use that distrib
 with an immediate-exercise lower bound. Rate stencils crossing zero retain exercise-grid
 simulations on both sides.
 
-### Constructor
+### 构造函数
 
 Store Monte Carlo settings.
 
@@ -1509,7 +1509,7 @@ Stateless pricing engine.
 The engine has no configuration and may be reused across supported instruments
 and contexts. Concurrent calls are safe.
 
-### Constructor
+### 构造函数
 
 Create a stateless pricing engine.
 
@@ -1592,7 +1592,7 @@ Stateless pricing engine.
 The engine has no configuration and may be reused across supported instruments
 and contexts. Concurrent calls are safe.
 
-### Constructor
+### 构造函数
 
 Create a stateless pricing engine.
 
@@ -1673,7 +1673,7 @@ Stateless pricing engine.
 The engine has no configuration and may be reused across supported instruments
 and contexts. Concurrent calls are safe.
 
-### Constructor
+### 构造函数
 
 Create a stateless pricing engine.
 

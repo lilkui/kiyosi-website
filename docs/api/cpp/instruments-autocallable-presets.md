@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/instruments/autocallable/presets.hpp.
+description: kiyosi/instruments/autocallable/presets.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -24,7 +24,7 @@ Result<SnowballOption> kiyosi::make_standard_snowball(StandardSnowballTerms term
 ```
 
 Creates a standard snowball from named market terms.
-**Returns:** The option, or an input-validation error with a stable category.
+**返回值:** The option, or an input-validation error with a stable category.
 
 ## `make_step_down_snowball`
 
@@ -33,7 +33,7 @@ Result<SnowballOption> kiyosi::make_step_down_snowball(StepDownSnowballTerms ter
 ```
 
 Creates a step-down snowball from named market terms.
-**Returns:** The option, or an input-validation error with a stable category.
+**返回值:** The option, or an input-validation error with a stable category.
 
 ## `make_both_down_snowball`
 
@@ -42,7 +42,7 @@ Result<SnowballOption> kiyosi::make_both_down_snowball(BothDownSnowballTerms ter
 ```
 
 Creates a both-down snowball from named market terms.
-**Returns:** The option, or an input-validation error with a stable category.
+**返回值:** The option, or an input-validation error with a stable category.
 
 ## `make_dual_coupon_snowball`
 
@@ -51,7 +51,7 @@ Result<SnowballOption> kiyosi::make_dual_coupon_snowball(DualCouponSnowballTerms
 ```
 
 Creates a dual-coupon snowball from named market terms.
-**Returns:** The option, or an input-validation error with a stable category.
+**返回值:** The option, or an input-validation error with a stable category.
 
 ## `make_parachute_snowball`
 
@@ -60,7 +60,7 @@ Result<SnowballOption> kiyosi::make_parachute_snowball(ParachuteSnowballTerms te
 ```
 
 Creates a parachute snowball from named market terms.
-**Returns:** The option, or an input-validation error with a stable category.
+**返回值:** The option, or an input-validation error with a stable category.
 
 ## `make_otm_snowball`
 
@@ -69,7 +69,7 @@ Result<SnowballOption> kiyosi::make_otm_snowball(OtmSnowballTerms terms)
 ```
 
 Creates an out-of-the-money snowball from named market terms.
-**Returns:** The option, or an input-validation error with a stable category.
+**返回值:** The option, or an input-validation error with a stable category.
 
 ## `make_loss_capped_snowball`
 
@@ -78,7 +78,7 @@ Result<SnowballOption> kiyosi::make_loss_capped_snowball(LossCappedSnowballTerms
 ```
 
 Creates a loss-capped snowball from named market terms.
-**Returns:** The option, or an input-validation error with a stable category.
+**返回值:** The option, or an input-validation error with a stable category.
 
 ## `make_european_snowball`
 
@@ -87,7 +87,7 @@ Result<SnowballOption> kiyosi::make_european_snowball(EuropeanSnowballTerms term
 ```
 
 Creates a European-knock-in snowball from named market terms.
-**Returns:** The option, or an input-validation error with a stable category.
+**返回值:** The option, or an input-validation error with a stable category.
 
 ## `kiyosi::BothDownSnowballTerms`
 
@@ -97,7 +97,7 @@ struct kiyosi::BothDownSnowballTerms
 
 Terms for a snowball whose coupon and knock-out level both decrease by observation.
 
-### Members
+### 成员
 
 #### `initial_coupon_rate`
 
@@ -195,7 +195,7 @@ struct kiyosi::DualCouponSnowballTerms
 
 Terms for a snowball with distinct knock-out and maturity coupons.
 
-### Members
+### 成员
 
 #### `knock_out_coupon_rate`
 
@@ -285,7 +285,7 @@ struct kiyosi::LossCappedSnowballTerms
 
 Terms for a snowball whose downside participation is capped by a lower strike.
 
-### Members
+### 成员
 
 #### `coupon_rate`
 
@@ -375,7 +375,7 @@ struct kiyosi::OtmSnowballTerms
 
 Terms for a snowball with an out-of-the-money upper settlement strike.
 
-### Members
+### 成员
 
 #### `coupon_rate`
 
@@ -465,7 +465,7 @@ struct kiyosi::ParachuteSnowballTerms
 
 Terms for a snowball with a distinct final knock-out level.
 
-### Members
+### 成员
 
 #### `coupon_rate`
 
@@ -557,7 +557,7 @@ Terms for a constant-coupon, constant-knock-out snowball preset.
 
 Named market conventions layered over make_snowball_option; each one only shapes the coupon and knock-out ladders before delegating to the authoritative factory.
 
-### Members
+### 成员
 
 #### `coupon_rate`
 
@@ -639,7 +639,7 @@ struct kiyosi::StepDownSnowballTerms
 
 Terms for a snowball whose knock-out level decreases by observation.
 
-### Members
+### 成员
 
 #### `coupon_rate`
 

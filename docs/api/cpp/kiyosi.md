@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/kiyosi.hpp.
+description: kiyosi/kiyosi.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 

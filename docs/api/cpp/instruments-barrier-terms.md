@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/instruments/barrier/terms.hpp.
+description: kiyosi/instruments/barrier/terms.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -17,7 +17,7 @@ enum class BarrierType
 
 Direction and activation behavior of a barrier.
 
-**Values**
+**枚举值**
 
 - `up_and_in` — Activates when spot reaches or exceeds the barrier.
 - `up_and_out` — Terminates when spot reaches or exceeds the barrier.
@@ -32,7 +32,7 @@ enum class ObservationMode
 
 Barrier monitoring frequency.
 
-**Values**
+**枚举值**
 
 - `continuous` — Monitor continuously throughout the contract life.
 - `scheduled` — Monitor only at 00:00 UTC on explicit observation dates.
@@ -45,7 +45,7 @@ enum class BarrierTouchState
 
 Barrier observations strictly before the valuation time.
 
-**Values**
+**枚举值**
 
 - `untouched` — No prior observation breached the barrier.
 - `touched` — A prior observation breached the barrier.
@@ -58,7 +58,7 @@ enum class RebateTiming
 
 Payment timing for a barrier-option rebate.
 
-**Values**
+**枚举值**
 
 - `at_hit` — Pay when the barrier is hit.
 - `at_expiry` — Pay at contract expiry.
@@ -71,7 +71,7 @@ enum class SettlementTiming
 
 Settlement timing for a touch option.
 
-**Values**
+**枚举值**
 
 - `at_hit` — Settle when the barrier is hit.
 - `at_expiry` — Settle at contract expiry.
@@ -83,7 +83,7 @@ bool kiyosi::is_up_barrier(BarrierType kind) noexcept
 ```
 
 Tests whether a barrier is triggered by upward spot movement.
-**Returns:** `true` for up-and-in and up-and-out barriers.
+**返回值:** `true` for up-and-in and up-and-out barriers.
 
 ## `is_knock_in_barrier`
 
@@ -92,7 +92,7 @@ bool kiyosi::is_knock_in_barrier(BarrierType kind) noexcept
 ```
 
 Tests whether a barrier activates rather than terminates the contract.
-**Returns:** `true` for up-and-in and down-and-in barriers.
+**返回值:** `true` for up-and-in and down-and-in barriers.
 
 ## `kiyosi::BarrierTerms`
 
@@ -102,7 +102,7 @@ class kiyosi::BarrierTerms
 
 Trigger level, knock direction, and monitoring schedule shared by every barrier contract.
 
-### Members
+### 成员
 
 #### `barrier_level`
 
@@ -215,11 +215,11 @@ bool kiyosi::BarrierTerms::is_monitored_on(Date date) const noexcept
 ```
 
 Tests whether the barrier is monitored on a date.
-**Parameters**
+**参数**
 
 - `date` — `Date` to test.
 
-**Returns:** `true` within the contract life for continuous monitoring, or on a scheduled observation date.
+**返回值:** `true` within the contract life for continuous monitoring, or on a scheduled observation date.
 
 #### `is_monitored_at`
 
@@ -236,8 +236,8 @@ bool kiyosi::BarrierTerms::is_breached_by(double spot) const noexcept
 ```
 
 Tests whether a spot lies on the triggered side of the barrier.
-**Parameters**
+**参数**
 
 - `spot` — Spot value to test.
 
-**Returns:** `true` when `spot` breaches the barrier.
+**返回值:** `true` when `spot` breaches the barrier.

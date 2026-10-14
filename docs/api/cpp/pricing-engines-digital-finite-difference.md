@@ -1,5 +1,5 @@
 ---
-description: C++ API declarations from kiyosi/pricing/engines/digital/finite_difference.hpp.
+description: kiyosi/pricing/engines/digital/finite_difference.hpp 中的 C++ API 声明。
 outline: [2, 4]
 ---
 
@@ -17,7 +17,7 @@ class kiyosi::FiniteDifferenceDigitalEngine
 
 Uniform-grid finite-difference engine for European digital options. Upper-edge values use BSM exercise probabilities at each time step. Accepts 3..10,000 asset steps and 1..100,000 time steps. Prices materially outside the non-negative payoff bounds return `invalid_result`.
 
-### Members
+### 成员
 
 #### `FiniteDifferenceDigitalEngine`
 
@@ -42,7 +42,7 @@ Result<double> kiyosi::FiniteDifferenceDigitalEngine::price(const CashOrNothingO
 ```
 
 Prices a European cash-or-nothing or asset-or-nothing option.
-**Returns:** Price, or a contract, context, or settings error.
+**返回值:** Price, or a contract, context, or settings error.
 
 #### `price`
 
