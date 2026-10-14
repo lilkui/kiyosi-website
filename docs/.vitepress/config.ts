@@ -51,7 +51,7 @@ export default defineConfig({
     siteTitle: 'kiyosi',
     nav: [
       { text: '使用指南', link: '/guide/introduction', activeMatch: '/guide/' },
-      { text: 'API 参考（英文）', link: '/api/', activeMatch: '/api/' },
+      { text: 'API 参考', link: '/api/', activeMatch: '/api/' },
     ],
     sidebar: [
       {
@@ -71,7 +71,7 @@ export default defineConfig({
         ],
       },
       {
-        text: 'API 参考（英文）',
+        text: 'API 参考',
         items: [
           { text: '概览', link: '/api/' },
           { text: 'C++ API', link: '/api/cpp/' },
