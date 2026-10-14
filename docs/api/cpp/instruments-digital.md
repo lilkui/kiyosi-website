@@ -31,7 +31,7 @@ European option paying the underlying asset when it expires in the money.
 Result<CashOrNothingOption> kiyosi::make_cash_or_nothing_option(OptionType option_type, double strike, double payout, Date effective_date, Date expiry_date)
 ```
 
-Creates a validated cash-or-nothing European option. 
+Creates a validated cash-or-nothing European option.
 **Parameters**
 
 - `option_type` — Call-or-put direction.
@@ -48,5 +48,5 @@ Creates a validated cash-or-nothing European option.
 Result<AssetOrNothingOption> kiyosi::make_asset_or_nothing_option(OptionType option_type, double strike, Date effective_date, Date expiry_date)
 ```
 
-Creates a validated asset-or-nothing European option. 
+Creates a validated asset-or-nothing European option.
 **Returns:** The option, or an input-validation error.

@@ -15,7 +15,7 @@ outline: [2, 4]
 class kiyosi::MonteCarloAccumulatorEngine
 ```
 
-Simulates the trading-day accrual, terminating each path at the knock-out level.
+Simulates the trading-day accrual, terminating each path at the knock-out level. Accepts 1..10,000,000 paths.
 
 ### Members
 
@@ -38,11 +38,19 @@ Creates an engine with explicit path count, seed, and backend.
 #### `price`
 
 ```cpp
-Result<PricingResult> kiyosi::MonteCarloAccumulatorEngine::price(const Accumulator &, const PricingContext &) const
+Result<double> kiyosi::MonteCarloAccumulatorEngine::price(const Accumulator &option, const PricingContext &context) const
 ```
 
-Prices an accumulator by Monte Carlo simulation. 
-**Returns:** Pricing measures, or a contract, context, settings, or backend error.
+Prices an accumulator by Monte Carlo simulation.
+**Returns:** Price, or a contract, context, settings, or backend error.
+
+#### `price_with_greeks`
+
+```cpp
+Result<PricingResult> kiyosi::MonteCarloAccumulatorEngine::price_with_greeks(const Accumulator &option, const PricingContext &context, GreeksRequest greeks, NumericalShiftSettings settings={}) const
+```
+
+Prices with the explicitly requested Greeks; unavailable measures remain empty. CPU spot bumps share per-call random draws and growth factors with storage independent of path count.
 
 #### `settings`
 

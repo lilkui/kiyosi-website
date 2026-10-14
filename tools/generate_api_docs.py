@@ -10,6 +10,7 @@ import shutil
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 from pathlib import Path
+from typing import get_origin
 
 PYTHON_MODULES = ("kiyosi", "kiyosi.instruments", "kiyosi.market", "kiyosi.pricing")
 PROTOCOL_METHODS = {"__contains__", "__getitem__", "__iter__", "__len__"}
@@ -101,6 +102,7 @@ def render_description(node: ET.Element | None) -> str:
     rendered = "".join(markdown_node(child) for child in node)
     if node.text and node.text.strip():
         rendered = node.text.strip() + rendered
+    rendered = re.sub(r"[ \t]+\n", "\n", rendered)
     return re.sub(r"\n{3,}", "\n\n", rendered).strip()
 
 
@@ -222,8 +224,12 @@ def source_path(node: ET.Element) -> str | None:
     if location is None:
         return None
     file_name = (location.get("file") or "").replace("\\", "/")
+    if "/detail/" in file_name:
+        return None
     if "include/" in file_name:
         return file_name[file_name.index("include/") :]
+    if file_name.startswith("kiyosi/"):
+        return "include/" + file_name
     generated_marker = "/generated/kiyosi/"
     if generated_marker in file_name:
         return "include/kiyosi/" + file_name.split(generated_marker, 1)[1]
@@ -280,6 +286,8 @@ def generate_cpp(xml_dir: Path, output: Path) -> int:
             continue
         headers[header]["compounds"].append(compound)
 
+    if not headers:
+        raise RuntimeError("No public kiyosi headers found in Doxygen XML")
     cpp_dir = output / "cpp"
     cpp_dir.mkdir(parents=True, exist_ok=True)
     index_lines = [
@@ -393,7 +401,7 @@ def python_doc_markdown(doc: str, heading_level: int = 4) -> str:
             output.append(line)
         index += 1
     rendered = "\n".join(output).strip()
-    return re.sub(r":(?:class|func|meth|attr):`([^`]+)`", r"`\1`", rendered)
+    return re.sub(r":(?:class|func|meth|attr|mod):`([^`]+)`", r"`\1`", rendered)
 
 
 def display_signature(signature: str) -> str:
@@ -479,12 +487,16 @@ def generate_python(output: Path) -> int:
         "",
         "# Python API reference",
         "",
-        "The pages below are generated from each public module's `__all__`, runtime signatures, and docstrings, including native nanobind objects.",
+        "The pages below are generated from each public module's exports (`__all__` when declared, otherwise public names), runtime signatures, and docstrings, including native nanobind objects.",
         "",
     ]
     for module_name in PYTHON_MODULES:
         module = importlib.import_module(module_name)
-        names = list(module.__all__)
+        names = (
+            list(module.__all__)
+            if hasattr(module, "__all__")
+            else [name for name in vars(module) if not name.startswith("_")]
+        )
         missing = [name for name in names if not hasattr(module, name)]
         if missing:
             raise RuntimeError(
@@ -503,12 +515,12 @@ def generate_python(output: Path) -> int:
         ]
         module_doc = inspect.getdoc(module)
         if module_doc:
-            page.extend((module_doc, ""))
+            page.extend((python_doc_markdown(module_doc, heading_level=2), ""))
         for name in names:
             obj = getattr(module, name)
             if inspect.isclass(obj):
                 page.append(class_markdown(name, obj))
-            elif callable(obj):
+            elif callable(obj) and get_origin(obj) is None:
                 signatures, body = callable_signature(obj, name)
                 page.extend((f"## `{name}`", ""))
                 if signatures:
@@ -530,19 +542,21 @@ def generate_python(output: Path) -> int:
 
 def write_overview(output: Path) -> None:
     (output / "index.md").write_text(
-        """---
-description: Complete generated C++ and Python API reference for kiyosi.
+        f"""---
+description: 自动生成的 kiyosi C++ 和 Python API 完整参考文档。
 ---
 
-# API reference
+# API 参考
 
-This reference is generated from the library's public C++ headers and installed Python API.
+本参考文档根据 kiyosi 的公开 C++ 头文件和已安装的 Python API 自动生成。
 
-- [C++ API](./cpp/) — declarations and Doxygen comments from every public header.
-- [Python API](./python/) — public exports, signatures, members, and docstrings.
+kiyosi 版本：**{importlib.import_module('kiyosi').__version__}**。
 
-::: warning Alpha API
-Kiyosi currently makes no backward-compatibility guarantees. Regenerate these pages after updating the library.
+- [C++ API](./cpp/)：各公开头文件中的声明和 Doxygen 注释。
+- [Python API](./python/)：公开导出对象、签名、成员和文档字符串。
+
+::: warning 早期开发阶段
+Kiyosi 当前不保证 API 向后兼容。更新库后，请重新生成这些参考页面。
 :::
 """,
         encoding="utf-8",

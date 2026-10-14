@@ -1,19 +1,19 @@
 ---
-description: Build and install the kiyosi C++23 library, then consume its exported CMake target.
+description: 构建并安装 kiyosi C++23 库，通过导出的 CMake 目标将其链接到应用程序。
 ---
 
-# Build the C++ library
+# 构建 C++ 库
 
-## Prerequisites
+## 准备工作 {#prerequisites}
 
-Install CMake 3.28 or newer, Ninja, and a C++23-capable compiler. Clone the source repository and run the following commands from its root:
+先安装 CMake 3.28 或更高版本、Ninja，以及支持 C++23 的编译器，再克隆源码仓库并进入仓库根目录：
 
 ```sh
 git clone https://github.com/lilkui/kiyosi.git
 cd kiyosi
 ```
 
-## Configure, build, and test
+## 配置、构建与测试 {#configure-build-and-test}
 
 ::: code-group
 
@@ -33,25 +33,40 @@ cmake --install out/build/windows-release
 
 :::
 
-On Windows, use a **Visual Studio Developer PowerShell** so the compiler toolchain is available. For a custom install directory, pass `--prefix <directory>` to `cmake --install`.
+Windows 下请在 **Visual Studio Developer PowerShell** 中运行这些命令，确保编译工具链可用。如需指定安装目录，可在 `cmake --install` 后添加 `--prefix <directory>`。
 
-## Link your application
+## 链接到应用程序 {#link-your-application}
 
-After installing kiyosi, add these lines after creating your application's `my_app` target:
+安装 kiyosi 后，在应用程序的 CMake 配置中创建 `my_app` 目标，再添加以下配置：
 
 ```cmake
 find_package(kiyosi CONFIG REQUIRED)
 target_link_libraries(my_app PRIVATE kiyosi::kiyosi)
 ```
 
-If CMake cannot locate the package, add your installation prefix to `CMAKE_PREFIX_PATH` when configuring the consuming application.
+如果 CMake 找不到该包，请在配置应用程序时将 kiyosi 的安装前缀加入 `CMAKE_PREFIX_PATH`。
 
-Include the umbrella header:
+在代码中包含统一入口头文件：
 
 ```cpp
 #include <kiyosi/kiyosi.hpp>
 ```
 
-The [all-pricing-engines example](https://github.com/lilkui/kiyosi/blob/main/examples/all_pricing_engines.cpp) demonstrates the native API across instrument families.
+[定价测试](https://github.com/lilkui/kiyosi/tree/main/tests/pricing)包含使用原生 API 为不同类型金融工具定价的示例。
 
-Source: [kiyosi C++ build instructions](https://github.com/lilkui/kiyosi#c-library) and [CMake presets](https://github.com/lilkui/kiyosi/blob/main/CMakePresets.json).
+核心库不依赖 Python 或 nanobind，可以独立构建、安装和使用。当前版本的 `price()` 返回 `Result<double>`。需要计算 Greeks 时，调用 `price_with_greeks()` 并传入 `GreeksRequest`。接口和线程安全约定见 [C++ API 参考](/api/cpp/)。
+
+## 生成 Doxygen XML {#generate-doxygen-xml}
+
+安装 Doxygen 后，可在单独的构建目录中生成 XML：
+
+```sh
+cmake -S . -B out/build/docs -DBUILD_TESTING=OFF -DKIYOSI_BUILD_DOCS=ON
+cmake --build out/build/docs --target kiyosi-doxygen
+```
+
+入口文件为 `out/build/docs/docs/xml/index.xml`。启用 `KIYOSI_BUILD_DOCS` 后，默认构建也会生成 XML。生成 XML 无需编译核心库，也不需要 Graphviz 或 Python。此选项默认关闭，普通构建无需 Doxygen。Windows 下仍需先打开 Visual Studio Developer PowerShell。
+
+本网站的 C++ API 页面由这些 XML 转换生成，内容对应 kiyosi 0.10.0。结构化产品头文件目前位于 `kiyosi/instruments/autocallable/`，对应引擎位于 `kiyosi/pricing/engines/autocallable/`。
+
+来源：[kiyosi C++ 构建配置](https://github.com/lilkui/kiyosi/blob/main/CMakeLists.txt)和 [CMake 预设](https://github.com/lilkui/kiyosi/blob/main/CMakePresets.json)。

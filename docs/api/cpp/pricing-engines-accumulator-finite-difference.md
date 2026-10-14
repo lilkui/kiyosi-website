@@ -15,7 +15,7 @@ outline: [2, 4]
 class kiyosi::FiniteDifferenceAccumulatorEngine
 ```
 
-Marches the accrual value back as an affine function of the accumulated quantity, so a single sweep prices every opening position.
+Marches the accrual value back as an affine function of the accumulated quantity, so a single sweep prices every opening position. Accepts 3..2,000 asset steps and 1..2,000 time steps.
 
 ### Members
 
@@ -38,11 +38,19 @@ Creates an engine with explicit grid dimensions and scheme.
 #### `price`
 
 ```cpp
-Result<PricingResult> kiyosi::FiniteDifferenceAccumulatorEngine::price(const Accumulator &, const PricingContext &) const
+Result<double> kiyosi::FiniteDifferenceAccumulatorEngine::price(const Accumulator &option, const PricingContext &context) const
 ```
 
-Prices an accumulator by finite differences. 
-**Returns:** Pricing measures, or a contract, context, or settings error.
+Prices an accumulator by finite differences.
+**Returns:** Price, or a contract, context, or settings error.
+
+#### `price_with_greeks`
+
+```cpp
+Result<PricingResult> kiyosi::FiniteDifferenceAccumulatorEngine::price_with_greeks(const Accumulator &option, const PricingContext &context, GreeksRequest greeks, NumericalShiftSettings settings={}) const
+```
+
+Prices with the explicitly requested Greeks; unavailable measures remain empty. Delta, gamma, and speed reuse the solved layers; vanna/zomma and charm/color difference native delta/gamma shifted in volatility and time. Other measures use numerical price differences.
 
 #### `settings`
 

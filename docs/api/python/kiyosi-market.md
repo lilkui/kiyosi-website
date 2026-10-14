@@ -13,16 +13,7 @@ Market snapshots, calendars, and observation schedules.
 BlackScholesMertonParameters(self, *, risk_free_rate: float, dividend_yield: float, volatility: float) -> None
 ```
 
-Validated Black-Scholes-Merton market parameters.
-
-Parameters are continuously compounded decimal rates and an annualized decimal
-volatility. Instances are immutable value objects.
-
-#### Attributes
-
-- **`risk_free_rate`** (`float`) — Continuously compounded annual risk-free rate.
-- **`dividend_yield`** (`float`) — Continuously compounded annual dividend yield.
-- **`volatility`** (`float`) — Positive annualized volatility.
+Immutable validated Black-Scholes-Merton market parameters.
 
 ### Constructor
 
@@ -51,16 +42,18 @@ Continuously compounded annual dividend yield.
 
 Positive annualized volatility.
 
+## `BusinessDayConvention`
+
+```python
+BusinessDayConvention = typing.Literal['following', 'preceding']
+```
+
 ## `ObservationSchedule`
 
 Immutable ordered observation dates.
 
 The sequence supports ``len(schedule)``, integer indexing, negative indexing,
-and iteration.
-
-#### Attributes
-
-- **`dates`** (`list[datetime.date]`) — Copy of the ordered observation dates.
+and lazy iteration. Iterators retain the immutable schedule until exhausted.
 
 ### `__len__`
 
@@ -90,15 +83,7 @@ Copy of the ordered observation dates.
 PricingContext(self, *, model_parameters: BlackScholesMertonParameters, spot_price: float, valuation_time: datetime.date | datetime.datetime, calendar: TradingCalendar = TradingCalendar(trading_days_per_year=252)) -> None
 ```
 
-Validated market state for a valuation instant.
-
-#### Attributes
-
-- **`model_parameters`** (`BlackScholesMertonParameters`) — Read-only parameters view tied to this context's lifetime.
-- **`spot_price`** (`float`) — Positive underlying spot price.
-- **`valuation_date`** (`datetime.date`) — UTC calendar date containing the valuation instant.
-- **`valuation_time`** (`datetime.datetime`) — Timezone-aware valuation timestamp normalized to UTC.
-- **`calendar`** (`TradingCalendar`) — Read-only calendar view tied to this context's lifetime.
+Immutable validated market state for a valuation instant.
 
 ### Constructor
 
@@ -108,7 +93,7 @@ Create a validated pricing context.
 
 - **`model_parameters`** (`BlackScholesMertonParameters`) — Black-Scholes-Merton market parameters.
 - **`spot_price`** (`float`) — Positive underlying spot price.
-- **`valuation_time`** (`datetime.date or datetime.datetime`) — Valuation instant. Dates denote midnight UTC; datetimes must be timezone aware and are normalized to UTC.
+- **`valuation_time`** (`datetime.date or datetime.datetime`) — Valuation instant. Dates denote midnight UTC; datetimes must be timezone aware and are normalized to UTC. Date and datetime subclasses use their stored built-in components and timezone conversion.
 - **`calendar`** (`TradingCalendar, optional`) — Trading calendar. Defaults to `weekdays_calendar`.
 #### Raises
 
@@ -142,10 +127,6 @@ Read-only trading-day calendar.
 Instances are created by `all_days_calendar`, `weekdays_calendar`,
 or `sse_calendar`.
 
-#### Attributes
-
-- **`trading_days_per_year`** (`int`) — Annualization denominator used for trading-year fractions.
-
 ### `is_trading_day`
 
 ```python
@@ -163,6 +144,14 @@ Return whether a date is a trading day.
 #### Raises
 
 - `TypeError` — If ``value`` is not a `datetime.date`.
+
+### `adjust`
+
+```python
+adjust(self, nominal: datetime.date, convention: typing.Literal['following', 'preceding']) -> datetime.date
+```
+
+Adjust a nominal date to a trading day using ``'following'`` or ``'preceding'``.
 
 ### `trading_days_between`
 
@@ -264,6 +253,7 @@ Build a monthly observation schedule after a lock-up period.
 Monthly candidates begin at ``start + lock_up_months``. ``start`` is excluded
 and ``end`` is an inclusive bound. The start day is clamped to each target
 month's last day, then candidates use following trading-day adjustment.
+Duplicate adjusted dates are merged, as in fixed-interval schedules.
 Generation stops rather than crossing ``end``, so ``end`` is not guaranteed.
 
 #### Parameters
@@ -295,9 +285,13 @@ sse_calendar() -> TradingCalendar
 
 Return the Shanghai Stock Exchange holiday calendar.
 
+The bundled table uses XSHG recorded closures followed by estimated closures
+through 2099. The estimate does not predict future one-off changes. Outside the
+table range, queries use weekdays without exchange holidays.
+
 #### Returns
 
-- `TradingCalendar` — Exchange calendar with 252 annual trading days.
+- `TradingCalendar` — Exchange calendar with 243 annual trading days.
 
 ## `weekdays_calendar`
 

@@ -22,9 +22,16 @@ Closed-form Black-Scholes-Merton engine for European vanilla options.
 #### `price`
 
 ```cpp
-template <OptionPayoff Payoff, OptionExercise Exercise>
-Result<PricingResult> kiyosi::AnalyticVanillaEngine::price(const ExerciseBasedOption<Payoff, Exercise> &option, const PricingContext &context) const
+Result<double> kiyosi::AnalyticVanillaEngine::price(const EuropeanOption &option, const PricingContext &context) const
 ```
 
-Returns intrinsic value with Greeks unavailable when valued at expiry_date. 
-**Returns:** Pricing measures, or a contract or context error.
+Computes only price; returns intrinsic value at expiry_date.
+**Returns:** Price, or a contract or context error.
+
+#### `price_with_greeks`
+
+```cpp
+Result<PricingResult> kiyosi::AnalyticVanillaEngine::price_with_greeks(const EuropeanOption &option, const PricingContext &context, GreeksRequest greeks, NumericalShiftSettings settings={}) const
+```
+
+Prices with the explicitly requested Greeks; unavailable measures remain empty.

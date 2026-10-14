@@ -12,8 +12,8 @@ outline: [2, 4]
 ## `sse_calendar`
 
 ```cpp
-KIYOSI_EXPORT TradingCalendar kiyosi::sse_calendar()
+TradingCalendar kiyosi::sse_calendar()
 ```
 
-Shanghai Stock Exchange: weekdays excluding the published mainland holiday closures. 
-**Returns:** The SSE trading calendar with a 252-day annualization basis.
+Shanghai Stock Exchange: weekdays excluding recorded XSHG and forecast holidays. The table spans 1991..2099; dates beyond the upstream list are estimates. Outside that span, queries fall back to a holiday-unaware weekday calendar.
+**Returns:** The SSE trading calendar with a 243-day annualization basis.

@@ -36,7 +36,7 @@ Cash-or-nothing or asset-or-nothing payoff.
 PayoffType kiyosi::payoff_type(const BinaryPayoff &payoff) noexcept
 ```
 
-Identifies the denomination of a binary payoff. 
+Identifies the denomination of a binary payoff.
 **Parameters**
 
 - `payoff` — Payoff to inspect.
@@ -84,4 +84,4 @@ template <typename Value>
 concept kiyosi::OptionPayoff
 ```
 
-Requirement for a value type used as an option payoff tag.
+Payoff tags whose semantics are defined by the core.

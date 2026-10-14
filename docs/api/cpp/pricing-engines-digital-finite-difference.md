@@ -15,7 +15,7 @@ outline: [2, 4]
 class kiyosi::FiniteDifferenceDigitalEngine
 ```
 
-Uniform-grid finite-difference engine for European digital options.
+Uniform-grid finite-difference engine for European digital options. Upper-edge values use BSM exercise probabilities at each time step. Accepts 3..10,000 asset steps and 1..100,000 time steps. Prices materially outside the non-negative payoff bounds return `invalid_result`.
 
 ### Members
 
@@ -38,12 +38,31 @@ Creates an engine with explicit grid dimensions and scheme.
 #### `price`
 
 ```cpp
-template <OptionPayoff Payoff, OptionExercise Exercise>
-Result<PricingResult> kiyosi::FiniteDifferenceDigitalEngine::price(const ExerciseBasedOption<Payoff, Exercise> &option, const PricingContext &context) const
+Result<double> kiyosi::FiniteDifferenceDigitalEngine::price(const CashOrNothingOption &option, const PricingContext &context) const
 ```
 
-Prices a European cash-or-nothing or asset-or-nothing option. 
-**Returns:** Pricing measures, or a contract, context, or settings error.
+Prices a European cash-or-nothing or asset-or-nothing option.
+**Returns:** Price, or a contract, context, or settings error.
+
+#### `price`
+
+```cpp
+Result<double> kiyosi::FiniteDifferenceDigitalEngine::price(const AssetOrNothingOption &option, const PricingContext &context) const
+```
+
+#### `price_with_greeks`
+
+```cpp
+Result<PricingResult> kiyosi::FiniteDifferenceDigitalEngine::price_with_greeks(const CashOrNothingOption &option, const PricingContext &context, GreeksRequest greeks, NumericalShiftSettings settings={}) const
+```
+
+Prices with the explicitly requested Greeks; unavailable measures remain empty. Delta, gamma, and speed reuse the solved layer.
+
+#### `price_with_greeks`
+
+```cpp
+Result<PricingResult> kiyosi::FiniteDifferenceDigitalEngine::price_with_greeks(const AssetOrNothingOption &option, const PricingContext &context, GreeksRequest greeks, NumericalShiftSettings settings={}) const
+```
 
 #### `settings`
 

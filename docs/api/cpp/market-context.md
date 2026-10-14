@@ -15,7 +15,7 @@ outline: [2, 4]
 Result<PricingContext> kiyosi::make_pricing_context(BlackScholesMertonParameters model_parameters, double spot_price, Timestamp valuation_time, TradingCalendar calendar)
 ```
 
-Creates a pricing context at an intraday valuation time with an explicit calendar. 
+Creates a pricing context at an intraday valuation time with an explicit calendar.
 **Returns:** The context, or an `invalid_spot_price` or `invalid_date` error.
 
 ## `make_pricing_context`
@@ -24,7 +24,7 @@ Creates a pricing context at an intraday valuation time with an explicit calenda
 Result<PricingContext> kiyosi::make_pricing_context(BlackScholesMertonParameters model_parameters, double spot_price, Timestamp valuation_time)
 ```
 
-Creates a pricing context at an intraday valuation time using `weekdays_calendar()`. 
+Creates a pricing context at an intraday valuation time using `weekdays_calendar()`.
 **Returns:** The context, or an `invalid_spot_price` or `invalid_date` error.
 
 ## `make_pricing_context`
@@ -33,7 +33,7 @@ Creates a pricing context at an intraday valuation time using `weekdays_calendar
 Result<PricingContext> kiyosi::make_pricing_context(BlackScholesMertonParameters model_parameters, double spot_price, Date valuation_date, TradingCalendar calendar)
 ```
 
-Creates a midnight pricing context for a date with an explicit calendar. 
+Creates a midnight pricing context for a date with an explicit calendar.
 **Returns:** The context, or an `invalid_spot_price` or `invalid_date` error.
 
 ## `make_pricing_context`
@@ -42,7 +42,7 @@ Creates a midnight pricing context for a date with an explicit calendar.
 Result<PricingContext> kiyosi::make_pricing_context(BlackScholesMertonParameters model_parameters, double spot_price, Date valuation_date)
 ```
 
-Creates a midnight pricing context for a date using `weekdays_calendar()`. 
+Creates a midnight pricing context for a date using `weekdays_calendar()`.
 **Returns:** The context, or an `invalid_spot_price` or `invalid_date` error.
 
 ## `kiyosi::PricingContext`

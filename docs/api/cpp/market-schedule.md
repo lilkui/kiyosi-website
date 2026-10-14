@@ -15,17 +15,8 @@ outline: [2, 4]
 Result<void> kiyosi::validate_date_schedule(std::span<const Date> observation_dates, Date instrument_start, Date instrument_end)
 ```
 
-Validates ordering and instrument-life bounds for a date schedule. 
-**Returns:** Success, or an `invalid_date` error.
-
-## `validate_observation_date`
-
-```cpp
-Result<void> kiyosi::validate_observation_date(Date observation_date, Date instrument_start, Date instrument_end, const TradingCalendar &calendar)
-```
-
-Validates one observation date against an instrument life and calendar. 
-**Returns:** Success, or an `invalid_date` error.
+Validates ordering and instrument-life bounds for a date schedule.
+**Returns:** Success, or `invalid_date`, `invalid_time_range`, or `invalid_schedule`.
 
 ## `validate_observation_dates`
 
@@ -33,8 +24,8 @@ Validates one observation date against an instrument life and calendar.
 Result<void> kiyosi::validate_observation_dates(std::span<const Date> observation_dates, Date instrument_start, Date instrument_end, const TradingCalendar &calendar)
 ```
 
-Validates ordering, life bounds, and trading-day status for observation dates. 
-**Returns:** Success, or an `invalid_date` error.
+Validates ordering, life bounds, and trading-day status for observation dates.
+**Returns:** Success, or `invalid_date`, `invalid_time_range`, or `invalid_schedule`.
 
 ## `kiyosi::ObservationSchedule`
 
