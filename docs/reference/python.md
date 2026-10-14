@@ -4,7 +4,7 @@ description: 了解 kiyosi 的 instruments、market 和 pricing 三个 Python �
 
 # Python API 概览
 
-所有公开导出对象的签名、成员、异常和文档字符串，均可在[完整 Python API 参考（英文）](/api/python/)中查阅。这部分参考文档由工具自动生成，保留英文以与源码文档保持一致。
+所有公开导出对象的签名、成员、异常和文档字符串，均可在[完整 Python API 参考](/api/python/)中查阅。这部分参考文档由工具自动生成，保留英文以与源码文档保持一致。
 
 本页对应 **kiyosi 0.10.0**。公开 Python API 主要分布在三个模块中；包根目录还提供 `Greek`、`PricingResult`、`KiyosiError`、`ErrorCategory` 和 `__version__`。
 
