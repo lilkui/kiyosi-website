@@ -1,14 +1,16 @@
 ---
-description: Complete generated C++ and Python API reference for kiyosi.
+description: 自动生成的 kiyosi C++ 和 Python API 完整参考文档。
 ---
 
-# API reference
+# API 参考
 
-This reference is generated from the library's public C++ headers and installed Python API.
+本参考文档根据 kiyosi 的公开 C++ 头文件和已安装的 Python API 自动生成。
 
-- [C++ API](./cpp/) — declarations and Doxygen comments from every public header.
-- [Python API](./python/) — public exports, signatures, members, and docstrings.
+kiyosi 版本：**0.10.0**。
 
-::: warning Alpha API
-Kiyosi currently makes no backward-compatibility guarantees. Regenerate these pages after updating the library.
+- [C++ API](./cpp/)：各公开头文件中的声明和 Doxygen 注释。
+- [Python API](./python/)：公开导出对象、签名、成员和文档字符串。
+
+::: warning 早期开发阶段
+Kiyosi 当前不保证 API 向后兼容。更新库后，请重新生成这些参考页面。
 :::

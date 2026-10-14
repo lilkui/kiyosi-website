@@ -9,13 +9,29 @@ outline: [2, 4]
 #include <kiyosi/instruments/barrier/binary.hpp>
 ```
 
+## `default_touch_observation_mode`
+
+```cpp
+ObservationMode kiyosi::default_touch_observation_mode
+```
+
+Default monitoring frequency for Touch factories.
+
+## `default_one_touch_settlement_timing`
+
+```cpp
+SettlementTiming kiyosi::default_one_touch_settlement_timing
+```
+
+Default settlement timing for one-touch factories.
+
 ## `make_cash_binary_barrier_option`
 
 ```cpp
 Result<BinaryBarrierOption> kiyosi::make_cash_binary_barrier_option(BinaryBarrierTerms terms, double payout)
 ```
 
-Creates a validated cash-paying binary barrier option. 
+Creates a validated cash-paying binary barrier option.
 **Parameters**
 
 - `terms` — Strike, life, and barrier terms.
@@ -29,79 +45,79 @@ Creates a validated cash-paying binary barrier option.
 Result<BinaryBarrierOption> kiyosi::make_asset_binary_barrier_option(BinaryBarrierTerms terms)
 ```
 
-Creates a validated asset-paying binary barrier option. 
+Creates a validated asset-paying binary barrier option.
 **Returns:** The option, or an input-validation error.
 
 ## `make_cash_one_touch_up`
 
 ```cpp
-Result<TouchOption> kiyosi::make_cash_one_touch_up(Date effective_date, Date expiry_date, double barrier_level, double payout, kiyosi::SettlementTiming settlement_timing=kiyosi::SettlementTiming::at_expiry, kiyosi::ObservationMode observation_mode=kiyosi::ObservationMode::continuous, std::vector<Date> observation_dates={})
+Result<TouchOption> kiyosi::make_cash_one_touch_up(Date effective_date, Date expiry_date, double barrier_level, double payout, kiyosi::SettlementTiming settlement_timing=default_one_touch_settlement_timing, kiyosi::ObservationMode observation_mode=default_touch_observation_mode, std::vector<Date> observation_dates={}, std::optional<BarrierTouchState> touch_state=std::nullopt)
 ```
 
-Creates an up one-touch option with a fixed cash payout. 
+Creates an up one-touch option with a fixed cash payout.
 **Returns:** The option, or an input-validation error.
 
 ## `make_cash_one_touch_down`
 
 ```cpp
-Result<TouchOption> kiyosi::make_cash_one_touch_down(Date effective_date, Date expiry_date, double barrier_level, double payout, kiyosi::SettlementTiming settlement_timing=kiyosi::SettlementTiming::at_expiry, kiyosi::ObservationMode observation_mode=kiyosi::ObservationMode::continuous, std::vector<Date> observation_dates={})
+Result<TouchOption> kiyosi::make_cash_one_touch_down(Date effective_date, Date expiry_date, double barrier_level, double payout, kiyosi::SettlementTiming settlement_timing=default_one_touch_settlement_timing, kiyosi::ObservationMode observation_mode=default_touch_observation_mode, std::vector<Date> observation_dates={}, std::optional<BarrierTouchState> touch_state=std::nullopt)
 ```
 
-Creates a down one-touch option with a fixed cash payout. 
+Creates a down one-touch option with a fixed cash payout.
 **Returns:** The option, or an input-validation error.
 
 ## `make_cash_no_touch_up`
 
 ```cpp
-Result<TouchOption> kiyosi::make_cash_no_touch_up(Date effective_date, Date expiry_date, double barrier_level, double payout, kiyosi::ObservationMode observation_mode=kiyosi::ObservationMode::continuous, std::vector<Date> observation_dates={})
+Result<TouchOption> kiyosi::make_cash_no_touch_up(Date effective_date, Date expiry_date, double barrier_level, double payout, kiyosi::ObservationMode observation_mode=default_touch_observation_mode, std::vector<Date> observation_dates={}, std::optional<BarrierTouchState> touch_state=std::nullopt)
 ```
 
-Creates an up no-touch option with a fixed cash payout at expiry. 
+Creates an up no-touch option with a fixed cash payout at expiry.
 **Returns:** The option, or an input-validation error.
 
 ## `make_cash_no_touch_down`
 
 ```cpp
-Result<TouchOption> kiyosi::make_cash_no_touch_down(Date effective_date, Date expiry_date, double barrier_level, double payout, kiyosi::ObservationMode observation_mode=kiyosi::ObservationMode::continuous, std::vector<Date> observation_dates={})
+Result<TouchOption> kiyosi::make_cash_no_touch_down(Date effective_date, Date expiry_date, double barrier_level, double payout, kiyosi::ObservationMode observation_mode=default_touch_observation_mode, std::vector<Date> observation_dates={}, std::optional<BarrierTouchState> touch_state=std::nullopt)
 ```
 
-Creates a down no-touch option with a fixed cash payout at expiry. 
+Creates a down no-touch option with a fixed cash payout at expiry.
 **Returns:** The option, or an input-validation error.
 
 ## `make_asset_one_touch_up`
 
 ```cpp
-Result<TouchOption> kiyosi::make_asset_one_touch_up(Date effective_date, Date expiry_date, double barrier_level, kiyosi::SettlementTiming settlement_timing=kiyosi::SettlementTiming::at_expiry, kiyosi::ObservationMode observation_mode=kiyosi::ObservationMode::continuous, std::vector<Date> observation_dates={})
+Result<TouchOption> kiyosi::make_asset_one_touch_up(Date effective_date, Date expiry_date, double barrier_level, kiyosi::SettlementTiming settlement_timing=default_one_touch_settlement_timing, kiyosi::ObservationMode observation_mode=default_touch_observation_mode, std::vector<Date> observation_dates={}, std::optional<BarrierTouchState> touch_state=std::nullopt)
 ```
 
-Creates an up one-touch option paying the underlying asset. 
+Creates an up one-touch option paying the underlying asset.
 **Returns:** The option, or an input-validation error.
 
 ## `make_asset_one_touch_down`
 
 ```cpp
-Result<TouchOption> kiyosi::make_asset_one_touch_down(Date effective_date, Date expiry_date, double barrier_level, kiyosi::SettlementTiming settlement_timing=kiyosi::SettlementTiming::at_expiry, kiyosi::ObservationMode observation_mode=kiyosi::ObservationMode::continuous, std::vector<Date> observation_dates={})
+Result<TouchOption> kiyosi::make_asset_one_touch_down(Date effective_date, Date expiry_date, double barrier_level, kiyosi::SettlementTiming settlement_timing=default_one_touch_settlement_timing, kiyosi::ObservationMode observation_mode=default_touch_observation_mode, std::vector<Date> observation_dates={}, std::optional<BarrierTouchState> touch_state=std::nullopt)
 ```
 
-Creates a down one-touch option paying the underlying asset. 
+Creates a down one-touch option paying the underlying asset.
 **Returns:** The option, or an input-validation error.
 
 ## `make_asset_no_touch_up`
 
 ```cpp
-Result<TouchOption> kiyosi::make_asset_no_touch_up(Date effective_date, Date expiry_date, double barrier_level, kiyosi::ObservationMode observation_mode=kiyosi::ObservationMode::continuous, std::vector<Date> observation_dates={})
+Result<TouchOption> kiyosi::make_asset_no_touch_up(Date effective_date, Date expiry_date, double barrier_level, kiyosi::ObservationMode observation_mode=default_touch_observation_mode, std::vector<Date> observation_dates={}, std::optional<BarrierTouchState> touch_state=std::nullopt)
 ```
 
-Creates an up no-touch option paying the underlying asset at expiry. 
+Creates an up no-touch option paying the underlying asset at expiry.
 **Returns:** The option, or an input-validation error.
 
 ## `make_asset_no_touch_down`
 
 ```cpp
-Result<TouchOption> kiyosi::make_asset_no_touch_down(Date effective_date, Date expiry_date, double barrier_level, kiyosi::ObservationMode observation_mode=kiyosi::ObservationMode::continuous, std::vector<Date> observation_dates={})
+Result<TouchOption> kiyosi::make_asset_no_touch_down(Date effective_date, Date expiry_date, double barrier_level, kiyosi::ObservationMode observation_mode=default_touch_observation_mode, std::vector<Date> observation_dates={}, std::optional<BarrierTouchState> touch_state=std::nullopt)
 ```
 
-Creates a down no-touch option paying the underlying asset at expiry. 
+Creates a down no-touch option paying the underlying asset at expiry.
 **Returns:** The option, or an input-validation error.
 
 ## `kiyosi::BinaryBarrierOption`
@@ -218,6 +234,14 @@ Date kiyosi::BinaryBarrierOption::expiry_date() const noexcept
 
 Returns the final date of the contract life.
 
+#### `touch_state`
+
+```cpp
+std::optional<BarrierTouchState> kiyosi::BinaryBarrierOption::touch_state() const noexcept
+```
+
+Returns the state of observations before valuation, if supplied.
+
 ## `kiyosi::BinaryBarrierTerms`
 
 ```cpp
@@ -291,6 +315,14 @@ std::vector<Date> kiyosi::BinaryBarrierTerms::observation_dates
 ```
 
 Ordered dates for scheduled monitoring.
+
+#### `touch_state`
+
+```cpp
+std::optional<BarrierTouchState> kiyosi::BinaryBarrierTerms::touch_state
+```
+
+History before valuation, if supplied.
 
 ## `kiyosi::TouchOption`
 
@@ -405,3 +437,11 @@ Date kiyosi::TouchOption::expiry_date() const noexcept
 ```
 
 Returns the final date of the contract life.
+
+#### `touch_state`
+
+```cpp
+std::optional<BarrierTouchState> kiyosi::TouchOption::touch_state() const noexcept
+```
+
+Returns the state of observations before valuation, if supplied.

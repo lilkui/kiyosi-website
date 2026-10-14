@@ -35,7 +35,20 @@ Barrier monitoring frequency.
 **Values**
 
 - `continuous` — Monitor continuously throughout the contract life.
-- `scheduled` — Monitor only on explicit observation dates.
+- `scheduled` — Monitor only at 00:00 UTC on explicit observation dates.
+
+## `BarrierTouchState`
+
+```cpp
+enum class BarrierTouchState
+```
+
+Barrier observations strictly before the valuation time.
+
+**Values**
+
+- `untouched` — No prior observation breached the barrier.
+- `touched` — A prior observation breached the barrier.
 
 ## `RebateTiming`
 
@@ -69,7 +82,7 @@ Settlement timing for a touch option.
 bool kiyosi::is_up_barrier(BarrierType kind) noexcept
 ```
 
-Tests whether a barrier is triggered by upward spot movement. 
+Tests whether a barrier is triggered by upward spot movement.
 **Returns:** `true` for up-and-in and up-and-out barriers.
 
 ## `is_knock_in_barrier`
@@ -78,7 +91,7 @@ Tests whether a barrier is triggered by upward spot movement.
 bool kiyosi::is_knock_in_barrier(BarrierType kind) noexcept
 ```
 
-Tests whether a barrier activates rather than terminates the contract. 
+Tests whether a barrier activates rather than terminates the contract.
 **Returns:** `true` for up-and-in and down-and-in barriers.
 
 ## `kiyosi::BarrierTerms`
@@ -147,6 +160,22 @@ Date kiyosi::BarrierTerms::expiry_date() const noexcept
 
 Returns the final date of the contract life.
 
+#### `touch_state`
+
+```cpp
+std::optional<BarrierTouchState> kiyosi::BarrierTerms::touch_state() const noexcept
+```
+
+Returns the caller-supplied state before valuation, if supplied.
+
+#### `was_touched_before`
+
+```cpp
+Result<bool> kiyosi::BarrierTerms::was_touched_before(Timestamp valuation_time) const
+```
+
+Resolves prior history, rejecting missing or impossible history.
+
 #### `is_up`
 
 ```cpp
@@ -185,12 +214,20 @@ Mean spacing between monitoring dates, used for the BGK discrete-barrier shift.
 bool kiyosi::BarrierTerms::is_monitored_on(Date date) const noexcept
 ```
 
-Tests whether the barrier is monitored on a date. 
+Tests whether the barrier is monitored on a date.
 **Parameters**
 
 - `date` — `Date` to test.
 
-**Returns:** `true` for continuous monitoring or a scheduled observation date.
+**Returns:** `true` within the contract life for continuous monitoring, or on a scheduled observation date.
+
+#### `is_monitored_at`
+
+```cpp
+bool kiyosi::BarrierTerms::is_monitored_at(Timestamp time) const noexcept
+```
+
+Tests whether monitoring occurs at this exact valuation instant.
 
 #### `is_breached_by`
 
@@ -198,7 +235,7 @@ Tests whether the barrier is monitored on a date.
 bool kiyosi::BarrierTerms::is_breached_by(double spot) const noexcept
 ```
 
-Tests whether a spot lies on the triggered side of the barrier. 
+Tests whether a spot lies on the triggered side of the barrier.
 **Parameters**
 
 - `spot` — Spot value to test.

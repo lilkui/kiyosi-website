@@ -31,8 +31,8 @@ American vanilla call or put.
 Result<EuropeanOption> kiyosi::make_european_option(OptionType option_type, double strike, Date effective_date, Date expiry_date)
 ```
 
-Creates a validated European vanilla option. 
-**Returns:** The option, or an `invalid_option`, `invalid_strike`, or `invalid_schedule` error.
+Creates a validated European vanilla option.
+**Returns:** The option, or an `invalid_option`, `invalid_strike`, `invalid_date`, or `invalid_time_range` error.
 
 ## `make_american_option`
 
@@ -40,5 +40,5 @@ Creates a validated European vanilla option.
 Result<AmericanOption> kiyosi::make_american_option(OptionType option_type, double strike, Date effective_date, Date expiry_date)
 ```
 
-Creates a validated American vanilla option. 
-**Returns:** The option, or an `invalid_option`, `invalid_strike`, or `invalid_schedule` error.
+Creates a validated American vanilla option.
+**Returns:** The option, or an `invalid_option`, `invalid_strike`, `invalid_date`, or `invalid_time_range` error.

@@ -15,7 +15,7 @@ outline: [2, 4]
 Result<BarrierOption> kiyosi::make_barrier_option(BarrierOptionTerms terms)
 ```
 
-Creates a validated barrier option. 
+Creates a validated barrier option.
 **Returns:** The option, or an input-validation error.
 
 ## `kiyosi::BarrierOption`
@@ -132,6 +132,14 @@ Date kiyosi::BarrierOption::expiry_date() const noexcept
 
 Returns the final date of the contract life.
 
+#### `touch_state`
+
+```cpp
+std::optional<BarrierTouchState> kiyosi::BarrierOption::touch_state() const noexcept
+```
+
+Returns the state of observations before valuation, if supplied.
+
 ## `kiyosi::BarrierOptionTerms`
 
 ```cpp
@@ -221,3 +229,11 @@ std::vector<Date> kiyosi::BarrierOptionTerms::observation_dates
 ```
 
 Ordered dates for scheduled monitoring.
+
+#### `touch_state`
+
+```cpp
+std::optional<BarrierTouchState> kiyosi::BarrierOptionTerms::touch_state
+```
+
+History before valuation, if supplied.

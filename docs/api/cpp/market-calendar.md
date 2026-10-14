@@ -9,13 +9,26 @@ outline: [2, 4]
 #include <kiyosi/market/calendar.hpp>
 ```
 
+## `BusinessDayConvention`
+
+```cpp
+enum class BusinessDayConvention
+```
+
+Direction used to move a nominal contract date onto a trading day.
+
+**Values**
+
+- `following` — Move to the next trading day, including the nominal date.
+- `preceding` — Move to the previous trading day, including the nominal date.
+
 ## `make_trading_calendar`
 
 ```cpp
 Result<TradingCalendar> kiyosi::make_trading_calendar(TradingCalendar::TradingDayPredicate predicate, int trading_days_per_year)
 ```
 
-Creates a validated trading calendar. 
+Creates a validated trading calendar.
 **Parameters**
 
 - `predicate` — Callable returning whether a date is a trading day.
@@ -29,7 +42,7 @@ Creates a validated trading calendar.
 TradingCalendar kiyosi::all_days_calendar()
 ```
 
-Creates a calendar in which every supported date is a trading day. 
+Creates a calendar in which every supported date is a trading day.
 **Returns:** Calendar with a 365-day annualization basis.
 
 ## `weekdays_calendar`
@@ -38,7 +51,7 @@ Creates a calendar in which every supported date is a trading day.
 TradingCalendar kiyosi::weekdays_calendar()
 ```
 
-Holiday-unaware Monday-through-Friday calendar with a 252-day annualization basis. 
+Holiday-unaware Monday-through-Friday calendar with a 252-day annualization basis.
 **Returns:** A weekday-only calendar.
 
 ## `kiyosi::TradingCalendar`
@@ -65,8 +78,17 @@ Predicate returning whether a supported date is a trading day.
 bool kiyosi::TradingCalendar::is_trading_day(Date value) const
 ```
 
-Tests whether a supported date is a trading day. 
+Tests whether a supported date is a trading day.
 **Returns:** `false` for unsupported dates or when the predicate rejects the date.
+
+#### `adjust`
+
+```cpp
+Result<Date> kiyosi::TradingCalendar::adjust(Date nominal, BusinessDayConvention convention) const
+```
+
+Adjusts a nominal date to a trading day under the chosen convention.
+**Returns:** The adjusted date, or `invalid_date` if no trading day exists in the supported direction; an unknown convention returns `invalid_parameter`.
 
 #### `trading_days_per_year`
 
@@ -82,7 +104,7 @@ Returns the positive annual trading-day basis.
 Result<int> kiyosi::TradingCalendar::trading_days_between(Date start, Date end) const
 ```
 
-Counts trading days in the half-open interval `[start, end)`. 
+Counts trading days in the half-open interval `[start, end)`.
 **Returns:** The count, or an `invalid_date` or `invalid_time_range` error.
 
 #### `trading_year_fraction`
@@ -91,5 +113,5 @@ Counts trading days in the half-open interval `[start, end)`.
 Result<double> kiyosi::TradingCalendar::trading_year_fraction(Date start, Date end) const
 ```
 
-Computes a trading-day year fraction over `[start, end)`. 
+Computes a trading-day year fraction over `[start, end)`.
 **Returns:** Trading days divided by `trading_days_per_year()`, or a range error.

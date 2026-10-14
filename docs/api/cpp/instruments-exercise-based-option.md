@@ -9,16 +9,6 @@ outline: [2, 4]
 #include <kiyosi/instruments/exercise_based_option.hpp>
 ```
 
-## `validate_observation_dates`
-
-```cpp
-template <OptionPayoff Payoff, OptionExercise Exercise>
-Result<void> kiyosi::validate_observation_dates(std::span<const Date> observation_dates, Date valuation_date, const ExerciseBasedOption<Payoff, Exercise> &option, const TradingCalendar &calendar)
-```
-
-Validates observation dates against an option's expiry and a trading calendar. 
-**Returns:** Success, or an `invalid_date` error.
-
 ## `kiyosi::ExerciseBasedOption`
 
 ```cpp
@@ -26,7 +16,7 @@ template <OptionPayoff Payoff, OptionExercise Exercise>
 class kiyosi::ExerciseBasedOption
 ```
 
-An option built from an independent payoff and exercise style over shared option terms. 
+An option built from an independent payoff and exercise style over shared option terms.
 **Template parameters**
 
 - `Payoff` — Copyable payoff tag satisfying `OptionPayoff`.

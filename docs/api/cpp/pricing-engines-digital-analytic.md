@@ -22,9 +22,28 @@ Closed-form cash-or-nothing and asset-or-nothing valuation with analytic delta a
 #### `price`
 
 ```cpp
-template <OptionPayoff Payoff, OptionExercise Exercise>
-Result<PricingResult> kiyosi::AnalyticDigitalEngine::price(const ExerciseBasedOption<Payoff, Exercise> &option, const PricingContext &context) const
+Result<double> kiyosi::AnalyticDigitalEngine::price(const CashOrNothingOption &option, const PricingContext &context) const
 ```
 
-Prices a European cash-or-nothing or asset-or-nothing option. 
-**Returns:** Pricing measures, or a contract or context error.
+Prices a European cash-or-nothing or asset-or-nothing option.
+**Returns:** Price, or a contract or context error.
+
+#### `price`
+
+```cpp
+Result<double> kiyosi::AnalyticDigitalEngine::price(const AssetOrNothingOption &option, const PricingContext &context) const
+```
+
+#### `price_with_greeks`
+
+```cpp
+Result<PricingResult> kiyosi::AnalyticDigitalEngine::price_with_greeks(const CashOrNothingOption &option, const PricingContext &context, GreeksRequest greeks, NumericalShiftSettings settings={}) const
+```
+
+Prices with the explicitly requested Greeks; unavailable measures remain empty.
+
+#### `price_with_greeks`
+
+```cpp
+Result<PricingResult> kiyosi::AnalyticDigitalEngine::price_with_greeks(const AssetOrNothingOption &option, const PricingContext &context, GreeksRequest greeks, NumericalShiftSettings settings={}) const
+```

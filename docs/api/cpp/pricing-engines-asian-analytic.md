@@ -15,18 +15,26 @@ outline: [2, 4]
 class kiyosi::AnalyticGeometricAveragePriceEngine
 ```
 
-Closed-form geometric average-rate option under lognormal spot.
+Closed-form continuous geometric average-price option under lognormal spot.
 
 ### Members
 
 #### `price`
 
 ```cpp
-Result<PricingResult> kiyosi::AnalyticGeometricAveragePriceEngine::price(const GeometricAveragePriceOption &, const PricingContext &) const
+Result<double> kiyosi::AnalyticGeometricAveragePriceEngine::price(const GeometricAveragePriceOption &option, const PricingContext &context) const
 ```
 
-Prices a geometric-average option. 
-**Returns:** Pricing measures, or a contract or context error.
+Prices a geometric-average option. Once averaging has begun, its realized average must be positive. Before averaging begins, the realized average must be zero.
+**Returns:** Price, or a contract or context error.
+
+#### `price_with_greeks`
+
+```cpp
+Result<PricingResult> kiyosi::AnalyticGeometricAveragePriceEngine::price_with_greeks(const GeometricAveragePriceOption &option, const PricingContext &context, GreeksRequest greeks, NumericalShiftSettings settings={}) const
+```
+
+Prices with the explicitly requested Greeks; unavailable measures remain empty.
 
 ## `kiyosi::TurnbullWakemanArithmeticAveragePriceEngine`
 
@@ -41,8 +49,16 @@ Turnbull-Wakeman moment-matched approximation for arithmetic averaging.
 #### `price`
 
 ```cpp
-Result<PricingResult> kiyosi::TurnbullWakemanArithmeticAveragePriceEngine::price(const ArithmeticAveragePriceOption &, const PricingContext &) const
+Result<double> kiyosi::TurnbullWakemanArithmeticAveragePriceEngine::price(const ArithmeticAveragePriceOption &option, const PricingContext &context) const
 ```
 
-Prices an arithmetic-average option using moment matching. 
-**Returns:** Pricing measures, or a contract or context error.
+Prices an arithmetic-average option using moment matching. For a nonzero averaging window, the realized average must be zero before averaging begins and positive afterward. A zero-length window is a single fixing at expiry and follows European vanilla pricing before expiry.
+**Returns:** Price, or a contract or context error.
+
+#### `price_with_greeks`
+
+```cpp
+Result<PricingResult> kiyosi::TurnbullWakemanArithmeticAveragePriceEngine::price_with_greeks(const ArithmeticAveragePriceOption &option, const PricingContext &context, GreeksRequest greeks, NumericalShiftSettings settings={}) const
+```
+
+Prices with the explicitly requested Greeks; unavailable measures remain empty.

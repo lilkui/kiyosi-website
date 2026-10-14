@@ -7,6 +7,32 @@ outline: [2, 4]
 
 Python API for the kiyosi derivatives pricing core.
 
+## Failures and cancellation
+
+Representation and signature errors use Python's built-in exceptions. Core domain
+rejections and reported backend failures raise KiyosiError; inspect its category.
+CUDA unavailability and execution failures use BACKEND_UNAVAILABLE and
+BACKEND_FAILURE, and invalid numerical results use INVALID_RESULT.
+
+Allocation failures, including CUDA device-memory exhaustion, raise MemoryError.
+Other native runtime/internal exceptions use the binding's built-in exception
+mappings; for example, entropy-source runtime failures raise RuntimeError.
+Valid settings do not guarantee sufficient memory or other resources.
+
+Pricing, Greeks and implied-value solves are synchronous. Scalar prices from the
+AnalyticVanilla, AnalyticDigital, AnalyticBarrier, AnalyticBinaryBarrier,
+AnalyticGeometricAveragePrice and TurnbullWakemanArithmeticAveragePrice engines
+keep the GIL to avoid thread handoff overhead for short formulas, except that
+scheduled AnalyticBarrier and AnalyticBinaryBarrier prices release it while
+validating and pricing their observation schedules. AnalyticVanilla and
+AnalyticDigital Greek requests also keep the GIL, as do delta-only requests for
+the two Asian engines. Other scalar prices, Greek requests and implied-value
+solves release it during core computation.
+These calls provide no cancellation interface or signal polling within the core.
+When they run on the main thread, Python signal handling, including
+Ctrl-C/KeyboardInterrupt, is deferred until control returns to Python. It does not
+stop an in-progress core computation or become a KiyosiError.
+
 ## `ErrorCategory`
 
 Stable category for a core domain error.
@@ -55,6 +81,12 @@ Stable category for a core domain error.
 - `BACKEND_FAILURE` = `18`
 - `UNSUPPORTED_OPERATION` = `19`
 
+## `Greek`
+
+```python
+Greek = typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']
+```
+
 ## `KiyosiError`
 
 Core domain validation or pricing error.
@@ -68,119 +100,44 @@ Core domain validation or pricing error.
 
 ## `PricingResult`
 
-Read-only mapping over the fixed risk-measure vocabulary.
+Read-only price and Greek result.
 
 Price uses instrument value units. Delta, gamma, and speed are per one spot unit,
 squared spot unit, and cubed spot unit. Vega, vanna, and zomma are price, delta,
 and gamma changes per one volatility percentage point (an absolute change of
 0.01). Rho is per one interest-rate percentage point. Theta, charm, and color
 are price, delta, and gamma changes per calendar day as valuation time moves
-forward. Undefined or unsupported measures are None, never a zero sentinel.
+forward. Undefined or unsupported Greeks are None, never a zero sentinel.
 
 #### Attributes
 
-- **`price, delta, gamma, speed`** (`float or None`) — Price and first three spot derivatives.
+- **`price`** (`float`) — Instrument value.
+- **`delta, gamma, speed`** (`float or None`) — First three spot derivatives.
 - **`theta, charm, color`** (`float or None`) — Daily changes in price, delta, and gamma.
 - **`vega, vanna, zomma`** (`float or None`) — Volatility-point changes in price, delta, and gamma.
 - **`rho`** (`float or None`) — Price change per interest-rate percentage point.
 
-### `__len__`
-
-```python
-__len__(self) -> int
-```
-
-### `__iter__`
-
-```python
-__iter__(self) -> collections.abc.Iterator[str]
-```
-
-### `__contains__`
-
-```python
-__contains__(self, arg: str, /) -> bool
-```
-
-### `__getitem__`
-
-```python
-__getitem__(self, arg: str, /) -> float | None
-```
-
-### `get`
-
-```python
-get(self, key: str, default: object | None = None) -> object
-```
-
-Return a measure by name.
-
-#### Parameters
-
-- **`key`** (`str`) — Lowercase risk-measure name.
-- **`default`** (`object, optional`) — Value returned when ``key`` is unknown.
-#### Returns
-
-- `float, None, or object` — Measure value, ``None`` when unavailable, or ``default`` for an unknown key.
-
-### `keys`
-
-```python
-keys(self) -> tuple
-```
-
-Return risk-measure names in stable order.
-
-#### Returns
-
-- `tuple[str, ...]` — Fixed lowercase risk-measure names.
-
-### `values`
-
-```python
-values(self) -> tuple
-```
-
-Return risk-measure values in stable order.
-
-#### Returns
-
-- `tuple[float or None, ...]` — Values aligned with `keys`.
-
-### `items`
-
-```python
-items(self) -> tuple
-```
-
-Return name-value pairs in stable order.
-
-#### Returns
-
-- `tuple[tuple[str, float or None], ...]` — Pairs aligned with `keys`.
-
 ### `require`
 
 ```python
-require(self, measure: RiskMeasure) -> float
+require(self, measure: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']) -> float
 ```
 
-Return a required risk measure.
+Return a required Greek.
 
 #### Parameters
 
-- **`measure`** (`RiskMeasure`) — Measure to retrieve.
+- **`measure`** (`{'delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'}`) — Greek to retrieve.
 #### Returns
 
-- `float` — Available measure value.
+- `float` — Available Greek value.
 #### Raises
 
-- `KiyosiError` — If the requested measure is unavailable.
+- `KiyosiError` — If the requested Greek is unavailable.
 
 ### `price`
 
-Instrument value, or None when unavailable.
+Instrument value.
 
 ### `delta`
 
@@ -222,30 +179,8 @@ Gamma change per volatility percentage point, or None.
 
 Price change per interest-rate percentage point, or None.
 
-## `RiskMeasure`
-
-Risk measure stored by `PricingResult`.
-
-#### Attributes
-
-- `PRICE, DELTA, GAMMA, SPEED, THETA, CHARM, COLOR, VEGA, VANNA, ZOMMA, RHO` — Price or a supported first-, second-, or third-order sensitivity.
-
-### Values
-
-- `PRICE` = `0`
-- `DELTA` = `1`
-- `GAMMA` = `2`
-- `SPEED` = `3`
-- `THETA` = `4`
-- `CHARM` = `5`
-- `COLOR` = `6`
-- `VEGA` = `7`
-- `VANNA` = `8`
-- `ZOMMA` = `9`
-- `RHO` = `10`
-
 ## `__version__`
 
 ```python
-__version__ = '0.5.0'
+__version__ = '0.10.0'
 ```

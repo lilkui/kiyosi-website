@@ -46,7 +46,7 @@ template <typename T>
 using kiyosi::Result = std::expected<T, Error>
 ```
 
-`Result` of a public operation, containing either `T` or an `Error`.
+`Result` of a public operation, containing either `T` or an `Error`. Domain rejections and reported backend failures use `Error`; `Result` is not a no-throw guarantee. Allocation failures propagate std::bad_alloc, including CUDA device-memory exhaustion. Other runtime/internal exceptions, such as entropy-source failures when choosing a random seed, propagate unchanged. Valid settings do not guarantee that required resources exist. CUDA unavailability and execution failures use backend_unavailable and backend_failure; invalid numerical results use invalid_result. Operations are synchronous and provide no cancellation interface or cancellation `Error` category.
 
 ## `kiyosi::Error`
 

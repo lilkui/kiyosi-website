@@ -15,7 +15,7 @@ outline: [2, 4]
 class kiyosi::FiniteDifferenceVanillaEngine
 ```
 
-Uniform-grid finite-difference engine for vanilla European and American options.
+Uniform-grid finite-difference engine for vanilla European and American options. European upper-edge values include exact BSM time value; American edges also permit immediate exercise. Accepts 3..10,000 asset steps and 1..100,000 time steps.
 
 ### Members
 
@@ -38,12 +38,31 @@ Creates an engine with explicit grid dimensions and scheme.
 #### `price`
 
 ```cpp
-template <OptionPayoff Payoff, OptionExercise Exercise>
-Result<PricingResult> kiyosi::FiniteDifferenceVanillaEngine::price(const ExerciseBasedOption<Payoff, Exercise> &option, const PricingContext &context) const
+Result<double> kiyosi::FiniteDifferenceVanillaEngine::price(const EuropeanOption &option, const PricingContext &context) const
 ```
 
-Prices a European or American vanilla option. 
-**Returns:** Pricing measures, or a contract, context, or settings error.
+Prices a European or American vanilla option.
+**Returns:** Price, or a contract, context, or settings error.
+
+#### `price`
+
+```cpp
+Result<double> kiyosi::FiniteDifferenceVanillaEngine::price(const AmericanOption &option, const PricingContext &context) const
+```
+
+#### `price_with_greeks`
+
+```cpp
+Result<PricingResult> kiyosi::FiniteDifferenceVanillaEngine::price_with_greeks(const EuropeanOption &option, const PricingContext &context, GreeksRequest greeks, NumericalShiftSettings settings={}) const
+```
+
+Prices with the explicitly requested Greeks; unavailable measures remain empty. Delta, gamma, and speed reuse the solved layer.
+
+#### `price_with_greeks`
+
+```cpp
+Result<PricingResult> kiyosi::FiniteDifferenceVanillaEngine::price_with_greeks(const AmericanOption &option, const PricingContext &context, GreeksRequest greeks, NumericalShiftSettings settings={}) const
+```
 
 #### `settings`
 

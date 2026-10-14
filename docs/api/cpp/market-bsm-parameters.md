@@ -15,7 +15,7 @@ outline: [2, 4]
 Result<BlackScholesMertonParameters> kiyosi::make_bsm_parameters(double risk_free_rate, double dividend_yield, double volatility)
 ```
 
-Creates validated Black-Scholes-Merton model parameters. 
+Creates validated Black-Scholes-Merton model parameters.
 **Returns:** The parameters, or a rate, yield, or volatility validation error.
 
 ## `kiyosi::BlackScholesMertonParameters`

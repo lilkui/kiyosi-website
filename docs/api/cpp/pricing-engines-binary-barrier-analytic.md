@@ -15,24 +15,40 @@ outline: [2, 4]
 class kiyosi::AnalyticBinaryBarrierEngine
 ```
 
-Closed-form Rubinstein-Reiner binary barrier and touch valuation.
+Closed-form Rubinstein-Reiner binary barrier and touch valuation. Scheduled monitoring uses a BGK barrier shift. Untouched contracts with future observations require a final observation at expiry; shorter windows return unsupported_operation. Spot must lie strictly on the unbreached side of the shifted barrier; otherwise the approximation returns unsupported_operation. Resolved settlements remain supported. `Greek` requests validate scheduled dates once per call against the context's calendar.
 
 ### Members
 
 #### `price`
 
 ```cpp
-Result<PricingResult> kiyosi::AnalyticBinaryBarrierEngine::price(const BinaryBarrierOption &, const PricingContext &) const
+Result<double> kiyosi::AnalyticBinaryBarrierEngine::price(const BinaryBarrierOption &option, const PricingContext &context) const
 ```
 
-Prices a strike-based binary barrier option. 
-**Returns:** Pricing measures, or a contract, context, or unsupported-operation error.
+Prices a strike-based binary barrier option.
+**Returns:** Price, or a contract, context, or unsupported-operation error.
+
+#### `price_with_greeks`
+
+```cpp
+Result<PricingResult> kiyosi::AnalyticBinaryBarrierEngine::price_with_greeks(const BinaryBarrierOption &option, const PricingContext &context, GreeksRequest greeks, NumericalShiftSettings settings={}) const
+```
+
+Prices with the explicitly requested Greeks; unavailable measures remain empty.
 
 #### `price`
 
 ```cpp
-Result<PricingResult> kiyosi::AnalyticBinaryBarrierEngine::price(const TouchOption &, const PricingContext &) const
+Result<double> kiyosi::AnalyticBinaryBarrierEngine::price(const TouchOption &option, const PricingContext &context) const
 ```
 
-Prices a one-touch or no-touch option. 
-**Returns:** Pricing measures, or a contract, context, or unsupported-operation error.
+Prices a one-touch or no-touch option.
+**Returns:** Price, or a contract, context, or unsupported-operation error.
+
+#### `price_with_greeks`
+
+```cpp
+Result<PricingResult> kiyosi::AnalyticBinaryBarrierEngine::price_with_greeks(const TouchOption &option, const PricingContext &context, GreeksRequest greeks, NumericalShiftSettings settings={}) const
+```
+
+Prices with the explicitly requested Greeks; unavailable measures remain empty.

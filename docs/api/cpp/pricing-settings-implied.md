@@ -28,7 +28,7 @@ Determines whether a Snowball maturity coupon moves with its quoted knock-out co
 struct kiyosi::ImpliedCouponSettings
 ```
 
-Bracketing bounds and convergence controls for the implied-coupon solver.
+Bracketing bounds and convergence controls for the implied-coupon solver. Stops when either the price error or the parameter interval meets its own tolerance.
 
 ### Members
 
@@ -38,7 +38,7 @@ Bracketing bounds and convergence controls for the implied-coupon solver.
 double kiyosi::ImpliedCouponSettings::lower_bound
 ```
 
-Non-negative lower coupon bound.
+Finite lower coupon bound.
 
 #### `upper_bound`
 
@@ -46,15 +46,23 @@ Non-negative lower coupon bound.
 double kiyosi::ImpliedCouponSettings::upper_bound
 ```
 
-Upper coupon bound, greater than the lower bound.
+Finite upper coupon bound, greater than the lower bound.
 
-#### `tolerance`
+#### `price_tolerance`
 
 ```cpp
-double kiyosi::ImpliedCouponSettings::tolerance
+double kiyosi::ImpliedCouponSettings::price_tolerance
 ```
 
-Positive price and interval convergence tolerance.
+Positive absolute price-error tolerance.
+
+#### `parameter_tolerance`
+
+```cpp
+double kiyosi::ImpliedCouponSettings::parameter_tolerance
+```
+
+Positive absolute coupon-interval tolerance.
 
 #### `max_iterations`
 
@@ -70,7 +78,7 @@ Positive maximum bisection iteration count.
 struct kiyosi::ImpliedVolatilitySettings
 ```
 
-Bracketing bounds and convergence controls for the implied-volatility solver.
+Bracketing bounds and convergence controls for the implied-volatility solver. Stops when either the price error or the parameter interval meets its own tolerance.
 
 ### Members
 
@@ -90,13 +98,21 @@ double kiyosi::ImpliedVolatilitySettings::upper_bound
 
 Upper volatility bound, greater than the lower bound.
 
-#### `tolerance`
+#### `price_tolerance`
 
 ```cpp
-double kiyosi::ImpliedVolatilitySettings::tolerance
+double kiyosi::ImpliedVolatilitySettings::price_tolerance
 ```
 
-Positive price and interval convergence tolerance.
+Positive absolute price-error tolerance.
+
+#### `parameter_tolerance`
+
+```cpp
+double kiyosi::ImpliedVolatilitySettings::parameter_tolerance
+```
+
+Positive absolute volatility-interval tolerance.
 
 #### `max_iterations`
 
@@ -104,4 +120,4 @@ Positive price and interval convergence tolerance.
 int kiyosi::ImpliedVolatilitySettings::max_iterations
 ```
 
-Positive maximum bisection iteration count.
+Positive maximum Brent iteration count, excluding endpoint prices.

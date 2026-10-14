@@ -15,7 +15,7 @@ outline: [2, 4]
 Result<Accumulator> kiyosi::make_accumulator(AccumulatorTerms terms)
 ```
 
-Creates a validated accumulator contract. 
+Creates a validated accumulator contract.
 **Parameters**
 
 - `terms` — Contract terms.
@@ -28,7 +28,7 @@ Creates a validated accumulator contract.
 class kiyosi::Accumulator
 ```
 
-Forward accrual that buys a fixed daily quantity, accelerating below strike and terminating once spot reaches the knock-out level.
+Outstanding forward accrual that buys a fixed daily quantity, accelerating below strike and terminating once spot reaches the knock-out level. Do not value an already terminated contract; prices exclude cashflows settled before valuation.
 
 ### Members
 
@@ -136,7 +136,7 @@ Non-negative quantity multiplier below strike.
 double kiyosi::AccumulatorTerms::accumulated_quantity
 ```
 
-Non-negative quantity already accrued.
+Caller-asserted non-negative quantity already accrued; zero means none.
 
 #### `effective_date`
 

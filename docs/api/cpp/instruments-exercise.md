@@ -32,4 +32,4 @@ template <typename Value>
 concept kiyosi::OptionExercise
 ```
 
-Requirement for a value type used as an option exercise-style tag.
+Exercise styles whose semantics are defined by the core.
