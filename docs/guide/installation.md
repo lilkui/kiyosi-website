@@ -6,7 +6,7 @@ description: 安装 kiyosi Python 包，了解预编译 wheel 的支持范围，
 
 ## Python 环境要求 {#python-requirements}
 
-需要 **Python 3.11 或更高版本**。当前源码配置了 Python 3.11–3.15 的 wheel 构建，目标平台为 Windows 和 Linux x64。本网站的 API 参考对应 kiyosi 0.10.0。
+需要 **Python 3.11 或更高版本**。当前源码配置了 Python 3.11–3.15 的 wheel 构建，目标平台为 Windows 和 Linux x64。本网站的 API 参考对应 kiyosi 0.11.0。
 
 建议先创建虚拟环境，再安装：
 
@@ -15,13 +15,13 @@ description: 安装 kiyosi Python 包，了解预编译 wheel 的支持范围，
 ```sh [Linux / macOS]
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install kiyosi
+python -m pip install "kiyosi==0.11.0"
 ```
 
 ```powershell [Windows]
 py -m venv .venv
 .venv\Scripts\Activate.ps1
-python -m pip install kiyosi
+python -m pip install "kiyosi==0.11.0"
 ```
 
 :::
@@ -42,16 +42,16 @@ python -c "from kiyosi.pricing import AnalyticVanillaEngine; print('kiyosi 已�
 
 ## 从源码构建 {#building-from-source}
 
-如果当前平台没有可用的预编译 wheel，安装时会从源码构建，需要 CMake 3.28 或更高版本、Ninja，以及支持 C++23 的编译器。最新工具链要求见 [kiyosi 构建配置](https://github.com/lilkui/kiyosi/blob/main/CMakeLists.txt)。
+如果当前平台没有可用的预编译 wheel，安装时会从源码构建，需要 CMake 3.28 或更高版本、Ninja，以及支持 C++23 的编译器。Windows 使用 clang-cl，需安装 Visual Studio C++ 工具及 C++ Clang 编译器组件。核心库依赖 oneTBB 2023.1+；未找到本地安装时，CMake 会自动下载并构建。预编译 wheel 已包含所需运行库。工具链配置见 [kiyosi 构建配置](https://github.com/lilkui/kiyosi/blob/main/CMakeLists.txt)。
 
-如需安装与本文档对应的开发版本，可检出相应的源码提交后安装：
+如需从源码安装与本文档对应的版本，可检出相应的源码提交后安装：
 
 ```sh
 git clone https://github.com/lilkui/kiyosi.git
 cd kiyosi
-git checkout 7e2f3e3
+git checkout 541546c
 python -m pip install .
-python -c "import kiyosi; print(kiyosi.__version__)"  # 0.10.0
+python -c "import kiyosi; print(kiyosi.__version__)"  # 0.11.0
 ```
 
 Windows 下请在 Visual Studio Developer PowerShell 中执行源码构建命令。从 PyPI 安装后，也请用上面的版本检查命令确认实际安装的版本。

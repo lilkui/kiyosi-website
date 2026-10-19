@@ -51,7 +51,6 @@ description: 根据 kiyosi Doxygen XML 自动生成的完整 C++ API 参考文�
 - [`<kiyosi/pricing/engines/vanilla/integral.hpp>`](./pricing-engines-vanilla-integral)
 - [`<kiyosi/pricing/engines/vanilla/monte_carlo.hpp>`](./pricing-engines-vanilla-monte-carlo)
 - [`<kiyosi/pricing/implied.hpp>`](./pricing-implied)
-- [`<kiyosi/pricing/numerical_greeks.hpp>`](./pricing-numerical-greeks)
 - [`<kiyosi/pricing/result.hpp>`](./pricing-result)
 - [`<kiyosi/pricing/settings/binomial.hpp>`](./pricing-settings-binomial)
 - [`<kiyosi/pricing/settings/finite_difference.hpp>`](./pricing-settings-finite-difference)

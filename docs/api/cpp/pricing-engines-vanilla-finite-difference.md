@@ -9,6 +9,15 @@ outline: [2, 4]
 #include <kiyosi/pricing/engines/vanilla/finite_difference.hpp>
 ```
 
+## `make_finite_difference_vanilla_engine`
+
+```cpp
+Result<FiniteDifferenceVanillaEngine> kiyosi::make_finite_difference_vanilla_engine(FiniteDifferenceSettings settings)
+```
+
+Creates an engine after validating its configuration.
+**返回值:** The engine, or an `invalid_parameter` error.
+
 ## `kiyosi::FiniteDifferenceVanillaEngine`
 
 ```cpp
@@ -22,18 +31,10 @@ Uniform-grid finite-difference engine for vanilla European and American options.
 #### `FiniteDifferenceVanillaEngine`
 
 ```cpp
-kiyosi::FiniteDifferenceVanillaEngine::FiniteDifferenceVanillaEngine(FiniteDifferenceSettings settings={})
+kiyosi::FiniteDifferenceVanillaEngine::FiniteDifferenceVanillaEngine()=default
 ```
 
-Creates an engine with aggregate finite-difference settings.
-
-#### `FiniteDifferenceVanillaEngine`
-
-```cpp
-kiyosi::FiniteDifferenceVanillaEngine::FiniteDifferenceVanillaEngine(int asset_step_count, int time_step_count, FiniteDifferenceScheme scheme=FiniteDifferenceSettings{}.scheme)
-```
-
-Creates an engine with explicit grid dimensions and scheme.
+Creates an engine with valid default settings.
 
 #### `price`
 
@@ -42,7 +43,7 @@ Result<double> kiyosi::FiniteDifferenceVanillaEngine::price(const EuropeanOption
 ```
 
 Prices a European or American vanilla option.
-**返回值:** Price, or a contract, context, or settings error.
+**返回值:** Price, or a contract, context, or numerical error.
 
 #### `price`
 

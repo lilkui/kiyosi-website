@@ -9,6 +9,15 @@ outline: [2, 4]
 #include <kiyosi/pricing/engines/vanilla/binomial.hpp>
 ```
 
+## `make_cox_ross_rubinstein_vanilla_engine`
+
+```cpp
+Result<CoxRossRubinsteinVanillaEngine> kiyosi::make_cox_ross_rubinstein_vanilla_engine(BinomialSettings settings)
+```
+
+Creates an engine after validating its configuration.
+**返回值:** The engine, or an `invalid_parameter` error.
+
 ## `kiyosi::CoxRossRubinsteinVanillaEngine`
 
 ```cpp
@@ -22,18 +31,10 @@ Cox-Ross-Rubinstein binomial-tree engine for vanilla European and American optio
 #### `CoxRossRubinsteinVanillaEngine`
 
 ```cpp
-kiyosi::CoxRossRubinsteinVanillaEngine::CoxRossRubinsteinVanillaEngine(BinomialSettings settings={})
+kiyosi::CoxRossRubinsteinVanillaEngine::CoxRossRubinsteinVanillaEngine()=default
 ```
 
-Creates an engine with aggregate binomial settings.
-
-#### `CoxRossRubinsteinVanillaEngine`
-
-```cpp
-kiyosi::CoxRossRubinsteinVanillaEngine::CoxRossRubinsteinVanillaEngine(int step_count)
-```
-
-Creates an engine with an explicit tree step count.
+Creates an engine with valid default settings.
 
 #### `price`
 
@@ -42,7 +43,7 @@ Result<double> kiyosi::CoxRossRubinsteinVanillaEngine::price(const EuropeanOptio
 ```
 
 Prices a European or American vanilla option.
-**返回值:** Price, or a contract, context, or settings error.
+**返回值:** Price, or a contract, context, or numerical error.
 
 #### `price`
 

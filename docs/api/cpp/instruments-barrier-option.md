@@ -28,6 +28,14 @@ Knock-in or knock-out vanilla payoff with an optional rebate.
 
 ### 成员
 
+#### `replace`
+
+```cpp
+Result<BarrierOption> kiyosi::BarrierOption::replace(std::optional<BarrierTouchState> touch_state) const
+```
+
+Returns a validated owning copy with only the supplied history replaced. Preserves all contract terms and never changes this object, including on failure. History is caller-supplied; time consistency is checked during pricing. Concurrent calls and reads are safe without concurrent assignment or mutation. nullopt means unknown history; untouched means known absence of touches. Uses core barrier construction validation and error categories.
+
 #### `option_type`
 
 ```cpp

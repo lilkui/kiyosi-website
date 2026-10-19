@@ -49,7 +49,7 @@ npm run docs:build
 
 自动生成的 API 页面已提交到仓库，因此构建网站无需 Python 或 C++ 工具链。
 
-当前文档对应 kiyosi **0.10.0**（源码提交 `7e2f3e3`），包含 52 个公开 C++ 头文件页面和 4 个 Python 模块页面。指南中的选择参数使用字符串；`price()` 直接返回数值，`price_with_greeks()` 则需显式指定要计算的 Greeks。
+当前文档对应 kiyosi **0.11.0**（源码提交 `541546c`），包含 51 个公开 C++ 头文件页面和 4 个 Python 模块页面。指南中的选择参数使用字符串；`price()` 直接返回数值，`price_with_greeks()` 则需显式指定要计算的 Greeks。数值引擎在构造时验证配置，市场和产品历史更新使用返回副本的 `replace()`。
 
 ## 重新生成 API 参考文档
 
@@ -61,17 +61,17 @@ npm run docs:build
 先安装 Doxygen，再在 kiyosi 仓库中配置文档构建。以下命令适用于 Windows 和 Linux；Windows 下请先打开 Visual Studio Developer PowerShell：
 
 ```sh
-cmake -S . -B out/build/docs -DBUILD_TESTING=OFF -DKIYOSI_BUILD_DOCS=ON
-cmake --build out/build/docs --target kiyosi-doxygen
+cmake -S . -B build/docs -DBUILD_TESTING=OFF -DKIYOSI_BUILD_DOCS=ON
+cmake --build build/docs --target kiyosi-doxygen
 ```
 
-构建文档目标无需编译核心库，也不需要 Graphviz 或 Python。XML 入口为 `out/build/docs/docs/xml/index.xml`，也可使用其他启用了 `KIYOSI_BUILD_DOCS` 的构建目录。
+构建文档目标无需编译核心库，也不需要 Graphviz 或 Python。CMake 配置需要 oneTBB 2023.1+，未安装时会自动下载。XML 入口为 `build/docs/docs/xml/index.xml`，也可使用其他启用了 `KIYOSI_BUILD_DOCS` 的构建目录。
 
 确认 Python 环境已安装同一版本的 kiyosi，并用 `import kiyosi; print(kiyosi.__version__)` 检查版本是否与 XML 一致，然后运行转换工具。以下 Windows 示例假定 kiyosi 位于本仓库的同级目录：
 
 ```powershell
 ..\kiyosi\.venv\Scripts\python.exe tools\generate_api_docs.py `
-  --doxygen-xml ..\kiyosi\out\build\docs\docs\xml `
+  --doxygen-xml ..\kiyosi\build\docs\docs\xml `
   --output docs\api
 ```
 

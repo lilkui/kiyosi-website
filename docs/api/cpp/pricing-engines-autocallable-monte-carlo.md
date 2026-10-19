@@ -9,6 +9,15 @@ outline: [2, 4]
 #include <kiyosi/pricing/engines/autocallable/monte_carlo.hpp>
 ```
 
+## `make_monte_carlo_autocallable_engine`
+
+```cpp
+Result<MonteCarloAutocallableEngine> kiyosi::make_monte_carlo_autocallable_engine(TradingDayMonteCarloSettings settings)
+```
+
+Creates an engine after validating its configuration.
+**返回值:** The engine, or an `invalid_parameter` error.
+
 ## `kiyosi::MonteCarloAutocallableEngine`
 
 ```cpp
@@ -22,18 +31,10 @@ Simulates observation dates and expiry, adding trading days for daily knock-in m
 #### `MonteCarloAutocallableEngine`
 
 ```cpp
-kiyosi::MonteCarloAutocallableEngine::MonteCarloAutocallableEngine(TradingDayMonteCarloSettings settings={})
+kiyosi::MonteCarloAutocallableEngine::MonteCarloAutocallableEngine()=default
 ```
 
-Creates an engine with aggregate trading-day simulation settings.
-
-#### `MonteCarloAutocallableEngine`
-
-```cpp
-kiyosi::MonteCarloAutocallableEngine::MonteCarloAutocallableEngine(int path_count, std::optional<std::uint64_t> seed=TradingDayMonteCarloSettings{}.seed, MonteCarloBackend backend=TradingDayMonteCarloSettings{}.backend)
-```
-
-Creates an engine with explicit path count, seed, and backend.
+Creates an engine with valid default settings.
 
 #### `price`
 
@@ -43,7 +44,7 @@ Result<double> kiyosi::MonteCarloAutocallableEngine::price(const Note &note, con
 ```
 
 Prices an autocallable note by Monte Carlo simulation.
-**返回值:** Price, or a contract, context, settings, or backend error.
+**返回值:** Price, or a contract, context, numerical, or backend error.
 
 #### `price_with_greeks`
 
@@ -52,7 +53,7 @@ template <AutocallableProduct Note>
 Result<PricingResult> kiyosi::MonteCarloAutocallableEngine::price_with_greeks(const Note &option, const PricingContext &context, GreeksRequest greeks, NumericalShiftSettings settings={}) const
 ```
 
-Prices with the explicitly requested Greeks; unavailable measures remain empty. CPU spot sensitivities share per-path draws with separate event states and constant storage.
+Prices with the explicitly requested Greeks; unavailable measures remain empty. CPU spot sensitivities share per-path draws with separate event states and per-block reduction storage.
 
 #### `settings`
 

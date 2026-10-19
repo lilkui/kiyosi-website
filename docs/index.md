@@ -74,5 +74,5 @@ python -m pip install kiyosi
 </div>
 </section>
 
-<p class="home-note">定价测试以 QuantLib 独立生成的数值为基准，C++ 核心的构建与运行均不依赖 QuantLib。当前模型尚不支持波动率曲面与利率曲线，详见<a href="./guide/introduction.html#model-scope">模型适用范围</a>。本文档对应 Kiyosi 0.10.0；项目处于 Alpha 阶段，API 可能发生变化。</p>
+<p class="home-note">定价测试以 QuantLib 独立生成的数值为基准，C++ 核心的构建与运行均不依赖 QuantLib。当前模型尚不支持波动率曲面与利率曲线，详见<a href="./guide/introduction.html#model-scope">模型适用范围</a>。本文档对应 Kiyosi 0.11.0；项目处于 Alpha 阶段，API 可能发生变化。</p>
 </main>

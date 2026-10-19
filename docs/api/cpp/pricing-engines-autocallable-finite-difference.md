@@ -9,6 +9,15 @@ outline: [2, 4]
 #include <kiyosi/pricing/engines/autocallable/finite_difference.hpp>
 ```
 
+## `make_finite_difference_autocallable_engine`
+
+```cpp
+Result<FiniteDifferenceAutocallableEngine> kiyosi::make_finite_difference_autocallable_engine(FiniteDifferenceSettings settings)
+```
+
+Creates an engine after validating its configuration.
+**返回值:** The engine, or an `invalid_parameter` error.
+
 ## `kiyosi::FiniteDifferenceAutocallableEngine`
 
 ```cpp
@@ -22,18 +31,10 @@ One- or two-layer backward induction, depending on whether the note has knock-in
 #### `FiniteDifferenceAutocallableEngine`
 
 ```cpp
-kiyosi::FiniteDifferenceAutocallableEngine::FiniteDifferenceAutocallableEngine(FiniteDifferenceSettings settings={})
+kiyosi::FiniteDifferenceAutocallableEngine::FiniteDifferenceAutocallableEngine()=default
 ```
 
-Creates an engine with aggregate finite-difference settings.
-
-#### `FiniteDifferenceAutocallableEngine`
-
-```cpp
-kiyosi::FiniteDifferenceAutocallableEngine::FiniteDifferenceAutocallableEngine(int asset_step_count, int time_step_count, FiniteDifferenceScheme scheme=FiniteDifferenceSettings{}.scheme)
-```
-
-Creates an engine with explicit grid dimensions and scheme.
+Creates an engine with valid default settings.
 
 #### `price`
 
@@ -43,7 +44,7 @@ Result<double> kiyosi::FiniteDifferenceAutocallableEngine::price(const Note &not
 ```
 
 Prices an autocallable note by finite differences.
-**返回值:** Price, or a contract, context, or settings error.
+**返回值:** Price, or a contract, context, or numerical error.
 
 #### `price_with_greeks`
 
