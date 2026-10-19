@@ -28,7 +28,7 @@ Execution backends supported by Monte Carlo engines. CUDA operations use the cal
 struct kiyosi::MonteCarloSettings
 ```
 
-Vanilla simulation settings, validated when price() is called; an absent seed draws from the system entropy source. Vanilla engines accept 1..10,000,000 paths and 2..10,000 steps; American pricing before expiry requires at least 3 steps. European pricing samples the exact terminal distribution without intermediate steps.
+CPU calls own their parallel work and complete synchronously. Concurrent calls on distinct engines or const calls on a shared engine are safe without concurrent mutation. Thread caps apply per call, not process-wide. Fixed seeds reproduce results across thread counts within a library version, build and standard-library implementation; CUDA is a separate backend. Allocation and internal runtime exceptions propagate; no cancellation interface is provided. Vanilla simulation settings, validated when creating an engine; an absent seed draws from the system entropy source. Vanilla engines accept 1..10,000,000 paths and 2..10,000 steps; American pricing before expiry requires at least 3 steps. European pricing samples the exact terminal distribution without intermediate steps.
 
 ### 成员
 
@@ -64,13 +64,21 @@ MonteCarloBackend kiyosi::MonteCarloSettings::backend
 
 Execution backend.
 
+#### `thread_count`
+
+```cpp
+int kiyosi::MonteCarloSettings::thread_count
+```
+
+CPU concurrency cap: 0 automatic, 1 serial; CUDA requires 0.
+
 ## `kiyosi::TradingDayMonteCarloSettings`
 
 ```cpp
 struct kiyosi::TradingDayMonteCarloSettings
 ```
 
-`Accumulator` and autocallable products step the trading calendar directly, so no step count is needed; settings are validated when price() is called. These engines accept 1..10,000,000 paths. CPU paths use separate PCG32 streams, so early knock-out cannot shift later paths' draws. Seeded prices are reproducible within a library version, standard-library implementation and backend.
+`Accumulator` and autocallable products step the trading calendar directly, so no step count is needed; settings are validated when creating an engine. These engines accept 1..10,000,000 paths. CPU paths use separate PCG32 streams, so early knock-out cannot shift later paths' draws. Seeded prices are reproducible within a library version, standard-library implementation and backend.
 
 ### 成员
 
@@ -97,3 +105,11 @@ MonteCarloBackend kiyosi::TradingDayMonteCarloSettings::backend
 ```
 
 Execution backend.
+
+#### `thread_count`
+
+```cpp
+int kiyosi::TradingDayMonteCarloSettings::thread_count
+```
+
+CPU concurrency cap: 0 automatic, 1 serial; CUDA requires 0.

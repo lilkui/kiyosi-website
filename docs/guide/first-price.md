@@ -69,6 +69,8 @@ print(result.price, result.delta, result.gamma, result.vega)
 
 该方法返回只读的 `PricingResult`。也可用 `all_greeks=True` 请求全部十项指标，此时不要同时传入 `greeks`。未请求、无定义或不支持的指标为 `None`，不能当作零处理。
 
+引擎优先使用原生 Greeks，其余可计算指标使用数值差分。需要调整差分扰动量时，直接向 `price_with_greeks()` 传入 `spot_shift` 等关键字参数，详见[Python API 概览](../reference/python#kiyosi-pricing)。
+
 Vega 按波动率变动 1 个百分点计量，theta 按估值时点向前移动 1 个自然日计量。完整的单位说明见 [`PricingResult`](/api/python/kiyosi#pricingresult)。
 
 ## 更换定价引擎 {#change-the-engine}
@@ -78,10 +80,10 @@ Vega 按波动率变动 1 个百分点计量，theta 按估值时点向前移动
 ```python
 from kiyosi.pricing import MonteCarloVanillaEngine
 
-estimate = MonteCarloVanillaEngine().price(option, context)
+estimate = MonteCarloVanillaEngine(seed=42, thread_count=4).price(option, context)
 print(estimate)
 ```
 
-蒙特卡洛方法通过数值模拟估算价格，结果可能与解析解不同。各类产品支持哪些引擎，以及如何配置 CUDA，见[定价引擎](./engines)。
+蒙特卡洛方法通过数值模拟估算价格，结果可能与解析解不同。`seed` 固定随机种子，`thread_count` 限制单次 CPU 调用的并发数。各类产品支持哪些引擎，以及如何配置 CUDA，见[定价引擎](./engines)。
 
 本示例改编自 [kiyosi Python 快速入门](https://github.com/lilkui/kiyosi/blob/main/README.md#python-快速上手)。

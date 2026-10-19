@@ -182,5 +182,5 @@ Price change per interest-rate percentage point, or None.
 ## `__version__`
 
 ```python
-__version__ = '0.10.0'
+__version__ = '0.11.0'
 ```

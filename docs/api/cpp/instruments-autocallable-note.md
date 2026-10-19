@@ -73,6 +73,14 @@ Complete immutable autocallable product, owning its validated construction terms
 
 ### 成员
 
+#### `replace`
+
+```cpp
+Result<AutocallableNote> kiyosi::AutocallableNote<Terms>::replace(std::optional<AutocallableBarrierState> barrier_state) const
+```
+
+Returns a validated owning copy with only the supplied history replaced. Preserves all contract terms and never changes this object, including on failure. History is caller-supplied; time consistency is checked during pricing. Concurrent calls and reads are safe without concurrent assignment or mutation. nullopt means unknown history; none means known absence of barrier events. Uses the same validation and error categories as the product factory.
+
 #### `AutocallableNote`
 
 ```cpp

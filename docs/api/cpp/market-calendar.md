@@ -36,6 +36,14 @@ Creates a validated trading calendar.
 
 **返回值:** The calendar, or an `invalid_calendar` error.
 
+## `make_custom_calendar`
+
+```cpp
+Result<TradingCalendar> kiyosi::make_custom_calendar(TradingCalendar base, std::vector<Date> closed_dates={}, std::vector<Date> open_dates={}, std::optional<int> trading_days_per_year=std::nullopt)
+```
+
+Creates an owning calendar with explicit open/closed dates overriding a base calendar. Dates may be unordered or repeated. A date in both lists returns `invalid_calendar`; unsupported dates return `invalid_date`. The optional positive annualization basis defaults to the base's basis; overrides never recalculate it. A nonpositive basis returns `invalid_calendar`. Inputs are copied or moved into the result; later changes to input containers have no effect. Concurrent reads follow the base calendar's thread-safety contract.
+
 ## `all_days_calendar`
 
 ```cpp

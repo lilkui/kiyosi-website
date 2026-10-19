@@ -9,13 +9,21 @@ outline: [2, 4]
 #include <kiyosi/pricing/settings/binomial.hpp>
 ```
 
+## `validate_binomial_settings`
+
+```cpp
+Result<void> kiyosi::validate_binomial_settings(BinomialSettings settings)
+```
+
+Validates the binomial tree size.
+
 ## `kiyosi::BinomialSettings`
 
 ```cpp
 struct kiyosi::BinomialSettings
 ```
 
-Aggregate configuration validated by binomial engines when price() is called.
+Aggregate configuration validated when creating a binomial engine.
 
 ### 成员
 
@@ -25,4 +33,4 @@ Aggregate configuration validated by binomial engines when price() is called.
 int kiyosi::BinomialSettings::step_count
 ```
 
-Number of tree time steps; must be positive.
+Number of tree time steps; must be between 1 and 1,000,000.

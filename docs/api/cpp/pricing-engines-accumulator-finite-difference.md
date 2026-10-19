@@ -9,6 +9,15 @@ outline: [2, 4]
 #include <kiyosi/pricing/engines/accumulator/finite_difference.hpp>
 ```
 
+## `make_finite_difference_accumulator_engine`
+
+```cpp
+Result<FiniteDifferenceAccumulatorEngine> kiyosi::make_finite_difference_accumulator_engine(FiniteDifferenceSettings settings)
+```
+
+Creates an engine after validating its configuration.
+**返回值:** The engine, or an `invalid_parameter` error.
+
 ## `kiyosi::FiniteDifferenceAccumulatorEngine`
 
 ```cpp
@@ -22,18 +31,10 @@ Marches the accrual value back as an affine function of the accumulated quantity
 #### `FiniteDifferenceAccumulatorEngine`
 
 ```cpp
-kiyosi::FiniteDifferenceAccumulatorEngine::FiniteDifferenceAccumulatorEngine(FiniteDifferenceSettings settings={})
+kiyosi::FiniteDifferenceAccumulatorEngine::FiniteDifferenceAccumulatorEngine()=default
 ```
 
-Creates an engine with aggregate finite-difference settings.
-
-#### `FiniteDifferenceAccumulatorEngine`
-
-```cpp
-kiyosi::FiniteDifferenceAccumulatorEngine::FiniteDifferenceAccumulatorEngine(int asset_step_count, int time_step_count, FiniteDifferenceScheme scheme=FiniteDifferenceSettings{}.scheme)
-```
-
-Creates an engine with explicit grid dimensions and scheme.
+Creates an engine with valid default settings.
 
 #### `price`
 
@@ -42,7 +43,7 @@ Result<double> kiyosi::FiniteDifferenceAccumulatorEngine::price(const Accumulato
 ```
 
 Prices an accumulator by finite differences.
-**返回值:** Price, or a contract, context, or settings error.
+**返回值:** Price, or a contract, context, or numerical error.
 
 #### `price_with_greeks`
 

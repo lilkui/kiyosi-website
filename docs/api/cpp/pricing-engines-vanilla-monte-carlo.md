@@ -9,6 +9,15 @@ outline: [2, 4]
 #include <kiyosi/pricing/engines/vanilla/monte_carlo.hpp>
 ```
 
+## `make_monte_carlo_vanilla_engine`
+
+```cpp
+Result<MonteCarloVanillaEngine> kiyosi::make_monte_carlo_vanilla_engine(MonteCarloSettings settings)
+```
+
+Creates an engine after validating its configuration.
+**返回值:** The engine, or an `invalid_parameter` error.
+
 ## `kiyosi::MonteCarloVanillaEngine`
 
 ```cpp
@@ -22,18 +31,10 @@ Monte Carlo valuation for vanilla European and American options. Accepts 1..10,0
 #### `MonteCarloVanillaEngine`
 
 ```cpp
-kiyosi::MonteCarloVanillaEngine::MonteCarloVanillaEngine(MonteCarloSettings settings={})
+kiyosi::MonteCarloVanillaEngine::MonteCarloVanillaEngine()=default
 ```
 
-Creates an engine with aggregate Monte Carlo settings.
-
-#### `MonteCarloVanillaEngine`
-
-```cpp
-kiyosi::MonteCarloVanillaEngine::MonteCarloVanillaEngine(int path_count, int step_count, std::optional<std::uint64_t> seed=MonteCarloSettings{}.seed, MonteCarloBackend backend=MonteCarloSettings{}.backend)
-```
-
-Creates an engine with explicit path count, step count, seed, and backend.
+Creates an engine with valid default settings.
 
 #### `price`
 
@@ -42,7 +43,7 @@ Result<double> kiyosi::MonteCarloVanillaEngine::price(const EuropeanOption &opti
 ```
 
 Prices a European or American vanilla option.
-**返回值:** Price, or a contract, context, settings, or backend error.
+**返回值:** Price, or a contract, context, numerical, or backend error.
 
 #### `price`
 

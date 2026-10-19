@@ -42,6 +42,19 @@ Continuously compounded annual dividend yield.
 
 Positive annualized volatility.
 
+### `replace`
+
+```python
+replace(self, *, risk_free_rate: float = ..., dividend_yield: float = ..., volatility: float = ...) -> BlackScholesMertonParameters
+```
+
+Return a validated copy with the supplied fields replaced.
+
+Omitted fields retain their current values; no arguments returns an equal value.
+Arguments use the constructor's units, conversion rules and domain validation.
+Explicit None and unknown fields raise TypeError. Domain errors raise KiyosiError.
+The original parameters remain unchanged on success or failure.
+
 ## `BusinessDayConvention`
 
 ```python
@@ -120,12 +133,27 @@ Timezone-aware valuation timestamp normalized to UTC.
 
 Read-only calendar view that keeps this context alive; concurrent reads are safe.
 
+### `replace`
+
+```python
+replace(self, *, model_parameters: BlackScholesMertonParameters = ..., spot_price: float = ..., valuation_time: datetime.date | datetime.datetime = ..., calendar: TradingCalendar = ...) -> PricingContext
+```
+
+Return a validated copy with the supplied fields replaced.
+
+Omitted fields retain their current values, including the calendar and exact
+valuation timestamp. No arguments returns an equivalent snapshot. Arguments use
+the constructor's conversion rules and domain validation, including UTC conversion.
+Explicit None and unknown fields raise TypeError. Domain errors raise KiyosiError.
+The original context remains unchanged on success or failure.
+To change volatility, replace model_parameters with a modified parameter copy.
+
 ## `TradingCalendar`
 
 Read-only trading-day calendar.
 
 Instances are created by `all_days_calendar`, `weekdays_calendar`,
-or `sse_calendar`.
+`sse_calendar`, or `custom_calendar`.
 
 ### `is_trading_day`
 
@@ -209,6 +237,28 @@ Return a calendar in which every day is a trading day.
 
 - `TradingCalendar` — Calendar with 365 annual trading days.
 
+## `custom_calendar`
+
+```python
+custom_calendar(*, base: TradingCalendar, closed_dates: collections.abc.Iterable[datetime.date] = (), open_dates: collections.abc.Iterable[datetime.date] = (), trading_days_per_year: int | None = None) -> TradingCalendar
+```
+
+Create an immutable calendar by overriding dates in a base calendar.
+
+#### Parameters
+
+- **`base`** (`TradingCalendar`) — Calendar used for all dates without an override.
+- **`closed_dates, open_dates`** (`iterable[datetime.date], optional`) — Explicit closures and openings. Order is irrelevant; duplicates are removed. Inputs are copied, so later changes to them do not affect the calendar.
+- **`trading_days_per_year`** (`int or None, optional`) — Positive annualization basis. None inherits the base's basis; adding or removing trading dates never recalculates it.
+#### Returns
+
+- `TradingCalendar` — Owning calendar, safe for concurrent reads and pricing without Python callbacks.
+#### Raises
+
+- `TypeError` — If a date is not datetime.date (datetime is rejected), or the basis is not an integer or None. Booleans and fractional numbers are rejected.
+- `OverflowError` — If the basis is outside the C++ int range.
+- `KiyosiError` — INVALID_CALENDAR for conflicting overrides or a nonpositive basis; INVALID_DATE for unsupported dates.
+
 ## `fixed_interval_schedule`
 
 ```python
@@ -245,12 +295,12 @@ interval produces 2025-01-06 and 2025-01-07. Supply explicit
 ## `monthly_schedule`
 
 ```python
-monthly_schedule(*, start: datetime.date, end: datetime.date, lock_up_months: int, calendar: TradingCalendar = TradingCalendar(trading_days_per_year=252)) -> ObservationSchedule
+monthly_schedule(*, start: datetime.date, end: datetime.date, first_observation_month: int, calendar: TradingCalendar = TradingCalendar(trading_days_per_year=252)) -> ObservationSchedule
 ```
 
-Build a monthly observation schedule after a lock-up period.
+Build a monthly schedule starting at the specified observation month.
 
-Monthly candidates begin at ``start + lock_up_months``. ``start`` is excluded
+Monthly candidates begin at ``start + first_observation_month``. ``start`` is excluded
 and ``end`` is an inclusive bound. The start day is clamped to each target
 month's last day, then candidates use following trading-day adjustment.
 Duplicate adjusted dates are merged, as in fixed-interval schedules.
@@ -260,7 +310,7 @@ Generation stops rather than crossing ``end``, so ``end`` is not guaranteed.
 
 - **`start`** (`datetime.date`) — Anchor date, excluded from the result.
 - **`end`** (`datetime.date`) — Inclusive upper bound for adjusted dates.
-- **`lock_up_months`** (`int`) — Positive number of months before the first candidate.
+- **`first_observation_month`** (`int`) — Positive month offset from start to the first candidate: 1 means next month, 2 the month after.
 - **`calendar`** (`TradingCalendar, optional`) — Adjustment calendar. Defaults to `weekdays_calendar`.
 #### Returns
 
@@ -268,12 +318,11 @@ Generation stops rather than crossing ``end``, so ``end`` is not guaranteed.
 #### Raises
 
 - `TypeError` — If an argument has an incompatible representation.
-- `OverflowError` — If ``lock_up_months`` is outside the C++ ``int`` range.
-- `KiyosiError` — If the dates, lock-up, calendar, or resulting schedule are invalid.
+- `OverflowError` — If ``first_observation_month`` is outside the C++ ``int`` range.
+- `KiyosiError` — If the dates, first observation month, calendar, or resulting schedule are invalid.
 #### Examples
 
-With the weekdays calendar, 2025-01-01 through 2025-03-01 with one lock-up
-month produces only 2025-02-03; adjusting the Saturday end candidate would
+With the weekdays calendar, 2025-01-01 through 2025-03-01 with first observation month 1 produces only 2025-02-03; adjusting the Saturday end candidate would
 cross the bound. Supply explicit ``observation_dates`` to an instrument
 constructor for bespoke terminal dates.
 

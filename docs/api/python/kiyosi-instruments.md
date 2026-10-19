@@ -60,6 +60,21 @@ First date on which the contract is effective.
 
 Contract expiry at 00:00 UTC.
 
+### `replace`
+
+```python
+replace(self, *, accumulated_quantity: float) -> Accumulator
+```
+
+Return a validated copy with only accumulated_quantity replaced.
+
+The keyword is required and uses constructor units and conversion rules. None is
+not accepted; zero means no accrued quantity. All contract terms are preserved and
+the original is unchanged on success or failure. The caller supplies the quantity;
+it is not computed from spot. Corrections and historical revaluations are allowed.
+TypeError and OverflowError report conversion failures; KiyosiError reports core
+rejections. Concurrent calls and reads are safe.
+
 ## `AmericanOption`
 
 ```python
@@ -120,7 +135,7 @@ Create a validated average-price option.
 - **`averaging_start_date`** (`datetime.date`) — First date included in the averaging period. Equality with expiry denotes a single fixing.
 - **`effective_date`** (`datetime.date`) — First date on which the contract is effective.
 - **`expiry_date`** (`datetime.date`) — Contract expiry at 00:00 UTC.
-- **`realized_average`** (`float, optional`) — Average realized before valuation time, or zero before averaging begins. Geometric averaging requires a positive value after averaging starts. Defaults to the core-owned pre-averaging value.
+- **`realized_average`** (`float, optional`) — Average realized before valuation time, or zero before averaging begins. Both averaging conventions require a positive value after averaging starts. Defaults to the core-owned pre-averaging value.
 #### Raises
 
 - `TypeError` — If an argument has an incompatible representation.
@@ -132,7 +147,23 @@ First date included in the averaging period; equality with expiry denotes a sing
 
 ### `realized_average`
 
-Average realized before valuation, or zero before averaging begins; geometric averaging requires a positive value after averaging starts.
+Average realized before valuation, or zero before averaging begins; both averaging conventions require a positive value after averaging starts.
+
+### `replace`
+
+```python
+replace(self, *, realized_average: float) -> ArithmeticAveragePriceOption
+```
+
+Return a validated copy with only realized_average replaced.
+
+The keyword is required and uses constructor units and conversion rules. None is
+not accepted. Zero denotes no elapsed averaging; pricing requires a positive
+average after averaging starts. All contract terms are preserved and the original
+is unchanged on success or failure. Corrections and historical revaluations are
+allowed; time consistency is checked during pricing. TypeError and OverflowError
+report conversion failures; KiyosiError reports core rejections.
+Concurrent calls and reads are safe.
 
 ### `option_type`
 
@@ -279,6 +310,21 @@ Barrier touch history before valuation.
 
 Copy of the scheduled observations at 00:00 UTC.
 
+### `replace`
+
+```python
+replace(self, *, touch_state: typing.Literal['untouched', 'touched'] | None) -> BarrierOption
+```
+
+Return a validated copy with only touch_state replaced.
+
+The keyword is required. None means unknown history; 'untouched' means no prior
+touch. All contract terms are preserved and the original is unchanged on success
+or failure. History is supplied by the caller, never inferred from spot. Corrections
+and historical revaluations are allowed; time consistency is checked during pricing.
+Conversion errors raise TypeError or ValueError; core rejections raise KiyosiError.
+Concurrent calls and reads are safe.
+
 ### `option_type`
 
 Call or put payoff direction.
@@ -342,6 +388,21 @@ Barrier touch history before valuation.
 
 Copy of the scheduled observations at 00:00 UTC.
 
+### `replace`
+
+```python
+replace(self, *, touch_state: typing.Literal['untouched', 'touched'] | None) -> BinaryBarrierOption
+```
+
+Return a validated copy with only touch_state replaced.
+
+The keyword is required. None means unknown history; 'untouched' means no prior
+touch. All contract terms are preserved and the original is unchanged on success
+or failure. History is supplied by the caller, never inferred from spot. Corrections
+and historical revaluations are allowed; time consistency is checked during pricing.
+Conversion errors raise TypeError or ValueError; core rejections raise KiyosiError.
+Concurrent calls and reads are safe.
+
 ### `option_type`
 
 Call or put payoff direction.
@@ -392,6 +453,21 @@ Annualized coupon rate for each observation date.
 ### `maturity_coupon_rate`
 
 Annualized coupon rate used at maturity when applicable.
+
+### `replace`
+
+```python
+replace(self, *, barrier_state: typing.Literal['none', 'knocked_out', 'knocked_in'] | None) -> BinarySnowballOption
+```
+
+Return a validated copy with only barrier_state replaced.
+
+The keyword is required. None means unknown history; 'none' means no prior barrier
+event. All contract terms are preserved and the original is unchanged on success
+or failure. History is supplied by the caller, never inferred from spot. Corrections
+and historical revaluations are allowed; time consistency is checked during pricing.
+Conversion errors raise TypeError or ValueError; core rejections raise KiyosiError.
+Concurrent calls and reads are safe.
 
 ### `observations`
 
@@ -525,7 +601,7 @@ Create a validated average-price option.
 - **`averaging_start_date`** (`datetime.date`) — First date included in the averaging period. Equality with expiry denotes a single fixing.
 - **`effective_date`** (`datetime.date`) — First date on which the contract is effective.
 - **`expiry_date`** (`datetime.date`) — Contract expiry at 00:00 UTC.
-- **`realized_average`** (`float, optional`) — Average realized before valuation time, or zero before averaging begins. Geometric averaging requires a positive value after averaging starts. Defaults to the core-owned pre-averaging value.
+- **`realized_average`** (`float, optional`) — Average realized before valuation time, or zero before averaging begins. Both averaging conventions require a positive value after averaging starts. Defaults to the core-owned pre-averaging value.
 #### Raises
 
 - `TypeError` — If an argument has an incompatible representation.
@@ -537,7 +613,23 @@ First date included in the averaging period; equality with expiry denotes a sing
 
 ### `realized_average`
 
-Average realized before valuation, or zero before averaging begins; geometric averaging requires a positive value after averaging starts.
+Average realized before valuation, or zero before averaging begins; both averaging conventions require a positive value after averaging starts.
+
+### `replace`
+
+```python
+replace(self, *, realized_average: float) -> GeometricAveragePriceOption
+```
+
+Return a validated copy with only realized_average replaced.
+
+The keyword is required and uses constructor units and conversion rules. None is
+not accepted. Zero denotes no elapsed averaging; pricing requires a positive
+average after averaging starts. All contract terms are preserved and the original
+is unchanged on success or failure. Corrections and historical revaluations are
+allowed; time consistency is checked during pricing. TypeError and OverflowError
+report conversion failures; KiyosiError reports core rejections.
+Concurrent calls and reads are safe.
 
 ### `option_type`
 
@@ -614,6 +706,21 @@ Annualized coupon rate per observation period (Actual/365 Fixed).
 ### `coupon_barrier_levels`
 
 Coupon barrier level for each observation date.
+
+### `replace`
+
+```python
+replace(self, *, barrier_state: typing.Literal['none', 'knocked_out', 'knocked_in'] | None) -> PhoenixOption
+```
+
+Return a validated copy with only barrier_state replaced.
+
+The keyword is required. None means unknown history; 'none' means no prior barrier
+event. All contract terms are preserved and the original is unchanged on success
+or failure. History is supplied by the caller, never inferred from spot. Corrections
+and historical revaluations are allowed; time consistency is checked during pricing.
+Conversion errors raise TypeError or ValueError; core rejections raise KiyosiError.
+Concurrent calls and reads are safe.
 
 ### `observations`
 
@@ -714,6 +821,21 @@ Annualized coupon rate for each observation date.
 
 Annualized coupon rate used at maturity when applicable.
 
+### `replace`
+
+```python
+replace(self, *, barrier_state: typing.Literal['none', 'knocked_out', 'knocked_in'] | None) -> SnowballOption
+```
+
+Return a validated copy with only barrier_state replaced.
+
+The keyword is required. None means unknown history; 'none' means no prior barrier
+event. All contract terms are preserved and the original is unchanged on success
+or failure. History is supplied by the caller, never inferred from spot. Corrections
+and historical revaluations are allowed; time consistency is checked during pricing.
+Conversion errors raise TypeError or ValueError; core rejections raise KiyosiError.
+Concurrent calls and reads are safe.
+
 ### `observations`
 
 Owning copy of the complete observation records.
@@ -804,6 +926,21 @@ Annualized coupon rate used at maturity when applicable.
 
 Minimum annualized coupon rate for the third payoff region.
 
+### `replace`
+
+```python
+replace(self, *, barrier_state: typing.Literal['none', 'knocked_out', 'knocked_in'] | None) -> TernarySnowballOption
+```
+
+Return a validated copy with only barrier_state replaced.
+
+The keyword is required. None means unknown history; 'none' means no prior barrier
+event. All contract terms are preserved and the original is unchanged on success
+or failure. History is supplied by the caller, never inferred from spot. Corrections
+and historical revaluations are allowed; time consistency is checked during pricing.
+Conversion errors raise TypeError or ValueError; core rejections raise KiyosiError.
+Concurrent calls and reads are safe.
+
 ### `observations`
 
 Owning copy of the complete observation records.
@@ -890,6 +1027,21 @@ Barrier touch history before valuation.
 ### `observation_dates`
 
 Copy of the scheduled observations at 00:00 UTC.
+
+### `replace`
+
+```python
+replace(self, *, touch_state: typing.Literal['untouched', 'touched'] | None) -> TouchOption
+```
+
+Return a validated copy with only touch_state replaced.
+
+The keyword is required. None means unknown history; 'untouched' means no prior
+touch. All contract terms are preserved and the original is unchanged on success
+or failure. History is supplied by the caller, never inferred from spot. Corrections
+and historical revaluations are allowed; time consistency is checked during pricing.
+Conversion errors raise TypeError or ValueError; core rejections raise KiyosiError.
+Concurrent calls and reads are safe.
 
 ## `asset_binary_barrier_option`
 

@@ -7,7 +7,7 @@ description: 了解 kiyosi 的功能、定价流程和当前模型的适用范�
 Kiyosi 是一个开源衍生品定价库，支持普通期权、奇异期权和结构化产品。核心功能用 C++23 实现，主要通过 Python API 使用。
 
 ::: warning 早期开发阶段
-本文档对应 **kiyosi 0.10.0**。项目处于 Alpha 阶段，API 可能发生变化，不保证向后兼容。
+本文档对应 **kiyosi 0.11.0**。项目处于 Alpha 阶段，API 可能发生变化，不保证向后兼容。
 :::
 
 ## 定价流程 {#how-pricing-fits-together}

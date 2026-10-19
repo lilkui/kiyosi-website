@@ -9,6 +9,15 @@ outline: [2, 4]
 #include <kiyosi/pricing/engines/accumulator/monte_carlo.hpp>
 ```
 
+## `make_monte_carlo_accumulator_engine`
+
+```cpp
+Result<MonteCarloAccumulatorEngine> kiyosi::make_monte_carlo_accumulator_engine(TradingDayMonteCarloSettings settings)
+```
+
+Creates an engine after validating its configuration.
+**返回值:** The engine, or an `invalid_parameter` error.
+
 ## `kiyosi::MonteCarloAccumulatorEngine`
 
 ```cpp
@@ -22,18 +31,10 @@ Simulates the trading-day accrual, terminating each path at the knock-out level.
 #### `MonteCarloAccumulatorEngine`
 
 ```cpp
-kiyosi::MonteCarloAccumulatorEngine::MonteCarloAccumulatorEngine(TradingDayMonteCarloSettings settings={})
+kiyosi::MonteCarloAccumulatorEngine::MonteCarloAccumulatorEngine()=default
 ```
 
-Creates an engine with aggregate trading-day simulation settings.
-
-#### `MonteCarloAccumulatorEngine`
-
-```cpp
-kiyosi::MonteCarloAccumulatorEngine::MonteCarloAccumulatorEngine(int path_count, std::optional<std::uint64_t> seed=TradingDayMonteCarloSettings{}.seed, MonteCarloBackend backend=TradingDayMonteCarloSettings{}.backend)
-```
-
-Creates an engine with explicit path count, seed, and backend.
+Creates an engine with valid default settings.
 
 #### `price`
 
@@ -42,7 +43,7 @@ Result<double> kiyosi::MonteCarloAccumulatorEngine::price(const Accumulator &opt
 ```
 
 Prices an accumulator by Monte Carlo simulation.
-**返回值:** Price, or a contract, context, settings, or backend error.
+**返回值:** Price, or a contract, context, numerical, or backend error.
 
 #### `price_with_greeks`
 
@@ -50,7 +51,7 @@ Prices an accumulator by Monte Carlo simulation.
 Result<PricingResult> kiyosi::MonteCarloAccumulatorEngine::price_with_greeks(const Accumulator &option, const PricingContext &context, GreeksRequest greeks, NumericalShiftSettings settings={}) const
 ```
 
-Prices with the explicitly requested Greeks; unavailable measures remain empty. CPU spot bumps share per-call random draws and growth factors with storage independent of path count.
+Prices with the explicitly requested Greeks; unavailable measures remain empty. CPU spot bumps share per-call random draws and growth factors with per-block reduction storage.
 
 #### `settings`
 

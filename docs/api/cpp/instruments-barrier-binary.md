@@ -130,6 +130,14 @@ Strike-based binary option whose payoff also depends on a barrier_level event.
 
 ### 成员
 
+#### `replace`
+
+```cpp
+Result<BinaryBarrierOption> kiyosi::BinaryBarrierOption::replace(std::optional<BarrierTouchState> touch_state) const
+```
+
+Returns a validated owning copy with only the supplied history replaced. Preserves all contract terms and never changes this object, including on failure. History is caller-supplied; time consistency is checked during pricing. Concurrent calls and reads are safe without concurrent assignment or mutation. nullopt means unknown history; untouched means known absence of touches. Uses core barrier construction validation and error categories.
+
 #### `option_type`
 
 ```cpp
@@ -333,6 +341,14 @@ class kiyosi::TouchOption
 Strike-free one-touch or no-touch contract paying cash or the asset.
 
 ### 成员
+
+#### `replace`
+
+```cpp
+Result<TouchOption> kiyosi::TouchOption::replace(std::optional<BarrierTouchState> touch_state) const
+```
+
+Returns a validated owning copy with only the supplied history replaced. Preserves all contract terms and never changes this object, including on failure. History is caller-supplied; time consistency is checked during pricing. Concurrent calls and reads are safe without concurrent assignment or mutation. nullopt means unknown history; untouched means known absence of touches. Uses core barrier construction validation and error categories.
 
 #### `payoff`
 

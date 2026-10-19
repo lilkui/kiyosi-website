@@ -21,8 +21,12 @@ Builds candidates at `start + n * interval` for positive `n`; `start` is exclude
 ## `make_monthly_schedule`
 
 ```cpp
-Result<ObservationSchedule> kiyosi::make_monthly_schedule(Date start, Date end, int lock_up_months, const TradingCalendar &calendar=weekdays_calendar())
+Result<ObservationSchedule> kiyosi::make_monthly_schedule(Date start, Date end, int first_observation_month, const TradingCalendar &calendar=weekdays_calendar())
 ```
 
-Builds monthly candidates beginning at `start + lock_up_months`; `start` is excluded and `end` is an inclusive upper bound. The start day is clamped to each target month's last day, then each candidate moves forward to the next trading day, and duplicate adjusted dates are removed. Generation stops rather than crossing `end`, so `end` is not guaranteed to be an observation `Date`. For example, the weekdays calendar maps 2025-01-01 through 2025-03-01 with one lock-up month to [2025-02-03]; the Saturday end candidate would adjust past the bound. Supply explicit observation dates to an instrument factory when the contract requires a bespoke terminal `Date`.
+Builds monthly candidates beginning at `start + first_observation_month`; `start` is excluded and `end` is an inclusive upper bound. The start day is clamped to each target month's last day, then each candidate moves forward to the next trading day, and duplicate adjusted dates are removed. Generation stops rather than crossing `end`, so `end` is not guaranteed to be an observation `Date`. For example, the weekdays calendar maps 2025-01-01 through 2025-03-01 with first observation month 1 to [2025-02-03]; the Saturday end candidate would adjust past the bound. Supply explicit observation dates to an instrument factory when the contract requires a bespoke terminal `Date`.
+**参数**
+
+- `first_observation_month` — Positive month offset: 1 starts next month, 2 the month after; observations continue monthly.
+
 **返回值:** The validated schedule, or `invalid_date`, `invalid_time_range`, or `invalid_schedule`.

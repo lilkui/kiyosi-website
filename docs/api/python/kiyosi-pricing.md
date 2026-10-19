@@ -73,9 +73,11 @@ failures fail the entire operation.
 At current autocallable-product event thresholds, undefined spot and time
 sensitivities remain None while feasible rate and volatility sensitivities survive.
 
-Shift keyword arguments are absolute, use core-owned defaults, and follow
-calculate_numerical_greeks. Monte Carlo valuations share one seed per
-request without changing the engine. Concurrent calls are safe.
+Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
+use asset-price units, volatility and rate shifts use decimal units, and time
+shifts use calendar days. Collapsed or asymmetric stencils leave affected
+numerical Greeks unavailable. Monte Carlo valuations share one seed per request
+without changing the engine. Concurrent calls are safe.
 For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
 exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
 and bump-size bias remain; check convergence for the valuation.
@@ -162,9 +164,11 @@ failures fail the entire operation.
 At current autocallable-product event thresholds, undefined spot and time
 sensitivities remain None while feasible rate and volatility sensitivities survive.
 
-Shift keyword arguments are absolute, use core-owned defaults, and follow
-calculate_numerical_greeks. Monte Carlo valuations share one seed per
-request without changing the engine. Concurrent calls are safe.
+Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
+use asset-price units, volatility and rate shifts use decimal units, and time
+shifts use calendar days. Collapsed or asymmetric stencils leave affected
+numerical Greeks unavailable. Monte Carlo valuations share one seed per request
+without changing the engine. Concurrent calls are safe.
 For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
 exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
 and bump-size bias remain; check convergence for the valuation.
@@ -245,9 +249,11 @@ failures fail the entire operation.
 At current autocallable-product event thresholds, undefined spot and time
 sensitivities remain None while feasible rate and volatility sensitivities survive.
 
-Shift keyword arguments are absolute, use core-owned defaults, and follow
-calculate_numerical_greeks. Monte Carlo valuations share one seed per
-request without changing the engine. Concurrent calls are safe.
+Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
+use asset-price units, volatility and rate shifts use decimal units, and time
+shifts use calendar days. Collapsed or asymmetric stencils leave affected
+numerical Greeks unavailable. Monte Carlo valuations share one seed per request
+without changing the engine. Concurrent calls are safe.
 For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
 exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
 and bump-size bias remain; check convergence for the valuation.
@@ -326,9 +332,11 @@ failures fail the entire operation.
 At current autocallable-product event thresholds, undefined spot and time
 sensitivities remain None while feasible rate and volatility sensitivities survive.
 
-Shift keyword arguments are absolute, use core-owned defaults, and follow
-calculate_numerical_greeks. Monte Carlo valuations share one seed per
-request without changing the engine. Concurrent calls are safe.
+Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
+use asset-price units, volatility and rate shifts use decimal units, and time
+shifts use calendar days. Collapsed or asymmetric stencils leave affected
+numerical Greeks unavailable. Monte Carlo valuations share one seed per request
+without changing the engine. Concurrent calls are safe.
 For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
 exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
 and bump-size bias remain; check convergence for the valuation.
@@ -407,9 +415,11 @@ failures fail the entire operation.
 At current autocallable-product event thresholds, undefined spot and time
 sensitivities remain None while feasible rate and volatility sensitivities survive.
 
-Shift keyword arguments are absolute, use core-owned defaults, and follow
-calculate_numerical_greeks. Monte Carlo valuations share one seed per
-request without changing the engine. Concurrent calls are safe.
+Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
+use asset-price units, volatility and rate shifts use decimal units, and time
+shifts use calendar days. Collapsed or asymmetric stencils leave affected
+numerical Greeks unavailable. Monte Carlo valuations share one seed per request
+without changing the engine. Concurrent calls are safe.
 For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
 exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
 and bump-size bias remain; check convergence for the valuation.
@@ -488,9 +498,11 @@ failures fail the entire operation.
 At current autocallable-product event thresholds, undefined spot and time
 sensitivities remain None while feasible rate and volatility sensitivities survive.
 
-Shift keyword arguments are absolute, use core-owned defaults, and follow
-calculate_numerical_greeks. Monte Carlo valuations share one seed per
-request without changing the engine. Concurrent calls are safe.
+Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
+use asset-price units, volatility and rate shifts use decimal units, and time
+shifts use calendar days. Collapsed or asymmetric stencils leave affected
+numerical Greeks unavailable. Monte Carlo valuations share one seed per request
+without changing the engine. Concurrent calls are safe.
 For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
 exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
 and bump-size bias remain; check convergence for the valuation.
@@ -523,12 +535,12 @@ CoxRossRubinsteinVanillaEngine(self, step_count: int = 256) -> None
 
 Cox-Ross-Rubinstein binomial vanilla-option engine.
 
-Configuration is immutable. Settings are stored without domain validation and
-are validated when price() is called.
+Configuration is immutable and validated at construction. Market-dependent tree
+constraints are checked when pricing.
 
 ### 构造函数
 
-Store Cox-Ross-Rubinstein settings.
+Create an engine with validated Cox-Ross-Rubinstein settings.
 
 #### Parameters
 
@@ -537,9 +549,10 @@ Store Cox-Ross-Rubinstein settings.
 
 - `TypeError` — If ``step_count`` is not an integer.
 - `OverflowError` — If ``step_count`` is outside the C++ ``int`` range.
+- `KiyosiError` — INVALID_PARAMETER if the step count is outside 1..1,000,000.
 #### Notes
 
-The setting is validated when price() is called.
+The step count is validated at construction; accepted range is 1..1,000,000.
 
 ### `step_count`
 
@@ -588,9 +601,11 @@ failures fail the entire operation.
 At current autocallable-product event thresholds, undefined spot and time
 sensitivities remain None while feasible rate and volatility sensitivities survive.
 
-Shift keyword arguments are absolute, use core-owned defaults, and follow
-calculate_numerical_greeks. Monte Carlo valuations share one seed per
-request without changing the engine. Concurrent calls are safe.
+Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
+use asset-price units, volatility and rate shifts use decimal units, and time
+shifts use calendar days. Collapsed or asymmetric stencils leave affected
+numerical Greeks unavailable. Monte Carlo valuations share one seed per request
+without changing the engine. Concurrent calls are safe.
 For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
 exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
 and bump-size bias remain; check convergence for the valuation.
@@ -617,16 +632,17 @@ FiniteDifferenceAccumulatorEngine(self, *, asset_step_count: int = 200, time_ste
 
 Finite-difference pricing engine with immutable configuration.
 
-Settings are stored without domain validation and are validated when price() is called.
+Configuration is validated at construction. Contract, market, and backend availability
+are checked when pricing.
 Vanilla, digital, and barrier engines accept 3..10,000 asset steps and 1..100,000
 time steps. Accumulator and autocallable engines accept 3..2,000 asset steps and
-1..2,000 time steps. The shared validator checks only the common lower bounds.
+1..2,000 time steps.
 
 ### 构造函数
 
-Store finite-difference settings.
+Create an engine with validated finite-difference settings.
 
-Settings are validated when price() is called.
+Settings are validated at construction.
 The engine-specific ranges are listed in the engine class documentation.
 
 #### Parameters
@@ -639,6 +655,7 @@ The engine-specific ranges are listed in the engine class documentation.
 
 - `TypeError` — If a setting has an incompatible representation.
 - `OverflowError` — If an integer setting is outside the C++ ``int`` range.
+- `KiyosiError` — INVALID_PARAMETER if the core rejects the configuration.
 
 ### `asset_step_count`
 
@@ -697,9 +714,11 @@ failures fail the entire operation.
 At current autocallable-product event thresholds, undefined spot and time
 sensitivities remain None while feasible rate and volatility sensitivities survive.
 
-Shift keyword arguments are absolute, use core-owned defaults, and follow
-calculate_numerical_greeks. Monte Carlo valuations share one seed per
-request without changing the engine. Concurrent calls are safe.
+Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
+use asset-price units, volatility and rate shifts use decimal units, and time
+shifts use calendar days. Collapsed or asymmetric stencils leave affected
+numerical Greeks unavailable. Monte Carlo valuations share one seed per request
+without changing the engine. Concurrent calls are safe.
 For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
 exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
 and bump-size bias remain; check convergence for the valuation.
@@ -726,16 +745,17 @@ FiniteDifferenceAutocallableEngine(self, *, asset_step_count: int = 200, time_st
 
 Finite-difference pricing engine with immutable configuration.
 
-Settings are stored without domain validation and are validated when price() is called.
+Configuration is validated at construction. Contract, market, and backend availability
+are checked when pricing.
 Vanilla, digital, and barrier engines accept 3..10,000 asset steps and 1..100,000
 time steps. Accumulator and autocallable engines accept 3..2,000 asset steps and
-1..2,000 time steps. The shared validator checks only the common lower bounds.
+1..2,000 time steps.
 
 ### 构造函数
 
-Store finite-difference settings.
+Create an engine with validated finite-difference settings.
 
-Settings are validated when price() is called.
+Settings are validated at construction.
 The engine-specific ranges are listed in the engine class documentation.
 
 #### Parameters
@@ -748,6 +768,7 @@ The engine-specific ranges are listed in the engine class documentation.
 
 - `TypeError` — If a setting has an incompatible representation.
 - `OverflowError` — If an integer setting is outside the C++ ``int`` range.
+- `KiyosiError` — INVALID_PARAMETER if the core rejects the configuration.
 
 ### `asset_step_count`
 
@@ -812,9 +833,11 @@ failures fail the entire operation.
 At current autocallable-product event thresholds, undefined spot and time
 sensitivities remain None while feasible rate and volatility sensitivities survive.
 
-Shift keyword arguments are absolute, use core-owned defaults, and follow
-calculate_numerical_greeks. Monte Carlo valuations share one seed per
-request without changing the engine. Concurrent calls are safe.
+Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
+use asset-price units, volatility and rate shifts use decimal units, and time
+shifts use calendar days. Collapsed or asymmetric stencils leave affected
+numerical Greeks unavailable. Monte Carlo valuations share one seed per request
+without changing the engine. Concurrent calls are safe.
 For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
 exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
 and bump-size bias remain; check convergence for the valuation.
@@ -841,16 +864,17 @@ FiniteDifferenceBarrierEngine(self, *, asset_step_count: int = 200, time_step_co
 
 Finite-difference pricing engine with immutable configuration.
 
-Settings are stored without domain validation and are validated when price() is called.
+Configuration is validated at construction. Contract, market, and backend availability
+are checked when pricing.
 Vanilla, digital, and barrier engines accept 3..10,000 asset steps and 1..100,000
 time steps. Accumulator and autocallable engines accept 3..2,000 asset steps and
-1..2,000 time steps. The shared validator checks only the common lower bounds.
+1..2,000 time steps.
 
 ### 构造函数
 
-Store finite-difference settings.
+Create an engine with validated finite-difference settings.
 
-Settings are validated when price() is called.
+Settings are validated at construction.
 The engine-specific ranges are listed in the engine class documentation.
 
 #### Parameters
@@ -863,6 +887,7 @@ The engine-specific ranges are listed in the engine class documentation.
 
 - `TypeError` — If a setting has an incompatible representation.
 - `OverflowError` — If an integer setting is outside the C++ ``int`` range.
+- `KiyosiError` — INVALID_PARAMETER if the core rejects the configuration.
 
 ### `asset_step_count`
 
@@ -921,9 +946,11 @@ failures fail the entire operation.
 At current autocallable-product event thresholds, undefined spot and time
 sensitivities remain None while feasible rate and volatility sensitivities survive.
 
-Shift keyword arguments are absolute, use core-owned defaults, and follow
-calculate_numerical_greeks. Monte Carlo valuations share one seed per
-request without changing the engine. Concurrent calls are safe.
+Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
+use asset-price units, volatility and rate shifts use decimal units, and time
+shifts use calendar days. Collapsed or asymmetric stencils leave affected
+numerical Greeks unavailable. Monte Carlo valuations share one seed per request
+without changing the engine. Concurrent calls are safe.
 For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
 exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
 and bump-size bias remain; check convergence for the valuation.
@@ -950,16 +977,17 @@ FiniteDifferenceDigitalEngine(self, *, asset_step_count: int = 200, time_step_co
 
 Finite-difference pricing engine with immutable configuration.
 
-Settings are stored without domain validation and are validated when price() is called.
+Configuration is validated at construction. Contract, market, and backend availability
+are checked when pricing.
 Vanilla, digital, and barrier engines accept 3..10,000 asset steps and 1..100,000
 time steps. Accumulator and autocallable engines accept 3..2,000 asset steps and
-1..2,000 time steps. The shared validator checks only the common lower bounds.
+1..2,000 time steps.
 
 ### 构造函数
 
-Store finite-difference settings.
+Create an engine with validated finite-difference settings.
 
-Settings are validated when price() is called.
+Settings are validated at construction.
 The engine-specific ranges are listed in the engine class documentation.
 
 #### Parameters
@@ -972,6 +1000,7 @@ The engine-specific ranges are listed in the engine class documentation.
 
 - `TypeError` — If a setting has an incompatible representation.
 - `OverflowError` — If an integer setting is outside the C++ ``int`` range.
+- `KiyosiError` — INVALID_PARAMETER if the core rejects the configuration.
 
 ### `asset_step_count`
 
@@ -1032,9 +1061,11 @@ failures fail the entire operation.
 At current autocallable-product event thresholds, undefined spot and time
 sensitivities remain None while feasible rate and volatility sensitivities survive.
 
-Shift keyword arguments are absolute, use core-owned defaults, and follow
-calculate_numerical_greeks. Monte Carlo valuations share one seed per
-request without changing the engine. Concurrent calls are safe.
+Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
+use asset-price units, volatility and rate shifts use decimal units, and time
+shifts use calendar days. Collapsed or asymmetric stencils leave affected
+numerical Greeks unavailable. Monte Carlo valuations share one seed per request
+without changing the engine. Concurrent calls are safe.
 For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
 exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
 and bump-size bias remain; check convergence for the valuation.
@@ -1067,16 +1098,17 @@ FiniteDifferenceVanillaEngine(self, *, asset_step_count: int = 200, time_step_co
 
 Finite-difference pricing engine with immutable configuration.
 
-Settings are stored without domain validation and are validated when price() is called.
+Configuration is validated at construction. Contract, market, and backend availability
+are checked when pricing.
 Vanilla, digital, and barrier engines accept 3..10,000 asset steps and 1..100,000
 time steps. Accumulator and autocallable engines accept 3..2,000 asset steps and
-1..2,000 time steps. The shared validator checks only the common lower bounds.
+1..2,000 time steps.
 
 ### 构造函数
 
-Store finite-difference settings.
+Create an engine with validated finite-difference settings.
 
-Settings are validated when price() is called.
+Settings are validated at construction.
 The engine-specific ranges are listed in the engine class documentation.
 
 #### Parameters
@@ -1089,6 +1121,7 @@ The engine-specific ranges are listed in the engine class documentation.
 
 - `TypeError` — If a setting has an incompatible representation.
 - `OverflowError` — If an integer setting is outside the C++ ``int`` range.
+- `KiyosiError` — INVALID_PARAMETER if the core rejects the configuration.
 
 ### `asset_step_count`
 
@@ -1149,9 +1182,11 @@ failures fail the entire operation.
 At current autocallable-product event thresholds, undefined spot and time
 sensitivities remain None while feasible rate and volatility sensitivities survive.
 
-Shift keyword arguments are absolute, use core-owned defaults, and follow
-calculate_numerical_greeks. Monte Carlo valuations share one seed per
-request without changing the engine. Concurrent calls are safe.
+Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
+use asset-price units, volatility and rate shifts use decimal units, and time
+shifts use calendar days. Collapsed or asymmetric stencils leave affected
+numerical Greeks unavailable. Monte Carlo valuations share one seed per request
+without changing the engine. Concurrent calls are safe.
 For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
 exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
 and bump-size bias remain; check convergence for the valuation.
@@ -1173,29 +1208,32 @@ is deferred until the synchronous core computation returns.
 ## `MonteCarloAccumulatorEngine`
 
 ```python
-MonteCarloAccumulatorEngine(self, *, path_count: int = 20000, seed: int | None = 1, backend: typing.Literal['cpu', 'cuda'] = 'cpu') -> None
+MonteCarloAccumulatorEngine(self, *, path_count: int = 20000, seed: int | None = 1, backend: typing.Literal['cpu', 'cuda'] = 'cpu', thread_count: int = 0) -> None
 ```
 
 Trading-day Monte Carlo engine with immutable configuration.
 
-Settings are stored without domain validation and are validated when price() is called.
+Configuration is validated at construction. Contract, market, and backend availability
+are checked when pricing.
 Accumulator and autocallable engines accept 1..10,000,000 paths.
 
 ### 构造函数
 
-Store Monte Carlo settings.
+Create an engine with validated Monte Carlo settings.
 
-Settings are validated when price() is called.
+Settings are validated at construction.
 
 #### Parameters
 
 - **`path_count`** (`int, optional`) — Number of simulated paths. Uses the core default when omitted.
 - **`seed`** (`int or None, optional`) — Non-negative random seed. Uses the core default when omitted. CPU paths have separate random streams; early knock-out does not shift later paths' draws.
 - **`backend`** (`{'cpu', 'cuda'}, optional`) — CPU or CUDA execution backend.
+- **`thread_count`** (`int, optional`) — Per-call CPU concurrency cap: 0 automatic, 1 serial. CUDA requires 0. Seeded CPU results are identical across thread counts in the same build.
 #### Raises
 
 - `TypeError` — If a setting has an incompatible representation.
 - `OverflowError` — If an integer is outside its C++ representation range.
+- `KiyosiError` — INVALID_PARAMETER if the core rejects the configuration.
 
 ### `path_count`
 
@@ -1208,6 +1246,10 @@ Non-negative random seed.
 ### `backend`
 
 CPU or CUDA execution backend.
+
+### `thread_count`
+
+Per-call CPU concurrency cap; 0 automatic, 1 serial.
 
 ### `price`
 
@@ -1250,9 +1292,11 @@ failures fail the entire operation.
 At current autocallable-product event thresholds, undefined spot and time
 sensitivities remain None while feasible rate and volatility sensitivities survive.
 
-Shift keyword arguments are absolute, use core-owned defaults, and follow
-calculate_numerical_greeks. Monte Carlo valuations share one seed per
-request without changing the engine. Concurrent calls are safe.
+Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
+use asset-price units, volatility and rate shifts use decimal units, and time
+shifts use calendar days. Collapsed or asymmetric stencils leave affected
+numerical Greeks unavailable. Monte Carlo valuations share one seed per request
+without changing the engine. Concurrent calls are safe.
 For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
 exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
 and bump-size bias remain; check convergence for the valuation.
@@ -1274,29 +1318,32 @@ is deferred until the synchronous core computation returns.
 ## `MonteCarloAutocallableEngine`
 
 ```python
-MonteCarloAutocallableEngine(self, *, path_count: int = 20000, seed: int | None = 1, backend: typing.Literal['cpu', 'cuda'] = 'cpu') -> None
+MonteCarloAutocallableEngine(self, *, path_count: int = 20000, seed: int | None = 1, backend: typing.Literal['cpu', 'cuda'] = 'cpu', thread_count: int = 0) -> None
 ```
 
 Trading-day Monte Carlo engine with immutable configuration.
 
-Settings are stored without domain validation and are validated when price() is called.
+Configuration is validated at construction. Contract, market, and backend availability
+are checked when pricing.
 Accumulator and autocallable engines accept 1..10,000,000 paths.
 
 ### 构造函数
 
-Store Monte Carlo settings.
+Create an engine with validated Monte Carlo settings.
 
-Settings are validated when price() is called.
+Settings are validated at construction.
 
 #### Parameters
 
 - **`path_count`** (`int, optional`) — Number of simulated paths. Uses the core default when omitted.
 - **`seed`** (`int or None, optional`) — Non-negative random seed. Uses the core default when omitted. CPU paths have separate random streams; early knock-out does not shift later paths' draws.
 - **`backend`** (`{'cpu', 'cuda'}, optional`) — CPU or CUDA execution backend.
+- **`thread_count`** (`int, optional`) — Per-call CPU concurrency cap: 0 automatic, 1 serial. CUDA requires 0. Seeded CPU results are identical across thread counts in the same build.
 #### Raises
 
 - `TypeError` — If a setting has an incompatible representation.
 - `OverflowError` — If an integer is outside its C++ representation range.
+- `KiyosiError` — INVALID_PARAMETER if the core rejects the configuration.
 
 ### `path_count`
 
@@ -1309,6 +1356,10 @@ Non-negative random seed.
 ### `backend`
 
 CPU or CUDA execution backend.
+
+### `thread_count`
+
+Per-call CPU concurrency cap; 0 automatic, 1 serial.
 
 ### `price`
 
@@ -1357,9 +1408,11 @@ failures fail the entire operation.
 At current autocallable-product event thresholds, undefined spot and time
 sensitivities remain None while feasible rate and volatility sensitivities survive.
 
-Shift keyword arguments are absolute, use core-owned defaults, and follow
-calculate_numerical_greeks. Monte Carlo valuations share one seed per
-request without changing the engine. Concurrent calls are safe.
+Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
+use asset-price units, volatility and rate shifts use decimal units, and time
+shifts use calendar days. Collapsed or asymmetric stencils leave affected
+numerical Greeks unavailable. Monte Carlo valuations share one seed per request
+without changing the engine. Concurrent calls are safe.
 For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
 exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
 and bump-size bias remain; check convergence for the valuation.
@@ -1387,12 +1440,13 @@ MonteCarloBackend = typing.Literal['cpu', 'cuda']
 ## `MonteCarloVanillaEngine`
 
 ```python
-MonteCarloVanillaEngine(self, *, path_count: int = 100000, step_count: int = 50, seed: int | None = None, backend: typing.Literal['cpu', 'cuda'] = 'cpu') -> None
+MonteCarloVanillaEngine(self, *, path_count: int = 100000, step_count: int = 50, seed: int | None = None, backend: typing.Literal['cpu', 'cuda'] = 'cpu', thread_count: int = 0) -> None
 ```
 
 Monte Carlo vanilla-option engine with immutable configuration.
 
-Settings are stored without domain validation and are validated when price() is called.
+Configuration is validated at construction. Contract, market, and backend availability
+are checked when pricing.
 Accepts 1..10,000,000 paths and 2..10,000 steps; American pricing before
 expiry requires at least 3 steps.
 European prices sample the exact terminal distribution; valid step counts do not affect them.
@@ -1402,7 +1456,7 @@ simulations on both sides.
 
 ### 构造函数
 
-Store Monte Carlo settings.
+Create an engine with validated Monte Carlo settings.
 
 #### Parameters
 
@@ -1410,13 +1464,15 @@ Store Monte Carlo settings.
 - **`step_count`** (`int, optional`) — American time grid points; validated but unused for European pricing. Uses the core default when omitted.
 - **`seed`** (`int or None, optional`) — Non-negative random seed, or ``None`` for nondeterministic seeding.
 - **`backend`** (`{'cpu', 'cuda'}, optional`) — CPU or CUDA execution backend.
+- **`thread_count`** (`int, optional`) — Per-call CPU concurrency cap: 0 automatic, 1 serial. CUDA requires 0. Seeded CPU results are identical across thread counts in the same build.
 #### Raises
 
 - `TypeError` — If a setting has an incompatible representation.
 - `OverflowError` — If an integer is outside its C++ representation range.
+- `KiyosiError` — INVALID_PARAMETER if the core rejects the configuration.
 #### Notes
 
-Settings are validated when price() is called.
+Settings are validated at construction.
 
 ### `path_count`
 
@@ -1433,6 +1489,10 @@ Optional non-negative random seed.
 ### `backend`
 
 CPU or CUDA execution backend.
+
+### `thread_count`
+
+Per-call CPU concurrency cap; 0 automatic, 1 serial.
 
 ### `price`
 
@@ -1477,9 +1537,11 @@ failures fail the entire operation.
 At current autocallable-product event thresholds, undefined spot and time
 sensitivities remain None while feasible rate and volatility sensitivities survive.
 
-Shift keyword arguments are absolute, use core-owned defaults, and follow
-calculate_numerical_greeks. Monte Carlo valuations share one seed per
-request without changing the engine. Concurrent calls are safe.
+Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
+use asset-price units, volatility and rate shifts use decimal units, and time
+shifts use calendar days. Collapsed or asymmetric stencils leave affected
+numerical Greeks unavailable. Monte Carlo valuations share one seed per request
+without changing the engine. Concurrent calls are safe.
 For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
 exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
 and bump-size bias remain; check convergence for the valuation.
@@ -1560,9 +1622,11 @@ failures fail the entire operation.
 At current autocallable-product event thresholds, undefined spot and time
 sensitivities remain None while feasible rate and volatility sensitivities survive.
 
-Shift keyword arguments are absolute, use core-owned defaults, and follow
-calculate_numerical_greeks. Monte Carlo valuations share one seed per
-request without changing the engine. Concurrent calls are safe.
+Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
+use asset-price units, volatility and rate shifts use decimal units, and time
+shifts use calendar days. Collapsed or asymmetric stencils leave affected
+numerical Greeks unavailable. Monte Carlo valuations share one seed per request
+without changing the engine. Concurrent calls are safe.
 For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
 exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
 and bump-size bias remain; check convergence for the valuation.
@@ -1641,9 +1705,11 @@ failures fail the entire operation.
 At current autocallable-product event thresholds, undefined spot and time
 sensitivities remain None while feasible rate and volatility sensitivities survive.
 
-Shift keyword arguments are absolute, use core-owned defaults, and follow
-calculate_numerical_greeks. Monte Carlo valuations share one seed per
-request without changing the engine. Concurrent calls are safe.
+Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
+use asset-price units, volatility and rate shifts use decimal units, and time
+shifts use calendar days. Collapsed or asymmetric stencils leave affected
+numerical Greeks unavailable. Monte Carlo valuations share one seed per request
+without changing the engine. Concurrent calls are safe.
 For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
 exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
 and bump-size bias remain; check convergence for the valuation.
@@ -1722,9 +1788,11 @@ failures fail the entire operation.
 At current autocallable-product event thresholds, undefined spot and time
 sensitivities remain None while feasible rate and volatility sensitivities survive.
 
-Shift keyword arguments are absolute, use core-owned defaults, and follow
-calculate_numerical_greeks. Monte Carlo valuations share one seed per
-request without changing the engine. Concurrent calls are safe.
+Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
+use asset-price units, volatility and rate shifts use decimal units, and time
+shifts use calendar days. Collapsed or asymmetric stencils leave affected
+numerical Greeks unavailable. Monte Carlo valuations share one seed per request
+without changing the engine. Concurrent calls are safe.
 For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
 exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
 and bump-size bias remain; check convergence for the valuation.
@@ -1742,66 +1810,6 @@ and bump-size bias remain; check convergence for the valuation.
 Operational exceptions and cancellation follow the package-level contract in
 `kiyosi`: allocation failures raise MemoryError, and Python signal handling
 is deferred until the synchronous core computation returns.
-
-## `calculate_numerical_greeks`
-
-```python
-calculate_numerical_greeks(engine: AnalyticVanillaEngine, instrument: EuropeanOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: QuadratureVanillaEngine, instrument: EuropeanOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: CoxRossRubinsteinVanillaEngine, instrument: EuropeanOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: CoxRossRubinsteinVanillaEngine, instrument: AmericanOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: BjerksundStenslandVanillaEngine, instrument: AmericanOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: FiniteDifferenceVanillaEngine, instrument: EuropeanOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: FiniteDifferenceVanillaEngine, instrument: AmericanOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: MonteCarloVanillaEngine, instrument: EuropeanOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: MonteCarloVanillaEngine, instrument: AmericanOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: AnalyticDigitalEngine, instrument: CashOrNothingOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: AnalyticDigitalEngine, instrument: AssetOrNothingOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: QuadratureDigitalEngine, instrument: CashOrNothingOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: QuadratureDigitalEngine, instrument: AssetOrNothingOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: FiniteDifferenceDigitalEngine, instrument: CashOrNothingOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: FiniteDifferenceDigitalEngine, instrument: AssetOrNothingOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: AnalyticBarrierEngine, instrument: BarrierOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: FiniteDifferenceBarrierEngine, instrument: BarrierOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: AnalyticBinaryBarrierEngine, instrument: BinaryBarrierOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: AnalyticBinaryBarrierEngine, instrument: TouchOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: AnalyticGeometricAveragePriceEngine, instrument: GeometricAveragePriceOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: TurnbullWakemanArithmeticAveragePriceEngine, instrument: ArithmeticAveragePriceOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: FiniteDifferenceAccumulatorEngine, instrument: Accumulator, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: MonteCarloAccumulatorEngine, instrument: Accumulator, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: FiniteDifferenceAutocallableEngine, instrument: SnowballOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: FiniteDifferenceAutocallableEngine, instrument: BinarySnowballOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: FiniteDifferenceAutocallableEngine, instrument: TernarySnowballOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: FiniteDifferenceAutocallableEngine, instrument: PhoenixOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: MonteCarloAutocallableEngine, instrument: SnowballOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: MonteCarloAutocallableEngine, instrument: BinarySnowballOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: MonteCarloAutocallableEngine, instrument: TernarySnowballOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-calculate_numerical_greeks(engine: MonteCarloAutocallableEngine, instrument: PhoenixOption, context: PricingContext, *, spot_shift: float = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-```
-
-Compute price and every feasible numerical Greek.
-
-Shifts are absolute. Omitted shifts use core-owned defaults. A measure with no
-valid finite-difference stencil inside a model boundary is ``None`` while other
-valid results are preserved. Spot bumps crossing a currently monitored event
-threshold leave spot-based sensitivities unavailable.
-
-#### Parameters
-
-- **`engine`** (`pricing engine`) — Engine used for every base and bumped valuation.
-- **`instrument`** (`instrument`) — Instrument supported by the engine.
-- **`context`** (`PricingContext`) — Market state and valuation instant.
-- **`spot_shift`** (`float, optional`) — Absolute spot change for spot-based sensitivities.
-- **`volatility_shift`** (`float, optional`) — Absolute volatility change for volatility-based sensitivities.
-- **`rate_shift`** (`float, optional`) — Absolute risk-free-rate change for rate-based sensitivities.
-- **`time_shift_days`** (`int, optional`) — Calendar-day step for time-based sensitivities.
-#### Returns
-
-- `PricingResult` — Price and each feasible numerical sensitivity.
-#### Raises
-
-- `TypeError` — If the engine/instrument combination or a setting is incompatible.
-- `KiyosiError` — If the inputs are invalid or a feasible valuation fails.
 
 ## `implied_coupon`
 

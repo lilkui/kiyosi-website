@@ -32,6 +32,14 @@ Outstanding forward accrual that buys a fixed daily quantity, accelerating below
 
 ### 成员
 
+#### `replace`
+
+```cpp
+Result<Accumulator> kiyosi::Accumulator::replace(double accumulated_quantity) const
+```
+
+Returns a validated owning copy with only the supplied history replaced. Preserves all contract terms and never changes this object, including on failure. History is caller-supplied; time consistency is checked during pricing. Concurrent calls and reads are safe without concurrent assignment or mutation. Uses constructor validation and error categories; zero is a known value, not unknown history.
+
 #### `strike`
 
 ```cpp

@@ -55,6 +55,14 @@ Valuation-time snapshot: model parameters, the observable spot, and the trading 
 
 ### 成员
 
+#### `replace`
+
+```cpp
+Result<PricingContext> kiyosi::PricingContext::replace(const PricingContextChanges &changes={}) const
+```
+
+Returns a validated owning copy with the supplied fields replaced. Uses make_pricing_context validation and error categories; never changes this object. Concurrent calls and reads follow the calendar contract, without concurrent assignment.
+
 #### `model_parameters`
 
 ```cpp
@@ -94,3 +102,37 @@ const TradingCalendar & kiyosi::PricingContext::calendar() const noexcept
 ```
 
 Returns the trading calendar.
+
+## `kiyosi::PricingContextChanges`
+
+```cpp
+struct kiyosi::PricingContextChanges
+```
+
+Fields to replace; absent fields retain their current values, including the calendar.
+
+### 成员
+
+#### `model_parameters`
+
+```cpp
+std::optional<BlackScholesMertonParameters> kiyosi::PricingContextChanges::model_parameters
+```
+
+#### `spot_price`
+
+```cpp
+std::optional<double> kiyosi::PricingContextChanges::spot_price
+```
+
+#### `valuation_time`
+
+```cpp
+std::optional<Timestamp> kiyosi::PricingContextChanges::valuation_time
+```
+
+#### `calendar`
+
+```cpp
+std::optional<TradingCalendar> kiyosi::PricingContextChanges::calendar
+```
