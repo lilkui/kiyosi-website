@@ -1,70 +1,62 @@
 ---
-description: 安装 kiyosi Python 包，了解预编译 wheel 的支持范围，以及 CUDA 和源码构建的要求。
+description: 安装 kiyosi Python 包，或使用 Rust 和 maturin 从固定源码构建。
 ---
 
 # 安装
 
 ## Python 环境要求 {#python-requirements}
 
-需要 **Python 3.11 或更高版本**。当前源码配置了 Python 3.11–3.15 的 wheel 构建，目标平台为 Windows 和 Linux x64。本网站的 API 参考对应 kiyosi 0.11.0。
-
-建议先创建虚拟环境，再安装：
+需要 **Python 3.11+**。本网站对应 **kiyosi 0.14.0**。建议在虚拟环境中安装固定版本：
 
 ::: code-group
 
 ```sh [Linux / macOS]
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install "kiyosi==0.11.0"
+python -m pip install "kiyosi==0.14.0"
 ```
 
 ```powershell [Windows]
 py -m venv .venv
 .venv\Scripts\Activate.ps1
-python -m pip install "kiyosi==0.11.0"
+python -m pip install "kiyosi==0.14.0"
 ```
 
 :::
 
-安装后，确认能正常导入 kiyosi：
+有匹配平台的预编译 wheel 时，安装无需 Rust。上游 wheel 构建配置覆盖 Python 3.11–3.15；具体可用文件以该版本发布结果为准。
+
+安装后确认版本和入口：
 
 ```sh
-python -c "from kiyosi.pricing import AnalyticVanillaEngine; print('kiyosi 已就绪')"
+python -c "import kiyosi; from kiyosi.pricing import AnalyticEuropeanEngine; print(kiyosi.__version__)"
 ```
 
 导入成功后，可以运行[首次定价](./first-price)示例。
 
-## CUDA 加速 {#cuda-acceleration}
-
-项目的 Windows 和 Linux x64 wheel 构建配置启用了蒙特卡洛引擎的 CUDA 支持，但定价时默认使用 CPU 后端。使用 CUDA 需要兼容的 NVIDIA GPU 和驱动，还需显式设置 `backend="cuda"`。自行从源码构建时，CUDA 默认关闭。
-
-配置方法见[选择计算后端](./engines#select-a-backend)。
-
 ## 从源码构建 {#building-from-source}
 
-如果当前平台没有可用的预编译 wheel，安装时会从源码构建，需要 CMake 3.28 或更高版本、Ninja，以及支持 C++23 的编译器。Windows 使用 clang-cl，需安装 Visual Studio C++ 工具及 C++ Clang 编译器组件。核心库依赖 oneTBB 2023.1+；未找到本地安装时，CMake 会自动下载并构建。预编译 wheel 已包含所需运行库。工具链配置见 [kiyosi 构建配置](https://github.com/lilkui/kiyosi/blob/main/CMakeLists.txt)。
+没有匹配的 wheel 时，需要 **Rust 1.85+**、Cargo，以及本机编译和链接工具。Linux 通常使用系统编译工具；Windows 使用 Visual Studio 的 C++ Build Tools 与 MSVC Rust 工具链。Python 包通过 maturin 构建，绑定由 PyO3 提供。
 
-如需从源码安装与本文档对应的版本，可检出相应的源码提交后安装：
+如需安装与本文档完全对应的源码：
 
 ```sh
 git clone https://github.com/lilkui/kiyosi.git
 cd kiyosi
-git checkout 541546c
+git checkout 748942203c99ffb5f011dbdcd06312d6b5f4a06c
 python -m pip install .
-python -c "import kiyosi; print(kiyosi.__version__)"  # 0.11.0
+python -c "import kiyosi; print(kiyosi.__version__)"  # 0.14.0
 ```
 
-Windows 下请在 Visual Studio Developer PowerShell 中执行源码构建命令。从 PyPI 安装后，也请用上面的版本检查命令确认实际安装的版本。
-
-如需直接使用 C++，请参阅[构建 C++ 库](../cpp/building)。
+pip 自动安装构建所需的 maturin，并由 Cargo 使用源码中的锁文件构建 Rust 扩展。首次构建需要联网下载依赖。若只使用 Rust，请参阅[构建 Rust 核心](../rust/building)。
 
 ## 常见问题 {#troubleshooting}
 
 | 问题 | 排查方法 |
 | --- | --- |
-| `ModuleNotFoundError: No module named 'kiyosi'` | 确认安装包和运行脚本使用的是同一个 Python 解释器，并先激活虚拟环境。 |
-| pip 开始编译原生代码 | 检查 Python 版本和平台架构，可能没有匹配的预编译 wheel。 |
-| 源码构建找不到 CMake 或编译器 | 安装所需构建工具，并确保能在当前终端中调用。 |
-| CUDA 定价失败 | 检查 NVIDIA 驱动和 GPU 的兼容性。先使用默认 CPU 后端，确认基本定价配置能正常工作。 |
+| `ModuleNotFoundError: No module named 'kiyosi'` | 确认安装包和运行脚本使用同一 Python 解释器，并激活虚拟环境。 |
+| pip 开始编译原生代码 | 当前平台可能没有匹配的 wheel；准备 Rust/Cargo 和本机链接工具。 |
+| 找不到 Cargo 或链接器 | 检查 `cargo --version`，确保本机编译工具可在终端调用。 |
+| 示例找不到引擎名 | 检查安装版本是否为 0.14.0，使用本版本参考页中的公开名称。 |
 
-来源：[kiyosi 安装说明](https://github.com/lilkui/kiyosi/blob/main/README.md#安装-python-包)、[PyPI 包页面](https://pypi.org/project/kiyosi/)。
+来源：[kiyosi 安装说明](https://github.com/lilkui/kiyosi/blob/748942203c99ffb5f011dbdcd06312d6b5f4a06c/README.md#安装)、[构建配置](https://github.com/lilkui/kiyosi/blob/748942203c99ffb5f011dbdcd06312d6b5f4a06c/pyproject.toml)。

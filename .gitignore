@@ -1,6 +1,9 @@
 node_modules/
 docs/.vitepress/cache/
 docs/.vitepress/dist/
+docs/.vitepress/.temp/
 .DS_Store
 *.local
 __pycache__/
+.cache/
+docs/public/api/rust/

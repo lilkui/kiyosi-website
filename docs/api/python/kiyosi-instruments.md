@@ -5,659 +5,889 @@ outline: [2, 4]
 
 # `kiyosi.instruments`
 
-Validated derivative instruments.
+Validated derivative contracts, snowball presets and observation adapters.
+
+``OptionType`` selects ``"call"`` or ``"put"``. Contract dates are inclusive,
+with expiry at midnight UTC. Constructors validate terms; pricing validates
+their consistency with the market snapshot, calendar and supplied history.
+History describes events strictly before valuation; a current observation
+is evaluated from the current spot. Replacement returns a new contract.
+
+## Examples
+
+Construct a digital call, then create an independent strike replacement.
+Cash and asset digitals pay zero when the expiry spot equals the strike:
+
+```python
+>>> from datetime import date
+>>> option = CashOrNothingOption(
+...     option_type="call", strike=100, payout=10,
+...     effective_date=date(2025, 1, 1), expiry_date=date(2026, 1, 1),
+... )
+>>> replacement = option.replace(strike=105)
+>>> (option.strike, replacement.strike, replacement.payout)
+(100.0, 105.0, 10.0)
+```
 
 ## `Accumulator`
 
 ```python
-Accumulator(self, *, strike: float, knock_out_level: float, daily_quantity: float, acceleration_factor: float, accumulated_quantity: float = 0.0, effective_date: datetime.date, expiry_date: datetime.date) -> None
+Accumulator(*, strike, knock_out_level, daily_quantity, acceleration_factor, effective_date, expiry_date, **history)
 ```
 
-Immutable validated accumulator contract.
-
-### 构造函数
-
-Create a validated accumulator contract.
+Trading-date purchases settled at knock-out or expiry.
 
 #### Parameters
 
-- **`strike`** (`float`) — Positive purchase strike.
-- **`knock_out_level`** (`float`) — Positive upper knock-out level.
-- **`daily_quantity`** (`float`) — Non-negative base quantity accumulated per trading day.
-- **`acceleration_factor`** (`float`) — Non-negative quantity multiplier below the strike.
-- **`accumulated_quantity`** (`float, optional`) — Non-negative quantity already accumulated at valuation.
-- **`effective_date, expiry_date`** (`datetime.date`) — Contract effective and expiry dates, each anchored at 00:00 UTC.
+- **`strike`** (`float`) — Positive finite exercise or purchase price.
+- **`knock_out_level`** (`float`) — Positive inclusive knock-out threshold.
+- **`daily_quantity`** (`float`) — Nonnegative finite quantity purchased on each trading date.
+- **`acceleration_factor`** (`float`) — Nonnegative quantity multiplier applied strictly below strike.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`accumulated_quantity`** (`float, optional`) — Caller-asserted outstanding quantity strictly before valuation.
 #### Raises
 
-- `TypeError` — If an argument has an incompatible representation.
-- `KiyosiError` — If the core rejects the quantities, levels, or date ordering.
+- `InvalidInputError` — If strike or knock-out level is invalid, quantities are negative or non-finite, or expiry precedes effective_date.
+#### Notes
 
-### `strike`
-
-Positive purchase strike.
-
-### `knock_out_level`
-
-Positive upper knock-out level.
-
-### `daily_quantity`
-
-Base quantity accumulated per trading day.
-
-### `acceleration_factor`
-
-Quantity multiplier applied below the strike.
-
-### `accumulated_quantity`
-
-Quantity already accumulated at valuation.
-
-### `effective_date`
-
-First date on which the contract is effective.
-
-### `expiry_date`
-
-Contract expiry at 00:00 UTC.
+A current midnight knock-out precedes purchases and purchases no units.
+Acceleration applies strictly below strike. History is caller asserted;
+do not value a contract whose settlement has already occurred.
 
 ### `replace`
 
 ```python
-replace(self, *, accumulated_quantity: float) -> Accumulator
+replace(self, /, *, accumulated_quantity)
 ```
 
-Return a validated copy with only accumulated_quantity replaced.
+Return a validated replacement without changing this value.
 
-The keyword is required and uses constructor units and conversion rules. None is
-not accepted; zero means no accrued quantity. All contract terms are preserved and
-the original is unchanged on success or failure. The caller supplies the quantity;
-it is not computed from spot. Corrections and historical revaluations are allowed.
-TypeError and OverflowError report conversion failures; KiyosiError reports core
-rejections. Concurrent calls and reads are safe.
+#### Parameters
+
+- **`accumulated_quantity`** (`float`) — Caller-asserted outstanding quantity strictly before valuation.
+#### Returns
+
+- `object` — New instance of the same class; omitted fields retain their values.
+#### Raises
+
+- `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
+
+### `expiry_date`
+
+Return final contract date; expiry is at midnight UTC.
+
+### `daily_quantity`
+
+Return nonnegative finite quantity purchased on each trading date.
+
+### `effective_date`
+
+Return inclusive first contract date.
+
+### `strike`
+
+Return the exercise or purchase price in underlying price units.
+
+### `acceleration_factor`
+
+Return nonnegative quantity multiplier applied strictly below strike.
+
+### `accumulated_quantity`
+
+Return caller-asserted outstanding quantity strictly before valuation.
+
+### `knock_out_level`
+
+Return positive inclusive knock-out threshold.
 
 ## `AmericanOption`
 
 ```python
-AmericanOption(self, *, option_type: typing.Literal['call', 'put'], strike: float, effective_date: datetime.date, expiry_date: datetime.date) -> None
+AmericanOption(*, option_type, strike, effective_date, expiry_date)
 ```
 
-Immutable validated American vanilla option.
-
-The payoff may be exercised from the effective date through expiry.
-
-### 构造函数
-
-Create a validated American option.
+Vanilla option exercisable throughout its inclusive contract life.
 
 #### Parameters
 
 - **`option_type`** (`{'call', 'put'}`) — Call or put payoff direction.
-- **`strike`** (`float`) — Positive strike price.
-- **`effective_date`** (`datetime.date`) — First exercise date.
-- **`expiry_date`** (`datetime.date`) — Last exercise date.
+- **`strike`** (`float`) — Positive finite exercise or purchase price.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
 #### Raises
 
-- `TypeError` — If an argument has an incompatible representation.
-- `KiyosiError` — If the core rejects the strike or date ordering.
+- `InvalidInputError` — If strike is nonpositive or non-finite, or expiry precedes effective_date.
 
-### `option_type`
+### `replace`
 
-Call or put payoff direction.
+```python
+replace(self, /, **fields)
+```
+
+Return a validated replacement without changing this value.
+
+#### Parameters
+
+- **`option_type`** (`{'call', 'put'}, optional`) — Call or put payoff direction.
+- **`strike`** (`float, optional`) — Positive finite exercise or purchase price.
+- **`effective_date`** (`datetime.date, optional`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date, optional`) — Final contract date; expiry is at midnight UTC.
+#### Returns
+
+- `object` — New instance of the same class; omitted fields retain their values.
+#### Raises
+
+- `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
 
 ### `strike`
 
-Positive strike price.
-
-### `effective_date`
-
-First date on which the contract is effective.
+Return the exercise or purchase price in underlying price units.
 
 ### `expiry_date`
 
-Contract expiry at 00:00 UTC.
+Return final contract date; expiry is at midnight UTC.
+
+### `option_type`
+
+Return call or put payoff direction.
+
+### `effective_date`
+
+Return inclusive first contract date.
 
 ## `ArithmeticAveragePriceOption`
 
 ```python
-ArithmeticAveragePriceOption(self, *, option_type: typing.Literal['call', 'put'], strike: float, averaging_start_date: datetime.date, effective_date: datetime.date, expiry_date: datetime.date, realized_average: float = 0.0) -> None
+ArithmeticAveragePriceOption(*, option_type, strike, effective_date, averaging_start_date, expiry_date, realized_average=Ellipsis)
 ```
 
-Immutable validated average-price option.
-
-### 构造函数
-
-Create a validated average-price option.
+Continuous average-price option with explicit history.
 
 #### Parameters
 
 - **`option_type`** (`{'call', 'put'}`) — Call or put payoff direction.
-- **`strike`** (`float`) — Positive strike price.
-- **`averaging_start_date`** (`datetime.date`) — First date included in the averaging period. Equality with expiry denotes a single fixing.
-- **`effective_date`** (`datetime.date`) — First date on which the contract is effective.
-- **`expiry_date`** (`datetime.date`) — Contract expiry at 00:00 UTC.
-- **`realized_average`** (`float, optional`) — Average realized before valuation time, or zero before averaging begins. Both averaging conventions require a positive value after averaging starts. Defaults to the core-owned pre-averaging value.
+- **`strike`** (`float`) — Positive finite exercise or purchase price.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`averaging_start_date`** (`datetime.date`) — First averaging date, within the contract life.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`realized_average`** (`float, optional`) — Nonnegative finite prior average; defaults to zero. Must be zero at or before averaging starts, and positive strictly after it; time consistency is checked at pricing.
 #### Raises
 
-- `TypeError` — If an argument has an incompatible representation.
-- `KiyosiError` — If the core rejects the terms or date ordering.
-
-### `averaging_start_date`
-
-First date included in the averaging period; equality with expiry denotes a single fixing.
-
-### `realized_average`
-
-Average realized before valuation, or zero before averaging begins; both averaging conventions require a positive value after averaging starts.
+- `InvalidInputError` — If strike, realized_average, life dates or the averaging window are invalid.
 
 ### `replace`
 
 ```python
-replace(self, *, realized_average: float) -> ArithmeticAveragePriceOption
+replace(self, /, **fields)
 ```
 
-Return a validated copy with only realized_average replaced.
+Return a validated replacement without changing this value.
 
-The keyword is required and uses constructor units and conversion rules. None is
-not accepted. Zero denotes no elapsed averaging; pricing requires a positive
-average after averaging starts. All contract terms are preserved and the original
-is unchanged on success or failure. Corrections and historical revaluations are
-allowed; time consistency is checked during pricing. TypeError and OverflowError
-report conversion failures; KiyosiError reports core rejections.
-Concurrent calls and reads are safe.
+#### Parameters
+
+- **`realized_average`** (`float, optional`) — Prior average; zero denotes no history. Pricing checks time consistency.
+#### Returns
+
+- `object` — New instance of the same class; omitted fields retain their values.
+#### Raises
+
+- `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
 
 ### `option_type`
 
-Call or put payoff direction.
+Return call or put payoff direction.
 
 ### `strike`
 
-Positive strike price.
+Return the exercise or purchase price in underlying price units.
 
 ### `effective_date`
 
-First date on which the contract is effective.
+Return inclusive first contract date.
+
+### `realized_average`
+
+Return the supplied historical average; zero denotes no history.
 
 ### `expiry_date`
 
-Contract expiry at 00:00 UTC.
+Return final contract date; expiry is at midnight UTC.
+
+### `averaging_start_date`
+
+Return first averaging date, within the contract life.
 
 ## `AssetOrNothingOption`
 
 ```python
-AssetOrNothingOption(self, *, option_type: typing.Literal['call', 'put'], strike: float, effective_date: datetime.date, expiry_date: datetime.date) -> None
+AssetOrNothingOption(*, option_type, strike, effective_date, expiry_date)
 ```
 
-Immutable validated asset-or-nothing digital option.
-
-### 构造函数
-
-Create a validated asset-or-nothing option.
+European digital paying the asset strictly in the money.
 
 #### Parameters
 
 - **`option_type`** (`{'call', 'put'}`) — Call or put payoff direction.
-- **`strike`** (`float`) — Positive strike price.
-- **`effective_date`** (`datetime.date`) — First date on which the contract is effective.
-- **`expiry_date`** (`datetime.date`) — Contract expiry at 00:00 UTC.
+- **`strike`** (`float`) — Positive finite exercise or purchase price.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
 #### Raises
 
-- `TypeError` — If an argument has an incompatible representation.
-- `KiyosiError` — If the core rejects the strike or date ordering.
+- `InvalidInputError` — If strike is nonpositive/non-finite, or expiry precedes effective_date.
+
+### `replace`
+
+```python
+replace(self, /, **fields)
+```
+
+Return a validated replacement without changing this value.
+
+#### Parameters
+
+- **`option_type`** (`{'call', 'put'}, optional`) — Call or put payoff direction.
+- **`strike`** (`float, optional`) — Positive finite exercise or purchase price.
+- **`payout`** (`float, optional`) — Positive finite cash payment; accepted only for CashOrNothingOption.
+- **`effective_date`** (`datetime.date, optional`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date, optional`) — Final contract date; expiry is at midnight UTC.
+#### Returns
+
+- `object` — New instance of the same class; omitted fields retain their values.
+#### Raises
+
+- `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
 
 ### `option_type`
 
-Call or put payoff direction.
+Return call or put payoff direction.
 
 ### `strike`
 
-Positive strike price.
-
-### `effective_date`
-
-First date on which the contract is effective.
+Return the exercise or purchase price in underlying price units.
 
 ### `expiry_date`
 
-Contract expiry at 00:00 UTC.
+Return final contract date; expiry is at midnight UTC.
 
-## `AutocallableBarrierState`
+### `effective_date`
 
-```python
-AutocallableBarrierState = typing.Literal['none', 'knocked_out', 'knocked_in']
-```
+Return inclusive first contract date.
 
 ## `AutocallableObservation`
 
 ```python
-AutocallableObservation(self, date: datetime.date, knock_out_level: float, *, coupon_rate: float = 0.0, coupon_barrier_level: float = 0.0) -> None
+AutocallableObservation(date, knock_out_level, **fields)
 ```
 
-Immutable observation record. Domain validation runs when constructing a note.
+Input observation validated when its note is constructed.
 
-### `date`
+#### Parameters
 
-(self) -> datetime.date
+- **`date`** (`datetime.date`) — Observation date at midnight UTC.
+- **`knock_out_level`** (`float`) — Positive inclusive knock-out threshold.
+- **`coupon_rate`** (`float, optional`) — Finite annual coupon rate in decimal units.
+- **`coupon_barrier_level`** (`float, optional`) — Inclusive Phoenix coupon threshold; must be zero for snowballs.
+#### Notes
 
-### `knock_out_level`
-
-(self) -> float
-
-### `coupon_rate`
-
-(self) -> float
+This record checks Python representations only. Note construction
+validates contractual levels and coupons.
 
 ### `coupon_barrier_level`
 
-(self) -> float
+Return the supplied Phoenix coupon threshold; note construction validates it.
+
+### `date`
+
+Return observation date at midnight UTC.
+
+### `knock_out_level`
+
+Return the supplied knock-out threshold; the note constructor validates it.
+
+### `coupon_rate`
+
+Return the supplied annual coupon in decimal units; note construction validates it.
 
 ## `BarrierOption`
 
 ```python
-BarrierOption(self, *, option_type: typing.Literal['call', 'put'], strike: float, effective_date: datetime.date, expiry_date: datetime.date, barrier_level: float, barrier_type: typing.Literal['up_and_in', 'up_and_out', 'down_and_in', 'down_and_out'], rebate: float = 0.0, rebate_timing: typing.Literal['at_hit', 'at_expiry'] = 'at_expiry', observation_mode: typing.Literal['continuous', 'scheduled'] = 'continuous', observation_dates: collections.abc.Iterable[datetime.date] = (), touch_state: typing.Literal['untouched', 'touched'] | None = None) -> None
+BarrierOption(*, option_type, strike, effective_date, expiry_date, barrier_level, barrier_type, **settings)
 ```
 
-Immutable validated barrier option.
-
-Scheduled barriers are observed only on ``observation_dates``; continuous
-barriers require no schedule.
-
-### 构造函数
-
-Create a validated barrier option.
+Single-barrier vanilla option with inclusive barrier touches.
 
 #### Parameters
 
 - **`option_type`** (`{'call', 'put'}`) — Call or put payoff direction.
-- **`strike`** (`float`) — Positive strike price.
-- **`effective_date, expiry_date`** (`datetime.date`) — Contract effective and expiry dates, each anchored at 00:00 UTC.
-- **`barrier_level`** (`float`) — Positive barrier level.
-- **`barrier_type`** (`{'up_and_in', 'up_and_out', 'down_and_in', 'down_and_out'}`) — Barrier direction and knock-in or knock-out behavior.
-- **`rebate`** (`float, optional`) — Rebate amount. Uses the core default when omitted.
-- **`rebate_timing`** (`{'at_hit', 'at_expiry'}, optional`) — Time at which the rebate is paid.
-- **`observation_mode`** (`{'continuous', 'scheduled'}, optional`) — Continuous or scheduled monitoring.
-- **`observation_dates`** (`iterable[datetime.date], optional`) — Required schedule for scheduled monitoring; omitted for continuous monitoring.
-- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — History strictly before valuation. Required once prior monitoring was possible.
+- **`strike`** (`float`) — Positive finite exercise or purchase price.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`barrier_level`** (`float`) — Positive finite trigger level; equality counts as a touch.
+- **`barrier_type`** (`{'up_and_in', 'up_and_out', 'down_and_in', 'down_and_out'}`) — Trigger direction and knock-in or knock-out behavior.
+- **`rebate`** (`float, optional`) — Nonnegative finite cash rebate; defaults to zero.
+- **`rebate_timing`** (`{'at_hit', 'at_expiry'}, optional`) — Payment timing; at-hit rebates are valid only for knock-outs.
+- **`observation_mode`** (`{'continuous', 'scheduled'}, optional`) — Continuous monitoring or observations on the supplied dates.
+- **`observation_dates`** (`iterable of date, optional`) — Strictly increasing observation dates within the contract life.
+- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — Strictly prior history. None means unknown; untouched means known no hit.
 #### Raises
 
-- `TypeError` — If an argument has an incompatible representation.
-- `KiyosiError` — If the core rejects the payoff, barrier, dates, or observation schedule.
+- `InvalidInputError` — If levels, rebate, life dates, monitoring schedule or rebate timing are invalid. Trading-day and valuation-history checks occur at pricing.
+
+### `replace`
+
+```python
+replace(self, /, **fields)
+```
+
+Return a validated replacement without changing this value.
+
+#### Parameters
+
+- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — Strictly prior history. None means unknown; untouched means known no hit.
+#### Returns
+
+- `object` — New instance of the same class; omitted fields retain their values.
+#### Raises
+
+- `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
 
 ### `barrier_level`
 
-Positive barrier level.
+Return positive finite trigger level; equality counts as a touch.
 
-### `barrier_type`
+### `effective_date`
 
-Barrier direction and activation behavior.
+Return inclusive first contract date.
+
+### `observation_mode`
+
+Return continuous monitoring or observations on the supplied dates.
+
+### `option_type`
+
+Return call or put payoff direction.
+
+### `strike`
+
+Return the exercise or purchase price in underlying price units.
 
 ### `rebate`
 
-Barrier rebate amount.
+Return nonnegative finite cash rebate; defaults to zero.
 
-### `rebate_timing`
+### `mean_observation_year_fraction`
 
-Time at which the rebate is paid.
-
-### `observation_mode`
-
-Continuous or scheduled monitoring mode.
+Return mean fixing spacing in Actual/365 Fixed years.
 
 ### `touch_state`
 
-Barrier touch history before valuation.
+Return strictly prior touch history, or None if unknown.
 
-### `observation_dates`
+### `observation_schedule`
 
-Copy of the scheduled observations at 00:00 UTC.
-
-### `replace`
-
-```python
-replace(self, *, touch_state: typing.Literal['untouched', 'touched'] | None) -> BarrierOption
-```
-
-Return a validated copy with only touch_state replaced.
-
-The keyword is required. None means unknown history; 'untouched' means no prior
-touch. All contract terms are preserved and the original is unchanged on success
-or failure. History is supplied by the caller, never inferred from spot. Corrections
-and historical revaluations are allowed; time consistency is checked during pricing.
-Conversion errors raise TypeError or ValueError; core rejections raise KiyosiError.
-Concurrent calls and reads are safe.
-
-### `option_type`
-
-Call or put payoff direction.
-
-### `strike`
-
-Positive strike price.
-
-### `effective_date`
-
-First date on which the contract is effective.
+Return an owned copy of the monitoring schedule.
 
 ### `expiry_date`
 
-Contract expiry at 00:00 UTC.
-
-## `BarrierTouchState`
-
-```python
-BarrierTouchState = typing.Literal['untouched', 'touched']
-```
-
-## `BarrierType`
-
-```python
-BarrierType = typing.Literal['up_and_in', 'up_and_out', 'down_and_in', 'down_and_out']
-```
-
-## `BinaryBarrierOption`
-
-Immutable validated strike-based binary barrier option.
-
-Instances are created by `cash_binary_barrier_option` or
-`asset_binary_barrier_option`.
-
-### `barrier_level`
-
-Positive barrier level.
+Return final contract date; expiry is at midnight UTC.
 
 ### `barrier_type`
 
-Barrier direction and activation behavior.
+Return trigger direction and knock-in or knock-out behavior.
 
-### `payoff_type`
+### `rebate_timing`
 
-Cash or asset delivery form.
-
-### `payout`
-
-Cash payout, or None for an asset payoff.
-
-### `observation_mode`
-
-Continuous or scheduled monitoring mode.
-
-### `touch_state`
-
-Barrier touch history before valuation.
+Return payment timing; at-hit rebates are valid only for knock-outs.
 
 ### `observation_dates`
 
-Copy of the scheduled observations at 00:00 UTC.
+Return a copy of the contractual observation dates.
+
+## `BinaryBarrierOption`
+
+```python
+BinaryBarrierOption()
+```
+
+Cash or asset digital with barrier monitoring and strict exercise.
+
+#### Notes
+
+Construct with cash_binary_barrier_option or asset_binary_barrier_option.
+Barrier equality touches; terminal strike equality pays zero.
 
 ### `replace`
 
 ```python
-replace(self, *, touch_state: typing.Literal['untouched', 'touched'] | None) -> BinaryBarrierOption
+replace(self, /, **fields)
 ```
 
-Return a validated copy with only touch_state replaced.
+Return a validated replacement without changing this value.
 
-The keyword is required. None means unknown history; 'untouched' means no prior
-touch. All contract terms are preserved and the original is unchanged on success
-or failure. History is supplied by the caller, never inferred from spot. Corrections
-and historical revaluations are allowed; time consistency is checked during pricing.
-Conversion errors raise TypeError or ValueError; core rejections raise KiyosiError.
-Concurrent calls and reads are safe.
+#### Parameters
+
+- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — Strictly prior history. None means unknown; untouched means known no hit.
+#### Returns
+
+- `object` — New instance of the same class; omitted fields retain their values.
+#### Raises
+
+- `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
+
+### `observation_dates`
+
+Return a copy of the contractual observation dates.
+
+### `mean_observation_year_fraction`
+
+Return mean fixing spacing in Actual/365 Fixed years.
+
+### `observation_mode`
+
+Return continuous monitoring or observations on the supplied dates.
+
+### `touch_state`
+
+Return strictly prior touch history, or None if unknown.
+
+### `observation_schedule`
+
+Return an owned copy of the monitoring schedule.
+
+### `payout`
+
+Return the cash payout, or None for asset settlement.
+
+### `barrier_type`
+
+Return trigger direction and knock-in or knock-out behavior.
 
 ### `option_type`
 
-Call or put payoff direction.
+Return call or put payoff direction.
 
-### `strike`
+### `barrier_level`
 
-Positive strike price.
+Return positive finite trigger level; equality counts as a touch.
 
 ### `effective_date`
 
-First date on which the contract is effective.
+Return inclusive first contract date.
 
 ### `expiry_date`
 
-Contract expiry at 00:00 UTC.
+Return final contract date; expiry is at midnight UTC.
+
+### `payoff_type`
+
+Return cash or asset settlement as a choice string.
+
+### `strike`
+
+Return the exercise or purchase price in underlying price units.
 
 ## `BinarySnowballOption`
 
 ```python
-BinarySnowballOption(self, *, maturity_coupon_rate: float, barrier_state: typing.Literal['none', 'knocked_out', 'knocked_in'] | None = None, principal_ratio: float = 1.0, effective_date: datetime.date, expiry_date: datetime.date, observations: collections.abc.Iterable[AutocallableObservation]) -> None
+BinarySnowballOption(*, maturity_coupon_rate, effective_date, expiry_date, observations, barrier_state=None, **fields)
 ```
 
-Immutable validated binary snowball option.
-
-### 构造函数
-
-Create a validated binary snowball option.
-
-Provide observations as AutocallableObservation records. Use autocallable_observations
-to associate parallel sequences before construction. Domain validation runs in the core.
+Snowball with knock-out coupons and no knock-in or downside loss.
 
 #### Parameters
 
-- **`observations`** (`iterable[AutocallableObservation]`) — Ordered contractual observations at 00:00 UTC.
-- **`maturity_coupon_rate`** (`float`) — Annualized coupon rate used at maturity when applicable.
-- **`barrier_state`** (`{'none', 'knocked_out', 'knocked_in'} | None, optional`) — State before valuation; required after an observation has occurred.
-- **`principal_ratio`** (`float, optional`) — Normalized principal repayment component; coupons and downside are separate.
-- **`effective_date, expiry_date`** (`datetime.date`) — Note effective and expiry dates, each anchored at 00:00 UTC.
+- **`maturity_coupon_rate`** (`float`) — Finite annual maturity coupon rate in decimal units.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`observations`** (`iterable of AutocallableObservation`) — Nonempty, strictly ordered contractual observations within life.
+- **`barrier_state`** (`{'none', 'knocked_in', 'knocked_out'} or None, optional`) — Strictly prior events. None is unknown; the string none means no event.
+- **`principal_ratio`** (`float, optional`) — Nonnegative normalized principal, independent of coupons and losses.
 #### Raises
 
-- `TypeError` — If an argument or sequence element has an incompatible representation.
-- `KiyosiError` — If the core rejects the rates, levels, schedule, state, or dates.
-
-### `knock_out_coupon_rates`
-
-Annualized coupon rate for each observation date.
-
-### `maturity_coupon_rate`
-
-Annualized coupon rate used at maturity when applicable.
+- `InvalidInputError` — If coupons, principal, dates or observations are invalid, or barrier_state is knocked_in; this contract has no knock-in barrier.
 
 ### `replace`
 
 ```python
-replace(self, *, barrier_state: typing.Literal['none', 'knocked_out', 'knocked_in'] | None) -> BinarySnowballOption
+replace(self, /, *, barrier_state)
 ```
 
-Return a validated copy with only barrier_state replaced.
+Return a validated replacement without changing this value.
 
-The keyword is required. None means unknown history; 'none' means no prior barrier
-event. All contract terms are preserved and the original is unchanged on success
-or failure. History is supplied by the caller, never inferred from spot. Corrections
-and historical revaluations are allowed; time consistency is checked during pricing.
-Conversion errors raise TypeError or ValueError; core rejections raise KiyosiError.
-Concurrent calls and reads are safe.
+#### Parameters
 
-### `observations`
+- **`barrier_state`** (`{'none', 'knocked_in', 'knocked_out'} or None`) — Strictly prior events. None is unknown; the string none means no event.
+#### Returns
 
-Owning copy of the complete observation records.
+- `object` — New instance of the same class; omitted fields retain their values.
+#### Raises
 
-### `knock_out_levels`
-
-Knock-out level for each observation date.
-
-### `observation_dates`
-
-Copy of the ordered observation dates.
-
-### `principal_ratio`
-
-Normalized principal repayment component; coupons and downside are separate.
-
-### `barrier_state`
-
-State before valuation, or None when not supplied.
+- `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
 
 ### `effective_date`
 
-First date on which the note is effective.
+Return inclusive first contract date.
+
+### `observation_dates`
+
+Return a copy of the contractual observation dates.
+
+### `maturity_coupon_rate`
+
+Return finite annual maturity coupon rate in decimal units.
+
+### `principal_ratio`
+
+Return nonnegative normalized principal, independent of coupons and losses.
+
+### `knock_out_coupon_rates`
+
+Return copied annual knock-out coupons in observation order.
+
+### `knock_out_levels`
+
+Return copied knock-out thresholds in observation order.
 
 ### `expiry_date`
 
-Note expiry date.
+Return final contract date; expiry is at midnight UTC.
+
+### `barrier_state`
+
+Return strictly prior autocallable history, or None if unknown.
+
+### `observations`
+
+Return owned copies of the contractual observations.
 
 ## `CashOrNothingOption`
 
 ```python
-CashOrNothingOption(self, *, option_type: typing.Literal['call', 'put'], strike: float, payout: float, effective_date: datetime.date, expiry_date: datetime.date) -> None
+CashOrNothingOption(*, option_type, strike, payout, effective_date, expiry_date)
 ```
 
-Immutable validated cash-or-nothing digital option.
-
-### 构造函数
-
-Create a validated cash-or-nothing option.
+European digital paying cash strictly in the money.
 
 #### Parameters
 
 - **`option_type`** (`{'call', 'put'}`) — Call or put payoff direction.
-- **`strike`** (`float`) — Positive strike price.
-- **`payout`** (`float`) — Fixed cash amount paid when the option finishes in the money.
-- **`effective_date`** (`datetime.date`) — First date on which the contract is effective.
-- **`expiry_date`** (`datetime.date`) — Contract expiry at 00:00 UTC.
+- **`strike`** (`float`) — Positive finite exercise or purchase price.
+- **`payout`** (`float`) — Positive finite cash payment.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
 #### Raises
 
-- `TypeError` — If an argument has an incompatible representation.
-- `KiyosiError` — If the core rejects the payoff terms or date ordering.
-
-### `payout`
-
-Fixed in-the-money cash payout.
-
-### `option_type`
-
-Call or put payoff direction.
-
-### `strike`
-
-Positive strike price.
-
-### `effective_date`
-
-First date on which the contract is effective.
-
-### `expiry_date`
-
-Contract expiry at 00:00 UTC.
-
-## `EuropeanOption`
-
-```python
-EuropeanOption(self, *, option_type: typing.Literal['call', 'put'], strike: float, effective_date: datetime.date, expiry_date: datetime.date) -> None
-```
-
-Immutable validated European vanilla option.
-
-The payoff can be exercised only at expiry.
-
-### 构造函数
-
-Create a validated European option.
-
-#### Parameters
-
-- **`option_type`** (`{'call', 'put'}`) — Call or put payoff direction.
-- **`strike`** (`float`) — Positive strike price.
-- **`effective_date`** (`datetime.date`) — First date on which the contract is effective.
-- **`expiry_date`** (`datetime.date`) — Contract expiry at 00:00 UTC.
-#### Raises
-
-- `TypeError` — If an argument has an incompatible representation.
-- `KiyosiError` — If the core rejects the strike or date ordering.
-
-### `option_type`
-
-Call or put payoff direction.
-
-### `strike`
-
-Positive strike price.
-
-### `effective_date`
-
-First date on which the contract is effective.
-
-### `expiry_date`
-
-Contract expiry at 00:00 UTC.
-
-## `GeometricAveragePriceOption`
-
-```python
-GeometricAveragePriceOption(self, *, option_type: typing.Literal['call', 'put'], strike: float, averaging_start_date: datetime.date, effective_date: datetime.date, expiry_date: datetime.date, realized_average: float = 0.0) -> None
-```
-
-Immutable validated average-price option.
-
-### 构造函数
-
-Create a validated average-price option.
-
-#### Parameters
-
-- **`option_type`** (`{'call', 'put'}`) — Call or put payoff direction.
-- **`strike`** (`float`) — Positive strike price.
-- **`averaging_start_date`** (`datetime.date`) — First date included in the averaging period. Equality with expiry denotes a single fixing.
-- **`effective_date`** (`datetime.date`) — First date on which the contract is effective.
-- **`expiry_date`** (`datetime.date`) — Contract expiry at 00:00 UTC.
-- **`realized_average`** (`float, optional`) — Average realized before valuation time, or zero before averaging begins. Both averaging conventions require a positive value after averaging starts. Defaults to the core-owned pre-averaging value.
-#### Raises
-
-- `TypeError` — If an argument has an incompatible representation.
-- `KiyosiError` — If the core rejects the terms or date ordering.
-
-### `averaging_start_date`
-
-First date included in the averaging period; equality with expiry denotes a single fixing.
-
-### `realized_average`
-
-Average realized before valuation, or zero before averaging begins; both averaging conventions require a positive value after averaging starts.
+- `InvalidInputError` — If payout or strike is nonpositive/non-finite, or expiry precedes effective_date.
 
 ### `replace`
 
 ```python
-replace(self, *, realized_average: float) -> GeometricAveragePriceOption
+replace(self, /, **fields)
 ```
 
-Return a validated copy with only realized_average replaced.
+Return a validated replacement without changing this value.
 
-The keyword is required and uses constructor units and conversion rules. None is
-not accepted. Zero denotes no elapsed averaging; pricing requires a positive
-average after averaging starts. All contract terms are preserved and the original
-is unchanged on success or failure. Corrections and historical revaluations are
-allowed; time consistency is checked during pricing. TypeError and OverflowError
-report conversion failures; KiyosiError reports core rejections.
-Concurrent calls and reads are safe.
+#### Parameters
 
-### `option_type`
+- **`option_type`** (`{'call', 'put'}, optional`) — Call or put payoff direction.
+- **`strike`** (`float, optional`) — Positive finite exercise or purchase price.
+- **`payout`** (`float, optional`) — Positive finite cash payment; accepted only for CashOrNothingOption.
+- **`effective_date`** (`datetime.date, optional`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date, optional`) — Final contract date; expiry is at midnight UTC.
+#### Returns
 
-Call or put payoff direction.
+- `object` — New instance of the same class; omitted fields retain their values.
+#### Raises
 
-### `strike`
-
-Positive strike price.
+- `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
 
 ### `effective_date`
 
-First date on which the contract is effective.
+Return inclusive first contract date.
+
+### `payout`
+
+Return the fixed cash payout.
+
+### `option_type`
+
+Return call or put payoff direction.
+
+### `strike`
+
+Return the exercise or purchase price in underlying price units.
 
 ### `expiry_date`
 
-Contract expiry at 00:00 UTC.
+Return final contract date; expiry is at midnight UTC.
 
-## `KnockInObservationMode`
-
-```python
-KnockInObservationMode = typing.Literal['every_trading_day', 'at_expiry']
-```
-
-## `ObservationMode`
+## `DoubleBarrierOption`
 
 ```python
-ObservationMode = typing.Literal['continuous', 'scheduled']
+DoubleBarrierOption(*, option_type, strike, effective_date, expiry_date, lower_barrier, upper_barrier, barrier_type, **settings)
 ```
+
+Vanilla option activated or terminated by either inclusive boundary.
+
+#### Parameters
+
+- **`option_type`** (`{'call', 'put'}`) — Call or put payoff direction.
+- **`strike`** (`float`) — Positive finite exercise or purchase price.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`lower_barrier`** (`float`) — Positive finite lower trigger; equality counts as a touch.
+- **`upper_barrier`** (`float`) — Finite upper trigger, strictly above the lower trigger.
+- **`barrier_type`** (`{'knock_in', 'knock_out'}`) — Trigger direction and knock-in or knock-out behavior.
+- **`rebate`** (`float, optional`) — Nonnegative finite cash rebate; defaults to zero.
+- **`rebate_timing`** (`{'at_hit', 'at_expiry'}, optional`) — Payment timing; at-hit rebates are valid only for knock-outs.
+- **`observation_mode`** (`{'continuous', 'scheduled'}, optional`) — Continuous monitoring or observations on the supplied dates.
+- **`observation_dates`** (`iterable of date, optional`) — Strictly increasing observation dates within the contract life.
+- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — Strictly prior history. None means unknown; untouched means known no hit.
+#### Raises
+
+- `InvalidInputError` — If boundaries, strike, rebate, life dates, monitoring schedule or rebate timing are invalid. Calendar and history checks occur at pricing.
+
+### `replace`
+
+```python
+replace(self, /, **fields)
+```
+
+Return a validated replacement without changing this value.
+
+#### Parameters
+
+- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — Strictly prior history. None means unknown; untouched means known no hit.
+#### Returns
+
+- `object` — New instance of the same class; omitted fields retain their values.
+#### Raises
+
+- `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
+
+### `option_type`
+
+Return call or put payoff direction.
+
+### `effective_date`
+
+Return inclusive first contract date.
+
+### `upper_barrier`
+
+Return finite upper trigger, strictly above the lower trigger.
+
+### `lower_barrier`
+
+Return positive finite lower trigger; equality counts as a touch.
+
+### `strike`
+
+Return the exercise or purchase price in underlying price units.
+
+### `barrier_type`
+
+Return trigger direction and knock-in or knock-out behavior.
+
+### `rebate`
+
+Return nonnegative finite cash rebate; defaults to zero.
+
+### `rebate_timing`
+
+Return payment timing; at-hit rebates are valid only for knock-outs.
+
+### `observation_mode`
+
+Return continuous monitoring or observations on the supplied dates.
+
+### `observation_schedule`
+
+Return an owned copy of the monitoring schedule.
+
+### `observation_dates`
+
+Return a copy of the contractual observation dates.
+
+### `touch_state`
+
+Return strictly prior touch history, or None if unknown.
+
+### `expiry_date`
+
+Return final contract date; expiry is at midnight UTC.
+
+## `DoubleTouchOption`
+
+```python
+DoubleTouchOption()
+```
+
+Cash one-touch or no-touch contract with two inclusive boundaries.
+
+#### Notes
+
+Construct with cash_double_touch or cash_double_no_touch. Prior at-hit
+payments have no remaining value.
+
+### `replace`
+
+```python
+replace(self, /, **fields)
+```
+
+Return a validated replacement without changing this value.
+
+#### Parameters
+
+- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — Strictly prior history. None means unknown; untouched means known no hit.
+#### Returns
+
+- `object` — New instance of the same class; omitted fields retain their values.
+#### Raises
+
+- `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
+
+### `lower_barrier`
+
+Return positive finite lower trigger; equality counts as a touch.
+
+### `settlement_timing`
+
+Return at-hit or expiry payment; no-touch contracts settle only at expiry.
+
+### `expiry_date`
+
+Return final contract date; expiry is at midnight UTC.
+
+### `observation_mode`
+
+Return continuous monitoring or observations on the supplied dates.
+
+### `effective_date`
+
+Return inclusive first contract date.
+
+### `is_one_touch`
+
+Return whether touching activates payment.
+
+### `upper_barrier`
+
+Return finite upper trigger, strictly above the lower trigger.
+
+### `payout`
+
+Return the nonnegative finite cash payout.
+
+### `observation_dates`
+
+Return a copy of the contractual observation dates.
+
+### `observation_schedule`
+
+Return an owned copy of the monitoring schedule.
+
+### `touch_state`
+
+Return strictly prior touch history, or None if unknown.
+
+## `EuropeanOption`
+
+```python
+EuropeanOption(*, option_type, strike, effective_date, expiry_date)
+```
+
+European vanilla option with a positive strike.
+
+#### Parameters
+
+- **`option_type`** (`{'call', 'put'}`) — Call or put payoff direction.
+- **`strike`** (`float`) — Positive finite exercise or purchase price.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+#### Raises
+
+- `InvalidInputError` — If strike is nonpositive or non-finite, or expiry precedes effective_date.
+
+### `option_type`
+
+Return call or put payoff direction.
+
+### `strike`
+
+Return the exercise or purchase price in underlying price units.
+
+### `expiry_date`
+
+Return final contract date; expiry is at midnight UTC.
+
+### `effective_date`
+
+Return inclusive first contract date.
+
+## `GeometricAveragePriceOption`
+
+```python
+GeometricAveragePriceOption(*, option_type, strike, effective_date, averaging_start_date, expiry_date, realized_average=Ellipsis)
+```
+
+Continuous average-price option with explicit history.
+
+#### Parameters
+
+- **`option_type`** (`{'call', 'put'}`) — Call or put payoff direction.
+- **`strike`** (`float`) — Positive finite exercise or purchase price.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`averaging_start_date`** (`datetime.date`) — First averaging date, within the contract life.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`realized_average`** (`float, optional`) — Nonnegative finite prior average; defaults to zero. Must be zero at or before averaging starts, and positive strictly after it; time consistency is checked at pricing.
+#### Raises
+
+- `InvalidInputError` — If strike, realized_average, life dates or the averaging window are invalid.
+
+### `replace`
+
+```python
+replace(self, /, **fields)
+```
+
+Return a validated replacement without changing this value.
+
+#### Parameters
+
+- **`realized_average`** (`float, optional`) — Prior average; zero denotes no history. Pricing checks time consistency.
+#### Returns
+
+- `object` — New instance of the same class; omitted fields retain their values.
+#### Raises
+
+- `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
+
+### `expiry_date`
+
+Return final contract date; expiry is at midnight UTC.
+
+### `option_type`
+
+Return call or put payoff direction.
+
+### `strike`
+
+Return the exercise or purchase price in underlying price units.
+
+### `realized_average`
+
+Return the supplied historical average; zero denotes no history.
+
+### `averaging_start_date`
+
+Return first averaging date, within the contract life.
+
+### `effective_date`
+
+Return inclusive first contract date.
 
 ## `OptionType`
 
@@ -665,891 +895,1108 @@ ObservationMode = typing.Literal['continuous', 'scheduled']
 OptionType = typing.Literal['call', 'put']
 ```
 
-## `PayoffType`
-
-```python
-PayoffType = typing.Literal['cash', 'asset']
-```
-
 ## `PhoenixOption`
 
 ```python
-PhoenixOption(self, *, coupon_rate: float, initial_spot: float, knock_in_level: float, upper_strike: float, lower_strike: float, knock_in_observation_mode: typing.Literal['every_trading_day', 'at_expiry'], barrier_state: typing.Literal['none', 'knocked_out', 'knocked_in'] | None = None, principal_ratio: float = 1.0, effective_date: datetime.date, expiry_date: datetime.date, observations: collections.abc.Iterable[AutocallableObservation]) -> None
+PhoenixOption(*, coupon_rate, initial_spot, knock_in_level, upper_strike, lower_strike, knock_in_observation_mode, effective_date, expiry_date, observations, barrier_state=None, **fields)
 ```
 
-Immutable validated Phoenix autocallable option.
-
-### 构造函数
-
-Create a validated Phoenix option.
+Autocallable with conditional period coupons and capped downside loss.
 
 #### Parameters
 
-- **`observations`** (`iterable[AutocallableObservation]`) — Ordered contractual observations at 00:00 UTC.
-- **`coupon_rate`** (`float`) — Annualized coupon rate, accrued from the previous observation (the effective date for the first coupon) using Actual/365 Fixed, in principal-ratio units.
-- **`initial_spot`** (`float`) — Positive reference spot.
-- **`knock_in_level`** (`float`) — Lower knock-in barrier level.
-- **`upper_strike, lower_strike`** (`float`) — Terminal participation strikes.
-- **`knock_in_observation_mode`** (`{'every_trading_day', 'at_expiry'}`) — Trading-day or expiry-only knock-in observation rule.
-- **`barrier_state`** (`{'none', 'knocked_out', 'knocked_in'} | None, optional`) — State before valuation; required after an observation has occurred.
-- **`principal_ratio`** (`float, optional`) — Principal repayment component in normalized payoff units; coupons are separate.
-- **`effective_date, expiry_date`** (`datetime.date`) — Note effective and expiry dates, each anchored at 00:00 UTC.
+- **`coupon_rate`** (`float`) — Finite annual coupon rate in decimal units.
+- **`initial_spot`** (`float`) — Positive reference spot used to normalize downside losses.
+- **`knock_in_level`** (`float`) — Positive strict downside threshold.
+- **`upper_strike`** (`float`) — Positive upper terminal settlement strike.
+- **`lower_strike`** (`float`) — Nonnegative lower terminal strike, at most the upper strike.
+- **`knock_in_observation_mode`** (`{'every_trading_day', 'at_expiry'}`) — Observe knock-in on every trading day or only at expiry.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`observations`** (`iterable of AutocallableObservation`) — Nonempty, strictly ordered contractual observations within life.
+- **`barrier_state`** (`{'none', 'knocked_in', 'knocked_out'} or None, optional`) — Strictly prior events. None is unknown; the string none means no event.
+- **`principal_ratio`** (`float, optional`) — Nonnegative normalized principal, independent of coupons and losses.
 #### Raises
 
-- `TypeError` — If an argument or sequence element has an incompatible representation.
-- `KiyosiError` — If the core rejects the rates, levels, schedule, state, or dates.
+- `InvalidInputError` — If amounts, strikes, life dates or observations are invalid. Observation coupon_rate must be zero; coupon_barrier_level is nonnegative.
+#### Notes
 
-### `coupon_rate`
-
-Annualized coupon rate per observation period (Actual/365 Fixed).
-
-### `coupon_barrier_levels`
-
-Coupon barrier level for each observation date.
+Coupons accrue over contractual observation periods on Actual/365 Fixed.
+Coupon and knock-out barriers are inclusive; knock-in is strict. Past
+coupons are settled. There is no coupon memory or maturity coupon.
 
 ### `replace`
 
 ```python
-replace(self, *, barrier_state: typing.Literal['none', 'knocked_out', 'knocked_in'] | None) -> PhoenixOption
+replace(self, /, *, barrier_state)
 ```
 
-Return a validated copy with only barrier_state replaced.
+Return a validated replacement without changing this value.
 
-The keyword is required. None means unknown history; 'none' means no prior barrier
-event. All contract terms are preserved and the original is unchanged on success
-or failure. History is supplied by the caller, never inferred from spot. Corrections
-and historical revaluations are allowed; time consistency is checked during pricing.
-Conversion errors raise TypeError or ValueError; core rejections raise KiyosiError.
-Concurrent calls and reads are safe.
+#### Parameters
+
+- **`barrier_state`** (`{'none', 'knocked_in', 'knocked_out'} or None`) — Strictly prior events. None is unknown; the string none means no event.
+#### Returns
+
+- `object` — New instance of the same class; omitted fields retain their values.
+#### Raises
+
+- `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
 
 ### `observations`
 
-Owning copy of the complete observation records.
-
-### `knock_out_levels`
-
-Knock-out level for each observation date.
-
-### `observation_dates`
-
-Copy of the ordered observation dates.
-
-### `principal_ratio`
-
-Normalized principal repayment component; coupons and downside are separate.
-
-### `barrier_state`
-
-State before valuation, or None when not supplied.
-
-### `effective_date`
-
-First date on which the note is effective.
-
-### `expiry_date`
-
-Note expiry date.
-
-### `initial_spot`
-
-Reference spot used to define relative terms.
-
-### `upper_strike`
-
-Upper terminal participation strike.
-
-### `lower_strike`
-
-Lower terminal participation strike.
+Return owned copies of the contractual observations.
 
 ### `knock_in_level`
 
-Lower knock-in barrier level.
+Return positive strict downside threshold.
+
+### `upper_strike`
+
+Return positive upper terminal settlement strike.
+
+### `expiry_date`
+
+Return final contract date; expiry is at midnight UTC.
+
+### `observation_dates`
+
+Return a copy of the contractual observation dates.
+
+### `knock_out_levels`
+
+Return copied knock-out thresholds in observation order.
+
+### `coupon_barrier_levels`
+
+Return copied Phoenix coupon thresholds in observation order.
+
+### `lower_strike`
+
+Return nonnegative lower terminal strike, at most the upper strike.
+
+### `coupon_rate`
+
+Return finite annual coupon rate in decimal units.
 
 ### `knock_in_observation_mode`
 
-Trading-day or expiry-only knock-in observation rule.
+Return the knock-in monitoring choice string.
 
-## `RebateTiming`
+### `initial_spot`
+
+Return positive reference spot used to normalize downside losses.
+
+### `principal_ratio`
+
+Return nonnegative normalized principal, independent of coupons and losses.
+
+### `effective_date`
+
+Return inclusive first contract date.
+
+### `barrier_state`
+
+Return strictly prior autocallable history, or None if unknown.
+
+## `RangeAccrualOption`
 
 ```python
-RebateTiming = typing.Literal['at_hit', 'at_expiry']
+RangeAccrualOption(*, notional, annual_coupon_rate, lower_bound, upper_bound, effective_date, expiry_date, realized_hit_count=None)
 ```
 
-## `SettlementTiming`
+Range coupon paid at expiry without principal repayment.
+
+#### Parameters
+
+- **`notional`** (`float`) — Positive finite coupon notional, without principal repayment.
+- **`annual_coupon_rate`** (`float`) — Nonnegative finite annual coupon rate in decimal units.
+- **`lower_bound`** (`float`) — Inclusive nonnegative lower spot boundary.
+- **`upper_bound`** (`float`) — Inclusive finite upper spot boundary, above the lower boundary.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`realized_hit_count`** (`int or None, optional`) — Hits strictly before valuation, or None for unknown history.
+#### Raises
+
+- `InvalidInputError` — If amounts, bounds or history are invalid, or expiry is not after effective_date. Pricing checks history against elapsed observations.
+#### Notes
+
+Observe trading dates in (effective_date, expiry_date]. Bounds are
+inclusive. Payment is notional times annual coupon times Actual/365 Fixed
+life times the fraction of observations inside the range.
+
+### `replace`
 
 ```python
-SettlementTiming = typing.Literal['at_hit', 'at_expiry']
+replace(self, /, **fields)
 ```
+
+Return a validated replacement without changing this value.
+
+#### Parameters
+
+- **`realized_hit_count`** (`int or None, optional`) — Hits strictly before valuation, or None for unknown history.
+#### Returns
+
+- `object` — New instance of the same class; omitted fields retain their values.
+#### Raises
+
+- `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
+
+### `upper_bound`
+
+Return inclusive finite upper spot boundary, above the lower boundary.
+
+### `lower_bound`
+
+Return inclusive nonnegative lower spot boundary.
+
+### `realized_hit_count`
+
+Return hits strictly before valuation, or None for unknown history.
+
+### `effective_date`
+
+Return inclusive first contract date.
+
+### `expiry_date`
+
+Return final contract date; expiry is at midnight UTC.
+
+### `notional`
+
+Return positive finite coupon notional, without principal repayment.
+
+### `annual_coupon_rate`
+
+Return nonnegative finite annual coupon rate in decimal units.
 
 ## `SnowballOption`
 
 ```python
-SnowballOption(self, *, maturity_coupon_rate: float, initial_spot: float, knock_in_level: float, upper_strike: float, lower_strike: float, knock_in_observation_mode: typing.Literal['every_trading_day', 'at_expiry'], barrier_state: typing.Literal['none', 'knocked_out', 'knocked_in'] | None = None, principal_ratio: float = 1.0, effective_date: datetime.date, expiry_date: datetime.date, observations: collections.abc.Iterable[AutocallableObservation]) -> None
+SnowballOption(*, maturity_coupon_rate, initial_spot, knock_in_level, upper_strike, lower_strike, knock_in_observation_mode, effective_date, expiry_date, observations, barrier_state=None, **fields)
 ```
 
-Immutable validated snowball option.
-
-### 构造函数
-
-Create a validated snowball option.
-
-Provide observations as AutocallableObservation records. Use autocallable_observations
-to associate parallel sequences before construction. Domain validation runs in the core.
+Snowball with knock-out coupons and capped knock-in downside loss.
 
 #### Parameters
 
-- **`observations`** (`iterable[AutocallableObservation]`) — Ordered contractual observations at 00:00 UTC.
-- **`maturity_coupon_rate`** (`float`) — Annualized coupon rate used at maturity when applicable.
-- **`initial_spot`** (`float`) — Positive reference spot.
-- **`knock_in_level`** (`float`) — Lower knock-in barrier level.
-- **`upper_strike, lower_strike`** (`float`) — Terminal participation strikes.
-- **`knock_in_observation_mode`** (`{'every_trading_day', 'at_expiry'}`) — Trading-day or expiry-only knock-in observation rule.
-- **`barrier_state`** (`{'none', 'knocked_out', 'knocked_in'} | None, optional`) — State before valuation; required after an observation has occurred.
-- **`principal_ratio`** (`float, optional`) — Normalized principal repayment component; coupons and downside are separate.
-- **`effective_date, expiry_date`** (`datetime.date`) — Note effective and expiry dates, each anchored at 00:00 UTC.
+- **`maturity_coupon_rate`** (`float`) — Finite annual maturity coupon rate in decimal units.
+- **`initial_spot`** (`float`) — Positive reference spot used to normalize downside losses.
+- **`knock_in_level`** (`float`) — Positive strict downside threshold.
+- **`upper_strike`** (`float`) — Positive upper terminal settlement strike.
+- **`lower_strike`** (`float`) — Nonnegative lower terminal strike, at most the upper strike.
+- **`knock_in_observation_mode`** (`{'every_trading_day', 'at_expiry'}`) — Observe knock-in on every trading day or only at expiry.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`observations`** (`iterable of AutocallableObservation`) — Nonempty, strictly ordered contractual observations within life.
+- **`barrier_state`** (`{'none', 'knocked_in', 'knocked_out'} or None, optional`) — Strictly prior events. None is unknown; the string none means no event.
+- **`principal_ratio`** (`float, optional`) — Nonnegative normalized principal, independent of coupons and losses.
 #### Raises
 
-- `TypeError` — If an argument or sequence element has an incompatible representation.
-- `KiyosiError` — If the core rejects the rates, levels, schedule, state, or dates.
-
-### `knock_out_coupon_rates`
-
-Annualized coupon rate for each observation date.
-
-### `maturity_coupon_rate`
-
-Annualized coupon rate used at maturity when applicable.
+- `InvalidInputError` — If amounts, strikes, life dates or observation terms are invalid. Pricing checks the calendar and prior barrier history.
 
 ### `replace`
 
 ```python
-replace(self, *, barrier_state: typing.Literal['none', 'knocked_out', 'knocked_in'] | None) -> SnowballOption
+replace(self, /, *, barrier_state)
 ```
 
-Return a validated copy with only barrier_state replaced.
+Return a validated replacement without changing this value.
 
-The keyword is required. None means unknown history; 'none' means no prior barrier
-event. All contract terms are preserved and the original is unchanged on success
-or failure. History is supplied by the caller, never inferred from spot. Corrections
-and historical revaluations are allowed; time consistency is checked during pricing.
-Conversion errors raise TypeError or ValueError; core rejections raise KiyosiError.
-Concurrent calls and reads are safe.
+#### Parameters
 
-### `observations`
+- **`barrier_state`** (`{'none', 'knocked_in', 'knocked_out'} or None`) — Strictly prior events. None is unknown; the string none means no event.
+#### Returns
 
-Owning copy of the complete observation records.
+- `object` — New instance of the same class; omitted fields retain their values.
+#### Raises
+
+- `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
 
 ### `knock_out_levels`
 
-Knock-out level for each observation date.
+Return copied knock-out thresholds in observation order.
 
 ### `observation_dates`
 
-Copy of the ordered observation dates.
-
-### `principal_ratio`
-
-Normalized principal repayment component; coupons and downside are separate.
-
-### `barrier_state`
-
-State before valuation, or None when not supplied.
-
-### `effective_date`
-
-First date on which the note is effective.
-
-### `expiry_date`
-
-Note expiry date.
-
-### `initial_spot`
-
-Reference spot used to define relative terms.
-
-### `upper_strike`
-
-Upper terminal participation strike.
+Return a copy of the contractual observation dates.
 
 ### `lower_strike`
 
-Lower terminal participation strike.
+Return nonnegative lower terminal strike, at most the upper strike.
 
-### `knock_in_level`
+### `principal_ratio`
 
-Lower knock-in barrier level.
+Return nonnegative normalized principal, independent of coupons and losses.
 
 ### `knock_in_observation_mode`
 
-Trading-day or expiry-only knock-in observation rule.
+Return the knock-in monitoring choice string.
+
+### `barrier_state`
+
+Return strictly prior autocallable history, or None if unknown.
+
+### `knock_in_level`
+
+Return positive strict downside threshold.
+
+### `knock_out_coupon_rates`
+
+Return copied annual knock-out coupons in observation order.
+
+### `observations`
+
+Return owned copies of the contractual observations.
+
+### `initial_spot`
+
+Return positive reference spot used to normalize downside losses.
+
+### `effective_date`
+
+Return inclusive first contract date.
+
+### `upper_strike`
+
+Return positive upper terminal settlement strike.
+
+### `expiry_date`
+
+Return final contract date; expiry is at midnight UTC.
+
+### `maturity_coupon_rate`
+
+Return finite annual maturity coupon rate in decimal units.
 
 ## `TernarySnowballOption`
 
 ```python
-TernarySnowballOption(self, *, maturity_coupon_rate: float, minimum_coupon_rate: float, knock_in_level: float, knock_in_observation_mode: typing.Literal['every_trading_day', 'at_expiry'], barrier_state: typing.Literal['none', 'knocked_out', 'knocked_in'] | None = None, principal_ratio: float = 1.0, effective_date: datetime.date, expiry_date: datetime.date, observations: collections.abc.Iterable[AutocallableObservation]) -> None
+TernarySnowballOption(*, maturity_coupon_rate, minimum_coupon_rate, knock_in_level, knock_in_observation_mode, effective_date, expiry_date, observations, barrier_state=None, **fields)
 ```
 
-Immutable validated ternary snowball option.
-
-### 构造函数
-
-Create a validated ternary snowball option.
-
-Provide observations as AutocallableObservation records. Use autocallable_observations
-to associate parallel sequences before construction. Domain validation runs in the core.
+Snowball with distinct intact and knocked-in maturity coupons.
 
 #### Parameters
 
-- **`observations`** (`iterable[AutocallableObservation]`) — Ordered contractual observations at 00:00 UTC.
-- **`maturity_coupon_rate`** (`float`) — Annualized coupon rate used at maturity when applicable.
-- **`minimum_coupon_rate`** (`float`) — Minimum annualized coupon rate for the third payoff region.
-- **`knock_in_level`** (`float`) — Lower knock-in barrier level.
-- **`knock_in_observation_mode`** (`{'every_trading_day', 'at_expiry'}`) — Trading-day or expiry-only knock-in observation rule.
-- **`barrier_state`** (`{'none', 'knocked_out', 'knocked_in'} | None, optional`) — State before valuation; required after an observation has occurred.
-- **`principal_ratio`** (`float, optional`) — Normalized principal repayment component; coupons and downside are separate.
-- **`effective_date, expiry_date`** (`datetime.date`) — Note effective and expiry dates, each anchored at 00:00 UTC.
+- **`maturity_coupon_rate`** (`float`) — Finite annual maturity coupon rate in decimal units.
+- **`minimum_coupon_rate`** (`float`) — Knocked-in maturity coupon, at most the intact maturity coupon.
+- **`knock_in_level`** (`float`) — Positive strict downside threshold.
+- **`knock_in_observation_mode`** (`{'every_trading_day', 'at_expiry'}`) — Observe knock-in on every trading day or only at expiry.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`observations`** (`iterable of AutocallableObservation`) — Nonempty, strictly ordered contractual observations within life.
+- **`barrier_state`** (`{'none', 'knocked_in', 'knocked_out'} or None, optional`) — Strictly prior events. None is unknown; the string none means no event.
+- **`principal_ratio`** (`float, optional`) — Nonnegative normalized principal, independent of coupons and losses.
 #### Raises
 
-- `TypeError` — If an argument or sequence element has an incompatible representation.
-- `KiyosiError` — If the core rejects the rates, levels, schedule, state, or dates.
-
-### `knock_out_coupon_rates`
-
-Annualized coupon rate for each observation date.
-
-### `maturity_coupon_rate`
-
-Annualized coupon rate used at maturity when applicable.
-
-### `minimum_coupon_rate`
-
-Minimum annualized coupon rate for the third payoff region.
+- `InvalidInputError` — If coupons, principal, barriers, dates or observations are invalid. minimum_coupon_rate must not exceed maturity_coupon_rate.
 
 ### `replace`
 
 ```python
-replace(self, *, barrier_state: typing.Literal['none', 'knocked_out', 'knocked_in'] | None) -> TernarySnowballOption
+replace(self, /, *, barrier_state)
 ```
 
-Return a validated copy with only barrier_state replaced.
+Return a validated replacement without changing this value.
 
-The keyword is required. None means unknown history; 'none' means no prior barrier
-event. All contract terms are preserved and the original is unchanged on success
-or failure. History is supplied by the caller, never inferred from spot. Corrections
-and historical revaluations are allowed; time consistency is checked during pricing.
-Conversion errors raise TypeError or ValueError; core rejections raise KiyosiError.
-Concurrent calls and reads are safe.
+#### Parameters
+
+- **`barrier_state`** (`{'none', 'knocked_in', 'knocked_out'} or None`) — Strictly prior events. None is unknown; the string none means no event.
+#### Returns
+
+- `object` — New instance of the same class; omitted fields retain their values.
+#### Raises
+
+- `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
 
 ### `observations`
 
-Owning copy of the complete observation records.
-
-### `knock_out_levels`
-
-Knock-out level for each observation date.
-
-### `observation_dates`
-
-Copy of the ordered observation dates.
+Return owned copies of the contractual observations.
 
 ### `principal_ratio`
 
-Normalized principal repayment component; coupons and downside are separate.
-
-### `barrier_state`
-
-State before valuation, or None when not supplied.
-
-### `effective_date`
-
-First date on which the note is effective.
-
-### `expiry_date`
-
-Note expiry date.
-
-### `knock_in_level`
-
-Lower knock-in barrier level.
+Return nonnegative normalized principal, independent of coupons and losses.
 
 ### `knock_in_observation_mode`
 
-Trading-day or expiry-only knock-in observation rule.
+Return the knock-in monitoring choice string.
 
-## `TouchOption`
+### `barrier_state`
 
-Immutable validated one-touch or no-touch option.
-
-Instances are created by the ``cash_*_touch_*`` and ``asset_*_touch_*``
-factory functions.
-
-### `effective_date`
-
-First date on which the contract is effective.
+Return strictly prior autocallable history, or None if unknown.
 
 ### `expiry_date`
 
-Contract expiry at 00:00 UTC.
+Return final contract date; expiry is at midnight UTC.
 
-### `barrier_level`
+### `effective_date`
 
-Positive barrier level.
+Return inclusive first contract date.
 
-### `is_one_touch`
+### `maturity_coupon_rate`
 
-Whether hitting the barrier activates the payoff.
+Return finite annual maturity coupon rate in decimal units.
 
-### `is_up`
+### `minimum_coupon_rate`
 
-Whether the contract uses an upper barrier.
+Return the annual knocked-in maturity coupon.
 
-### `payoff_type`
+### `knock_in_level`
 
-Cash or asset delivery form.
-
-### `payout`
-
-Cash payout, or None for an asset payoff.
-
-### `settlement_timing`
-
-Settlement time for a one-touch payoff.
-
-### `observation_mode`
-
-Continuous or scheduled monitoring mode.
-
-### `touch_state`
-
-Barrier touch history before valuation.
+Return positive strict downside threshold.
 
 ### `observation_dates`
 
-Copy of the scheduled observations at 00:00 UTC.
+Return a copy of the contractual observation dates.
+
+### `knock_out_coupon_rates`
+
+Return copied annual knock-out coupons in observation order.
+
+### `knock_out_levels`
+
+Return copied knock-out thresholds in observation order.
+
+## `TouchOption`
+
+```python
+TouchOption()
+```
+
+Strike-free cash or asset one-touch or no-touch contract.
+
+#### Notes
+
+Use a directional factory such as cash_one_touch_up or asset_no_touch_down.
+Prior at-hit payments are settled.
 
 ### `replace`
 
 ```python
-replace(self, *, touch_state: typing.Literal['untouched', 'touched'] | None) -> TouchOption
+replace(self, /, **fields)
 ```
 
-Return a validated copy with only touch_state replaced.
+Return a validated replacement without changing this value.
 
-The keyword is required. None means unknown history; 'untouched' means no prior
-touch. All contract terms are preserved and the original is unchanged on success
-or failure. History is supplied by the caller, never inferred from spot. Corrections
-and historical revaluations are allowed; time consistency is checked during pricing.
-Conversion errors raise TypeError or ValueError; core rejections raise KiyosiError.
-Concurrent calls and reads are safe.
+#### Parameters
+
+- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — Strictly prior history. None means unknown; untouched means known no hit.
+#### Returns
+
+- `object` — New instance of the same class; omitted fields retain their values.
+#### Raises
+
+- `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
+
+### `touch_state`
+
+Return strictly prior touch history, or None if unknown.
+
+### `effective_date`
+
+Return inclusive first contract date.
+
+### `barrier_type`
+
+Return trigger direction and knock-in or knock-out behavior.
+
+### `payoff_type`
+
+Return cash or asset settlement as a choice string.
+
+### `observation_schedule`
+
+Return an owned copy of the monitoring schedule.
+
+### `expiry_date`
+
+Return final contract date; expiry is at midnight UTC.
+
+### `is_up`
+
+Return whether the barrier triggers upward.
+
+### `settlement_timing`
+
+Return at-hit or expiry payment; no-touch contracts settle only at expiry.
+
+### `barrier_level`
+
+Return positive finite trigger level; equality counts as a touch.
+
+### `is_one_touch`
+
+Return whether touching activates payment.
+
+### `payout`
+
+Return the cash payout, or None for asset settlement.
+
+### `observation_dates`
+
+Return a copy of the contractual observation dates.
+
+### `mean_observation_year_fraction`
+
+Return mean fixing spacing in Actual/365 Fixed years.
+
+### `observation_mode`
+
+Return continuous monitoring or observations on the supplied dates.
 
 ## `asset_binary_barrier_option`
 
 ```python
-asset_binary_barrier_option(*, option_type: typing.Literal['call', 'put'], strike: float, effective_date: datetime.date, expiry_date: datetime.date, barrier_level: float, barrier_type: typing.Literal['up_and_in', 'up_and_out', 'down_and_in', 'down_and_out'], observation_mode: typing.Literal['continuous', 'scheduled'] = 'continuous', observation_dates: collections.abc.Iterable[datetime.date] = (), touch_state: typing.Literal['untouched', 'touched'] | None = None) -> BinaryBarrierOption
+asset_binary_barrier_option(*, option_type, strike, effective_date, expiry_date, barrier_level, barrier_type, **settings)
 ```
 
-Create an asset-or-nothing binary barrier option.
+Create an asset digital with barrier monitoring and strict terminal
+exercise.
 
 #### Parameters
 
 - **`option_type`** (`{'call', 'put'}`) — Call or put payoff direction.
-- **`strike`** (`float`) — Positive strike price.
-- **`effective_date, expiry_date`** (`datetime.date`) — Contract effective and expiry dates, each anchored at 00:00 UTC.
-- **`barrier_level`** (`float`) — Positive barrier level.
-- **`barrier_type`** (`{'up_and_in', 'up_and_out', 'down_and_in', 'down_and_out'}`) — Barrier direction and activation behavior.
-- **`observation_mode`** (`{'continuous', 'scheduled'}, optional`) — Continuous or scheduled monitoring.
-- **`observation_dates`** (`iterable[datetime.date], optional`) — Required schedule for scheduled monitoring.
-- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — History strictly before valuation. Required once prior monitoring was possible.
+- **`strike`** (`float`) — Positive finite exercise or purchase price.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`barrier_level`** (`float`) — Positive finite trigger level; equality counts as a touch.
+- **`barrier_type`** (`{'up_and_in', 'up_and_out', 'down_and_in', 'down_and_out'}`) — Trigger direction and knock-in or knock-out behavior.
+- **`observation_mode`** (`{'continuous', 'scheduled'}, optional`) — Continuous monitoring or observations on the supplied dates.
+- **`observation_dates`** (`iterable of date, optional`) — Strictly increasing observation dates within the contract life.
+- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — Strictly prior history. None means unknown; untouched means known no hit.
 #### Returns
 
-- `BinaryBarrierOption` — Validated immutable asset binary barrier option.
+- `BinaryBarrierOption` — Validated owned contract.
 #### Raises
 
-- `TypeError` — If an argument has an incompatible representation.
-- `KiyosiError` — If the core rejects the payoff, barrier, dates, or observation schedule.
+- `InvalidInputError` — If contractual amounts, life dates or observation terms are invalid.
+#### Notes
+
+Barrier equality counts as a touch. Strictly prior history and trading
+calendar compatibility are checked during pricing. Terminal strike
+equality pays zero.
 
 ## `asset_no_touch_down`
 
 ```python
-asset_no_touch_down(*, effective_date: datetime.date, expiry_date: datetime.date, barrier_level: float, observation_mode: typing.Literal['continuous', 'scheduled'] = 'continuous', observation_dates: collections.abc.Iterable[datetime.date] = (), touch_state: typing.Literal['untouched', 'touched'] | None = None) -> TouchOption
+asset_no_touch_down(*, effective_date, expiry_date, barrier_level, **settings)
 ```
 
-Create an asset no-touch option.
-
-The factory name selects an upper or lower barrier. No-touch payoffs settle at
-expiry.
-``touch_state`` describes observations before the valuation time.
+Create an asset payment requiring no downward barrier touch.
 
 #### Parameters
 
-- **`effective_date, expiry_date`** (`datetime.date`) — Contract effective and expiry dates, each anchored at 00:00 UTC.
-- **`barrier_level`** (`float`) — Positive barrier level.
-- **`observation_mode`** (`{'continuous', 'scheduled'}, optional`) — Continuous or scheduled monitoring.
-- **`observation_dates`** (`iterable[datetime.date], optional`) — Required schedule for scheduled monitoring.
-- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — History strictly before valuation. Required once prior monitoring was possible.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`barrier_level`** (`float`) — Positive finite trigger level; equality counts as a touch.
+- **`observation_mode`** (`{'continuous', 'scheduled'}, optional`) — Continuous monitoring or observations on the supplied dates.
+- **`observation_dates`** (`iterable of date, optional`) — Strictly increasing observation dates within the contract life.
+- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — Strictly prior history. None means unknown; untouched means known no hit.
 #### Returns
 
-- `TouchOption` — Validated immutable asset no-touch option.
+- `TouchOption` — Validated owned contract.
 #### Raises
 
-- `TypeError` — If an argument has an incompatible representation.
-- `KiyosiError` — If the core rejects the barrier, dates, or observation schedule.
+- `InvalidInputError` — If contractual amounts, life dates or observation terms are invalid.
+#### Notes
+
+Barrier equality counts as a touch. Strictly prior history and trading
+calendar compatibility are checked during pricing. A current at-hit
+payment transfers spot; future continuous hits transfer the barrier
+amount. No-touch payments occur only at expiry.
 
 ## `asset_no_touch_up`
 
 ```python
-asset_no_touch_up(*, effective_date: datetime.date, expiry_date: datetime.date, barrier_level: float, observation_mode: typing.Literal['continuous', 'scheduled'] = 'continuous', observation_dates: collections.abc.Iterable[datetime.date] = (), touch_state: typing.Literal['untouched', 'touched'] | None = None) -> TouchOption
+asset_no_touch_up(*, effective_date, expiry_date, barrier_level, **settings)
 ```
 
-Create an asset no-touch option.
-
-The factory name selects an upper or lower barrier. No-touch payoffs settle at
-expiry.
-``touch_state`` describes observations before the valuation time.
+Create an asset payment requiring no upward barrier touch.
 
 #### Parameters
 
-- **`effective_date, expiry_date`** (`datetime.date`) — Contract effective and expiry dates, each anchored at 00:00 UTC.
-- **`barrier_level`** (`float`) — Positive barrier level.
-- **`observation_mode`** (`{'continuous', 'scheduled'}, optional`) — Continuous or scheduled monitoring.
-- **`observation_dates`** (`iterable[datetime.date], optional`) — Required schedule for scheduled monitoring.
-- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — History strictly before valuation. Required once prior monitoring was possible.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`barrier_level`** (`float`) — Positive finite trigger level; equality counts as a touch.
+- **`observation_mode`** (`{'continuous', 'scheduled'}, optional`) — Continuous monitoring or observations on the supplied dates.
+- **`observation_dates`** (`iterable of date, optional`) — Strictly increasing observation dates within the contract life.
+- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — Strictly prior history. None means unknown; untouched means known no hit.
 #### Returns
 
-- `TouchOption` — Validated immutable asset no-touch option.
+- `TouchOption` — Validated owned contract.
 #### Raises
 
-- `TypeError` — If an argument has an incompatible representation.
-- `KiyosiError` — If the core rejects the barrier, dates, or observation schedule.
+- `InvalidInputError` — If contractual amounts, life dates or observation terms are invalid.
+#### Notes
+
+Barrier equality counts as a touch. Strictly prior history and trading
+calendar compatibility are checked during pricing. A current at-hit
+payment transfers spot; future continuous hits transfer the barrier
+amount. No-touch payments occur only at expiry.
 
 ## `asset_one_touch_down`
 
 ```python
-asset_one_touch_down(*, effective_date: datetime.date, expiry_date: datetime.date, barrier_level: float, settlement_timing: typing.Literal['at_hit', 'at_expiry'] = 'at_expiry', observation_mode: typing.Literal['continuous', 'scheduled'] = 'continuous', observation_dates: collections.abc.Iterable[datetime.date] = (), touch_state: typing.Literal['untouched', 'touched'] | None = None) -> TouchOption
+asset_one_touch_down(*, effective_date, expiry_date, barrier_level, **settings)
 ```
 
-Create an asset one-touch option.
-
-The factory name selects an upper or lower barrier.
-``touch_state`` describes observations before the valuation time.
+Create an asset payment activated by downward barrier touch.
 
 #### Parameters
 
-- **`effective_date, expiry_date`** (`datetime.date`) — Contract effective and expiry dates, each anchored at 00:00 UTC.
-- **`barrier_level`** (`float`) — Positive barrier level.
-- **`settlement_timing`** (`{'at_hit', 'at_expiry'}, optional`) — Settle at the barrier hit or at expiry.
-- **`observation_mode`** (`{'continuous', 'scheduled'}, optional`) — Continuous or scheduled monitoring.
-- **`observation_dates`** (`iterable[datetime.date], optional`) — Required schedule for scheduled monitoring.
-- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — History strictly before valuation. Required once prior monitoring was possible.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`barrier_level`** (`float`) — Positive finite trigger level; equality counts as a touch.
+- **`settlement_timing`** (`{'at_hit', 'at_expiry'}, optional`) — At-hit or expiry payment; no-touch contracts settle only at expiry.
+- **`observation_mode`** (`{'continuous', 'scheduled'}, optional`) — Continuous monitoring or observations on the supplied dates.
+- **`observation_dates`** (`iterable of date, optional`) — Strictly increasing observation dates within the contract life.
+- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — Strictly prior history. None means unknown; untouched means known no hit.
 #### Returns
 
-- `TouchOption` — Validated immutable asset one-touch option.
+- `TouchOption` — Validated owned contract.
 #### Raises
 
-- `TypeError` — If an argument has an incompatible representation.
-- `KiyosiError` — If the core rejects the barrier, dates, or observation schedule.
+- `InvalidInputError` — If contractual amounts, life dates or observation terms are invalid.
+#### Notes
+
+Barrier equality counts as a touch. Strictly prior history and trading
+calendar compatibility are checked during pricing. A current at-hit
+payment transfers spot; future continuous hits transfer the barrier
+amount. No-touch payments occur only at expiry.
 
 ## `asset_one_touch_up`
 
 ```python
-asset_one_touch_up(*, effective_date: datetime.date, expiry_date: datetime.date, barrier_level: float, settlement_timing: typing.Literal['at_hit', 'at_expiry'] = 'at_expiry', observation_mode: typing.Literal['continuous', 'scheduled'] = 'continuous', observation_dates: collections.abc.Iterable[datetime.date] = (), touch_state: typing.Literal['untouched', 'touched'] | None = None) -> TouchOption
+asset_one_touch_up(*, effective_date, expiry_date, barrier_level, **settings)
 ```
 
-Create an asset one-touch option.
-
-The factory name selects an upper or lower barrier.
-``touch_state`` describes observations before the valuation time.
+Create an asset payment activated by upward barrier touch.
 
 #### Parameters
 
-- **`effective_date, expiry_date`** (`datetime.date`) — Contract effective and expiry dates, each anchored at 00:00 UTC.
-- **`barrier_level`** (`float`) — Positive barrier level.
-- **`settlement_timing`** (`{'at_hit', 'at_expiry'}, optional`) — Settle at the barrier hit or at expiry.
-- **`observation_mode`** (`{'continuous', 'scheduled'}, optional`) — Continuous or scheduled monitoring.
-- **`observation_dates`** (`iterable[datetime.date], optional`) — Required schedule for scheduled monitoring.
-- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — History strictly before valuation. Required once prior monitoring was possible.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`barrier_level`** (`float`) — Positive finite trigger level; equality counts as a touch.
+- **`settlement_timing`** (`{'at_hit', 'at_expiry'}, optional`) — At-hit or expiry payment; no-touch contracts settle only at expiry.
+- **`observation_mode`** (`{'continuous', 'scheduled'}, optional`) — Continuous monitoring or observations on the supplied dates.
+- **`observation_dates`** (`iterable of date, optional`) — Strictly increasing observation dates within the contract life.
+- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — Strictly prior history. None means unknown; untouched means known no hit.
 #### Returns
 
-- `TouchOption` — Validated immutable asset one-touch option.
+- `TouchOption` — Validated owned contract.
 #### Raises
 
-- `TypeError` — If an argument has an incompatible representation.
-- `KiyosiError` — If the core rejects the barrier, dates, or observation schedule.
+- `InvalidInputError` — If contractual amounts, life dates or observation terms are invalid.
+#### Notes
+
+Barrier equality counts as a touch. Strictly prior history and trading
+calendar compatibility are checked during pricing. A current at-hit
+payment transfers spot; future continuous hits transfer the barrier
+amount. No-touch payments occur only at expiry.
 
 ## `autocallable_observations`
 
 ```python
-autocallable_observations(observation_dates: collections.abc.Iterable[datetime.date], knock_out_levels: collections.abc.Iterable[float], *, knock_out_coupon_rates: collections.abc.Iterable[float] | None = None, coupon_barrier_levels: collections.abc.Iterable[float] | None = None) -> list[AutocallableObservation]
+autocallable_observations(observation_dates, knock_out_levels, *, knock_out_coupon_rates=None, coupon_barrier_levels=None)
 ```
 
-Associate parallel sequences into owning observation records.
+Associate parallel sequences into input observation records.
 
-Dates, knock-out levels, and supplied coupon sequences must have equal lengths.
-Omitted coupon sequences use the core record defaults. Dates and contractual
-values are validated when an autocallable note is constructed from the records.
+#### Parameters
 
+- **`observation_dates`** (`iterable of date`) — Strictly increasing observation dates within the contract life.
+- **`knock_out_levels`** (`iterable of float`) — Positive inclusive knock-out levels, one per observation date.
+- **`knock_out_coupon_rates`** (`iterable of float or None, optional`) — Annual snowball coupons; None uses zero for every observation.
+- **`coupon_barrier_levels`** (`iterable of float or None, optional`) — Phoenix coupon thresholds; None uses zero for every observation.
+#### Returns
+
+- `list of AutocallableObservation` — Owned result; no input is mutated.
 #### Raises
 
-- `TypeError` — If a sequence or element has an incompatible representation.
-- `KiyosiError` — With category INVALID_SCHEDULE if sequence lengths differ.
+- `InvalidInputError` — If sequence lengths differ.
+#### Notes
+
+The note constructor validates contractual values and ordering.
 
 ## `both_down_snowball`
 
 ```python
-both_down_snowball(*, initial_coupon_rate: float, coupon_rate_decrement: float, initial_spot: float, knock_in_level: float, initial_knock_out_level: float, knock_out_level_decrement: float, observation_dates: collections.abc.Iterable[datetime.date], effective_date: datetime.date, expiry_date: datetime.date, barrier_state: typing.Literal['none', 'knocked_out', 'knocked_in'] | None = None, principal_ratio: float = 1.0) -> SnowballOption
+both_down_snowball(*, initial_coupon_rate, initial_spot, knock_in_level, initial_knock_out_level, coupon_rate_decrement, knock_out_level_decrement, observation_dates, effective_date, expiry_date, barrier_state=None, **fields)
 ```
 
-Create a snowball with decreasing coupons and knock-out barriers.
+Create a snowball with decreasing coupons and knock-out levels.
 
 #### Parameters
 
-- **`initial_coupon_rate`** (`float`) — Annualized coupon rate at the first observation.
-- **`coupon_rate_decrement`** (`float`) — Amount subtracted from each successive coupon rate.
-- **`initial_spot`** (`float`) — Positive reference spot.
-- **`knock_in_level`** (`float`) — Lower knock-in barrier level.
-- **`initial_knock_out_level`** (`float`) — Knock-out level at the first observation.
-- **`knock_out_level_decrement`** (`float`) — Amount subtracted from each successive knock-out level.
-- **`observation_dates`** (`iterable[datetime.date]`) — Ordered knock-out observations at 00:00 UTC.
-- **`effective_date, expiry_date`** (`datetime.date`) — Note effective and expiry dates, each anchored at 00:00 UTC.
-- **`barrier_state`** (`{'none', 'knocked_out', 'knocked_in'} | None, optional`) — State before valuation; required after an observation has occurred.
-- **`principal_ratio`** (`float, optional`) — Normalized principal repayment component; coupons and downside are separate.
+- **`initial_coupon_rate`** (`float`) — Annual coupon rate at the first observation.
+- **`initial_spot`** (`float`) — Positive reference spot used to normalize downside losses.
+- **`knock_in_level`** (`float`) — Positive strict downside threshold.
+- **`initial_knock_out_level`** (`float`) — Positive knock-out threshold at the first observation.
+- **`coupon_rate_decrement`** (`float`) — Absolute decimal-rate decrement after each observation.
+- **`knock_out_level_decrement`** (`float`) — Absolute price decrement after each observation; may be negative.
+- **`observation_dates`** (`iterable of date`) — Strictly increasing observation dates within the contract life.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`barrier_state`** (`{'none', 'knocked_in', 'knocked_out'} or None, optional`) — Strictly prior events. None is unknown; the string none means no event.
+- **`principal_ratio`** (`float, optional`) — Nonnegative normalized principal, independent of coupons and losses.
 #### Returns
 
-- `SnowballOption` — Validated immutable snowball option.
+- `SnowballOption` — Validated owned contract.
 #### Raises
 
-- `TypeError` — If an argument has an incompatible representation.
-- `KiyosiError` — If the core rejects the rates, levels, schedule, state, or dates.
+- `InvalidInputError` — If contractual amounts, life dates or observation terms are invalid.
+#### Notes
+
+Daily knock-in monitoring, unit principal, zero lower strike and initial
+spot as upper strike are used unless the preset overrides them. History
+and trading-calendar consistency are checked during pricing.
+Decrements apply after each observation; the first uses the initial
+value. Signed coupons and decrements are accepted if all expanded terms
+remain valid. Maturity uses the final observation coupon.
 
 ## `cash_binary_barrier_option`
 
 ```python
-cash_binary_barrier_option(*, option_type: typing.Literal['call', 'put'], strike: float, effective_date: datetime.date, expiry_date: datetime.date, barrier_level: float, barrier_type: typing.Literal['up_and_in', 'up_and_out', 'down_and_in', 'down_and_out'], payout: float, observation_mode: typing.Literal['continuous', 'scheduled'] = 'continuous', observation_dates: collections.abc.Iterable[datetime.date] = (), touch_state: typing.Literal['untouched', 'touched'] | None = None) -> BinaryBarrierOption
+cash_binary_barrier_option(*, option_type, strike, effective_date, expiry_date, barrier_level, barrier_type, payout, **settings)
 ```
 
-Create a cash-or-nothing binary barrier option.
+Create a cash digital with barrier monitoring and strict terminal
+exercise.
 
 #### Parameters
 
 - **`option_type`** (`{'call', 'put'}`) — Call or put payoff direction.
-- **`strike`** (`float`) — Positive strike price.
-- **`effective_date, expiry_date`** (`datetime.date`) — Contract effective and expiry dates, each anchored at 00:00 UTC.
-- **`barrier_level`** (`float`) — Positive barrier level.
-- **`barrier_type`** (`{'up_and_in', 'up_and_out', 'down_and_in', 'down_and_out'}`) — Barrier direction and activation behavior.
-- **`payout`** (`float`) — Fixed cash amount paid when the payoff and barrier conditions hold.
-- **`observation_mode`** (`{'continuous', 'scheduled'}, optional`) — Continuous or scheduled monitoring.
-- **`observation_dates`** (`iterable[datetime.date], optional`) — Required schedule for scheduled monitoring.
-- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — History strictly before valuation. Required once prior monitoring was possible.
+- **`strike`** (`float`) — Positive finite exercise or purchase price.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`barrier_level`** (`float`) — Positive finite trigger level; equality counts as a touch.
+- **`barrier_type`** (`{'up_and_in', 'up_and_out', 'down_and_in', 'down_and_out'}`) — Trigger direction and knock-in or knock-out behavior.
+- **`payout`** (`float`) — Positive finite cash payment.
+- **`observation_mode`** (`{'continuous', 'scheduled'}, optional`) — Continuous monitoring or observations on the supplied dates.
+- **`observation_dates`** (`iterable of date, optional`) — Strictly increasing observation dates within the contract life.
+- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — Strictly prior history. None means unknown; untouched means known no hit.
 #### Returns
 
-- `BinaryBarrierOption` — Validated immutable cash binary barrier option.
+- `BinaryBarrierOption` — Validated owned contract.
 #### Raises
 
-- `TypeError` — If an argument has an incompatible representation.
-- `KiyosiError` — If the core rejects the payoff, barrier, dates, or observation schedule.
+- `InvalidInputError` — If contractual amounts, life dates or observation terms are invalid.
+#### Notes
+
+Barrier equality counts as a touch. Strictly prior history and trading
+calendar compatibility are checked during pricing. Terminal strike
+equality pays zero.
+
+## `cash_double_no_touch`
+
+```python
+cash_double_no_touch(*, effective_date, expiry_date, lower_barrier, upper_barrier, payout, **settings)
+```
+
+Create an expiry cash payment requiring neither boundary to be touched.
+
+#### Parameters
+
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`lower_barrier`** (`float`) — Positive finite lower trigger; equality counts as a touch.
+- **`upper_barrier`** (`float`) — Finite upper trigger, strictly above the lower trigger.
+- **`payout`** (`float`) — Positive finite cash payment.
+- **`observation_mode`** (`{'continuous', 'scheduled'}, optional`) — Continuous monitoring or observations on the supplied dates.
+- **`observation_dates`** (`iterable of date, optional`) — Strictly increasing observation dates within the contract life.
+- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — Strictly prior history. None means unknown; untouched means known no hit.
+#### Returns
+
+- `DoubleTouchOption` — Validated owned contract.
+#### Raises
+
+- `InvalidInputError` — If contractual amounts, life dates or observation terms are invalid.
+#### Notes
+
+Barrier equality counts as a touch. Strictly prior history and trading
+calendar compatibility are checked during pricing. Prior at-hit
+payments have no remaining value. No-touch payments occur only at
+expiry.
+
+## `cash_double_touch`
+
+```python
+cash_double_touch(*, effective_date, expiry_date, lower_barrier, upper_barrier, payout, **settings)
+```
+
+Create a cash payment activated by either inclusive boundary.
+
+#### Parameters
+
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`lower_barrier`** (`float`) — Positive finite lower trigger; equality counts as a touch.
+- **`upper_barrier`** (`float`) — Finite upper trigger, strictly above the lower trigger.
+- **`payout`** (`float`) — Positive finite cash payment.
+- **`settlement_timing`** (`{'at_hit', 'at_expiry'}, optional`) — At-hit or expiry payment; no-touch contracts settle only at expiry.
+- **`observation_mode`** (`{'continuous', 'scheduled'}, optional`) — Continuous monitoring or observations on the supplied dates.
+- **`observation_dates`** (`iterable of date, optional`) — Strictly increasing observation dates within the contract life.
+- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — Strictly prior history. None means unknown; untouched means known no hit.
+#### Returns
+
+- `DoubleTouchOption` — Validated owned contract.
+#### Raises
+
+- `InvalidInputError` — If contractual amounts, life dates or observation terms are invalid.
+#### Notes
+
+Barrier equality counts as a touch. Strictly prior history and trading
+calendar compatibility are checked during pricing. Prior at-hit
+payments have no remaining value. No-touch payments occur only at
+expiry.
 
 ## `cash_no_touch_down`
 
 ```python
-cash_no_touch_down(*, effective_date: datetime.date, expiry_date: datetime.date, barrier_level: float, payout: float, observation_mode: typing.Literal['continuous', 'scheduled'] = 'continuous', observation_dates: collections.abc.Iterable[datetime.date] = (), touch_state: typing.Literal['untouched', 'touched'] | None = None) -> TouchOption
+cash_no_touch_down(*, effective_date, expiry_date, barrier_level, payout, **settings)
 ```
 
-Create a cash no-touch option.
-
-The factory name selects an upper or lower barrier. No-touch payoffs settle at
-expiry.
-``touch_state`` describes observations before the valuation time.
+Create a cash payment requiring no downward barrier touch.
 
 #### Parameters
 
-- **`effective_date, expiry_date`** (`datetime.date`) — Contract effective and expiry dates, each anchored at 00:00 UTC.
-- **`barrier_level`** (`float`) — Positive barrier level.
-- **`payout`** (`float`) — Fixed cash payout.
-- **`observation_mode`** (`{'continuous', 'scheduled'}, optional`) — Continuous or scheduled monitoring.
-- **`observation_dates`** (`iterable[datetime.date], optional`) — Required schedule for scheduled monitoring.
-- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — History strictly before valuation. Required once prior monitoring was possible.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`barrier_level`** (`float`) — Positive finite trigger level; equality counts as a touch.
+- **`payout`** (`float`) — Positive finite cash payment.
+- **`observation_mode`** (`{'continuous', 'scheduled'}, optional`) — Continuous monitoring or observations on the supplied dates.
+- **`observation_dates`** (`iterable of date, optional`) — Strictly increasing observation dates within the contract life.
+- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — Strictly prior history. None means unknown; untouched means known no hit.
 #### Returns
 
-- `TouchOption` — Validated immutable cash no-touch option.
+- `TouchOption` — Validated owned contract.
 #### Raises
 
-- `TypeError` — If an argument has an incompatible representation.
-- `KiyosiError` — If the core rejects the payoff, barrier, dates, or observation schedule.
+- `InvalidInputError` — If contractual amounts, life dates or observation terms are invalid.
+#### Notes
+
+Barrier equality counts as a touch. Strictly prior history and trading
+calendar compatibility are checked during pricing. Prior at-hit
+payments have no remaining value. No-touch payments occur only at
+expiry.
 
 ## `cash_no_touch_up`
 
 ```python
-cash_no_touch_up(*, effective_date: datetime.date, expiry_date: datetime.date, barrier_level: float, payout: float, observation_mode: typing.Literal['continuous', 'scheduled'] = 'continuous', observation_dates: collections.abc.Iterable[datetime.date] = (), touch_state: typing.Literal['untouched', 'touched'] | None = None) -> TouchOption
+cash_no_touch_up(*, effective_date, expiry_date, barrier_level, payout, **settings)
 ```
 
-Create a cash no-touch option.
-
-The factory name selects an upper or lower barrier. No-touch payoffs settle at
-expiry.
-``touch_state`` describes observations before the valuation time.
+Create a cash payment requiring no upward barrier touch.
 
 #### Parameters
 
-- **`effective_date, expiry_date`** (`datetime.date`) — Contract effective and expiry dates, each anchored at 00:00 UTC.
-- **`barrier_level`** (`float`) — Positive barrier level.
-- **`payout`** (`float`) — Fixed cash payout.
-- **`observation_mode`** (`{'continuous', 'scheduled'}, optional`) — Continuous or scheduled monitoring.
-- **`observation_dates`** (`iterable[datetime.date], optional`) — Required schedule for scheduled monitoring.
-- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — History strictly before valuation. Required once prior monitoring was possible.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`barrier_level`** (`float`) — Positive finite trigger level; equality counts as a touch.
+- **`payout`** (`float`) — Positive finite cash payment.
+- **`observation_mode`** (`{'continuous', 'scheduled'}, optional`) — Continuous monitoring or observations on the supplied dates.
+- **`observation_dates`** (`iterable of date, optional`) — Strictly increasing observation dates within the contract life.
+- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — Strictly prior history. None means unknown; untouched means known no hit.
 #### Returns
 
-- `TouchOption` — Validated immutable cash no-touch option.
+- `TouchOption` — Validated owned contract.
 #### Raises
 
-- `TypeError` — If an argument has an incompatible representation.
-- `KiyosiError` — If the core rejects the payoff, barrier, dates, or observation schedule.
+- `InvalidInputError` — If contractual amounts, life dates or observation terms are invalid.
+#### Notes
+
+Barrier equality counts as a touch. Strictly prior history and trading
+calendar compatibility are checked during pricing. Prior at-hit
+payments have no remaining value. No-touch payments occur only at
+expiry.
 
 ## `cash_one_touch_down`
 
 ```python
-cash_one_touch_down(*, effective_date: datetime.date, expiry_date: datetime.date, barrier_level: float, payout: float, settlement_timing: typing.Literal['at_hit', 'at_expiry'] = 'at_expiry', observation_mode: typing.Literal['continuous', 'scheduled'] = 'continuous', observation_dates: collections.abc.Iterable[datetime.date] = (), touch_state: typing.Literal['untouched', 'touched'] | None = None) -> TouchOption
+cash_one_touch_down(*, effective_date, expiry_date, barrier_level, payout, **settings)
 ```
 
-Create a cash one-touch option.
-
-The factory name selects an upper or lower barrier.
-``touch_state`` describes observations before the valuation time.
+Create a cash payment activated by downward barrier touch.
 
 #### Parameters
 
-- **`effective_date, expiry_date`** (`datetime.date`) — Contract effective and expiry dates, each anchored at 00:00 UTC.
-- **`barrier_level`** (`float`) — Positive barrier level.
-- **`payout`** (`float`) — Fixed cash payout.
-- **`settlement_timing`** (`{'at_hit', 'at_expiry'}, optional`) — Settle at the barrier hit or at expiry.
-- **`observation_mode`** (`{'continuous', 'scheduled'}, optional`) — Continuous or scheduled monitoring.
-- **`observation_dates`** (`iterable[datetime.date], optional`) — Required schedule for scheduled monitoring.
-- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — History strictly before valuation. Required once prior monitoring was possible.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`barrier_level`** (`float`) — Positive finite trigger level; equality counts as a touch.
+- **`payout`** (`float`) — Positive finite cash payment.
+- **`settlement_timing`** (`{'at_hit', 'at_expiry'}, optional`) — At-hit or expiry payment; no-touch contracts settle only at expiry.
+- **`observation_mode`** (`{'continuous', 'scheduled'}, optional`) — Continuous monitoring or observations on the supplied dates.
+- **`observation_dates`** (`iterable of date, optional`) — Strictly increasing observation dates within the contract life.
+- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — Strictly prior history. None means unknown; untouched means known no hit.
 #### Returns
 
-- `TouchOption` — Validated immutable cash one-touch option.
+- `TouchOption` — Validated owned contract.
 #### Raises
 
-- `TypeError` — If an argument has an incompatible representation.
-- `KiyosiError` — If the core rejects the payoff, barrier, dates, or observation schedule.
+- `InvalidInputError` — If contractual amounts, life dates or observation terms are invalid.
+#### Notes
+
+Barrier equality counts as a touch. Strictly prior history and trading
+calendar compatibility are checked during pricing. Prior at-hit
+payments have no remaining value. No-touch payments occur only at
+expiry.
 
 ## `cash_one_touch_up`
 
 ```python
-cash_one_touch_up(*, effective_date: datetime.date, expiry_date: datetime.date, barrier_level: float, payout: float, settlement_timing: typing.Literal['at_hit', 'at_expiry'] = 'at_expiry', observation_mode: typing.Literal['continuous', 'scheduled'] = 'continuous', observation_dates: collections.abc.Iterable[datetime.date] = (), touch_state: typing.Literal['untouched', 'touched'] | None = None) -> TouchOption
+cash_one_touch_up(*, effective_date, expiry_date, barrier_level, payout, **settings)
 ```
 
-Create a cash one-touch option.
-
-The factory name selects an upper or lower barrier.
-``touch_state`` describes observations before the valuation time.
+Create a cash payment activated by upward barrier touch.
 
 #### Parameters
 
-- **`effective_date, expiry_date`** (`datetime.date`) — Contract effective and expiry dates, each anchored at 00:00 UTC.
-- **`barrier_level`** (`float`) — Positive barrier level.
-- **`payout`** (`float`) — Fixed cash payout.
-- **`settlement_timing`** (`{'at_hit', 'at_expiry'}, optional`) — Settle at the barrier hit or at expiry.
-- **`observation_mode`** (`{'continuous', 'scheduled'}, optional`) — Continuous or scheduled monitoring.
-- **`observation_dates`** (`iterable[datetime.date], optional`) — Required schedule for scheduled monitoring.
-- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — History strictly before valuation. Required once prior monitoring was possible.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`barrier_level`** (`float`) — Positive finite trigger level; equality counts as a touch.
+- **`payout`** (`float`) — Positive finite cash payment.
+- **`settlement_timing`** (`{'at_hit', 'at_expiry'}, optional`) — At-hit or expiry payment; no-touch contracts settle only at expiry.
+- **`observation_mode`** (`{'continuous', 'scheduled'}, optional`) — Continuous monitoring or observations on the supplied dates.
+- **`observation_dates`** (`iterable of date, optional`) — Strictly increasing observation dates within the contract life.
+- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — Strictly prior history. None means unknown; untouched means known no hit.
 #### Returns
 
-- `TouchOption` — Validated immutable cash one-touch option.
+- `TouchOption` — Validated owned contract.
 #### Raises
 
-- `TypeError` — If an argument has an incompatible representation.
-- `KiyosiError` — If the core rejects the payoff, barrier, dates, or observation schedule.
+- `InvalidInputError` — If contractual amounts, life dates or observation terms are invalid.
+#### Notes
+
+Barrier equality counts as a touch. Strictly prior history and trading
+calendar compatibility are checked during pricing. Prior at-hit
+payments have no remaining value. No-touch payments occur only at
+expiry.
 
 ## `dual_coupon_snowball`
 
 ```python
-dual_coupon_snowball(*, knock_out_coupon_rate: float, maturity_coupon_rate: float, initial_spot: float, knock_in_level: float, knock_out_level: float, observation_dates: collections.abc.Iterable[datetime.date], effective_date: datetime.date, expiry_date: datetime.date, barrier_state: typing.Literal['none', 'knocked_out', 'knocked_in'] | None = None, principal_ratio: float = 1.0) -> SnowballOption
+dual_coupon_snowball(*, knock_out_coupon_rate, initial_spot, knock_in_level, knock_out_level, maturity_coupon_rate, observation_dates, effective_date, expiry_date, barrier_state=None, **fields)
 ```
 
 Create a snowball with separate knock-out and maturity coupons.
 
 #### Parameters
 
-- **`knock_out_coupon_rate`** (`float`) — Annualized coupon rate paid after knock-out.
-- **`maturity_coupon_rate`** (`float`) — Annualized coupon rate paid at maturity when applicable.
-- **`initial_spot`** (`float`) — Positive reference spot.
-- **`knock_in_level`** (`float`) — Lower knock-in barrier level.
-- **`knock_out_level`** (`float`) — Knock-out level applied to every observation.
-- **`observation_dates`** (`iterable[datetime.date]`) — Ordered knock-out observations at 00:00 UTC.
-- **`effective_date, expiry_date`** (`datetime.date`) — Note effective and expiry dates, each anchored at 00:00 UTC.
-- **`barrier_state`** (`{'none', 'knocked_out', 'knocked_in'} | None, optional`) — State before valuation; required after an observation has occurred.
-- **`principal_ratio`** (`float, optional`) — Normalized principal repayment component; coupons and downside are separate.
+- **`knock_out_coupon_rate`** (`float`) — Annual coupon rate for knock-out settlement.
+- **`initial_spot`** (`float`) — Positive reference spot used to normalize downside losses.
+- **`knock_in_level`** (`float`) — Positive strict downside threshold.
+- **`knock_out_level`** (`float`) — Positive inclusive knock-out threshold.
+- **`maturity_coupon_rate`** (`float`) — Finite annual maturity coupon rate in decimal units.
+- **`observation_dates`** (`iterable of date`) — Strictly increasing observation dates within the contract life.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`barrier_state`** (`{'none', 'knocked_in', 'knocked_out'} or None, optional`) — Strictly prior events. None is unknown; the string none means no event.
+- **`principal_ratio`** (`float, optional`) — Nonnegative normalized principal, independent of coupons and losses.
 #### Returns
 
-- `SnowballOption` — Validated immutable snowball option.
+- `SnowballOption` — Validated owned contract.
 #### Raises
 
-- `TypeError` — If an argument has an incompatible representation.
-- `KiyosiError` — If the core rejects the rates, levels, schedule, state, or dates.
+- `InvalidInputError` — If contractual amounts, life dates or observation terms are invalid.
+#### Notes
+
+Daily knock-in monitoring, unit principal, zero lower strike and initial
+spot as upper strike are used unless the preset overrides them. History
+and trading-calendar consistency are checked during pricing.
 
 ## `european_snowball`
 
 ```python
-european_snowball(*, coupon_rate: float, initial_spot: float, knock_in_level: float, knock_out_level: float, observation_dates: collections.abc.Iterable[datetime.date], effective_date: datetime.date, expiry_date: datetime.date, barrier_state: typing.Literal['none', 'knocked_out', 'knocked_in'] | None = None, principal_ratio: float = 1.0) -> SnowballOption
+european_snowball(*, coupon_rate, initial_spot, knock_in_level, knock_out_level, observation_dates, effective_date, expiry_date, barrier_state=None, **fields)
 ```
 
-Create a standard or European snowball preset.
-
-The called factory determines whether the knock-in barrier is observed every
-trading day or only at expiry.
+Create a snowball with knock-in observed only at expiry.
 
 #### Parameters
 
-- **`coupon_rate`** (`float`) — Annualized coupon rate used for knock-out and maturity coupons.
-- **`initial_spot`** (`float`) — Positive reference spot.
-- **`knock_in_level`** (`float`) — Lower knock-in barrier level.
-- **`knock_out_level`** (`float`) — Knock-out level applied to every observation.
-- **`observation_dates`** (`iterable[datetime.date]`) — Ordered knock-out observations at 00:00 UTC.
-- **`effective_date, expiry_date`** (`datetime.date`) — Note effective and expiry dates, each anchored at 00:00 UTC.
-- **`barrier_state`** (`{'none', 'knocked_out', 'knocked_in'} | None, optional`) — State before valuation; required after an observation has occurred.
-- **`principal_ratio`** (`float, optional`) — Normalized principal repayment component; coupons and downside are separate.
+- **`coupon_rate`** (`float`) — Finite annual coupon rate in decimal units.
+- **`initial_spot`** (`float`) — Positive reference spot used to normalize downside losses.
+- **`knock_in_level`** (`float`) — Positive strict downside threshold.
+- **`knock_out_level`** (`float`) — Positive inclusive knock-out threshold.
+- **`observation_dates`** (`iterable of date`) — Strictly increasing observation dates within the contract life.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`barrier_state`** (`{'none', 'knocked_in', 'knocked_out'} or None, optional`) — Strictly prior events. None is unknown; the string none means no event.
+- **`principal_ratio`** (`float, optional`) — Nonnegative normalized principal, independent of coupons and losses.
 #### Returns
 
-- `SnowballOption` — Validated immutable snowball option.
+- `SnowballOption` — Validated owned contract.
 #### Raises
 
-- `TypeError` — If an argument has an incompatible representation.
-- `KiyosiError` — If the core rejects the rates, levels, schedule, state, or dates.
+- `InvalidInputError` — If contractual amounts, life dates or observation terms are invalid.
+#### Notes
+
+Daily knock-in monitoring, unit principal, zero lower strike and initial
+spot as upper strike are used unless the preset overrides them. History
+and trading-calendar consistency are checked during pricing. Knock-in is
+observed only at expiry.
 
 ## `loss_capped_snowball`
 
 ```python
-loss_capped_snowball(*, coupon_rate: float, initial_spot: float, knock_in_level: float, knock_out_level: float, lower_strike: float, observation_dates: collections.abc.Iterable[datetime.date], effective_date: datetime.date, expiry_date: datetime.date, barrier_state: typing.Literal['none', 'knocked_out', 'knocked_in'] | None = None, principal_ratio: float = 1.0) -> SnowballOption
+loss_capped_snowball(*, coupon_rate, initial_spot, knock_in_level, knock_out_level, lower_strike, observation_dates, effective_date, expiry_date, barrier_state=None, **fields)
 ```
 
-Create a snowball with a lower loss-capping strike.
+Create a snowball whose lower terminal strike caps downside loss.
 
 #### Parameters
 
-- **`coupon_rate`** (`float`) — Annualized coupon rate.
-- **`initial_spot`** (`float`) — Positive reference spot.
-- **`knock_in_level`** (`float`) — Lower knock-in barrier level.
-- **`knock_out_level`** (`float`) — Knock-out level applied to every observation.
-- **`lower_strike`** (`float`) — Lower terminal strike that caps downside loss.
-- **`observation_dates`** (`iterable[datetime.date]`) — Ordered knock-out observations at 00:00 UTC.
-- **`effective_date, expiry_date`** (`datetime.date`) — Note effective and expiry dates, each anchored at 00:00 UTC.
-- **`barrier_state`** (`{'none', 'knocked_out', 'knocked_in'} | None, optional`) — State before valuation; required after an observation has occurred.
-- **`principal_ratio`** (`float, optional`) — Normalized principal repayment component; coupons and downside are separate.
+- **`coupon_rate`** (`float`) — Finite annual coupon rate in decimal units.
+- **`initial_spot`** (`float`) — Positive reference spot used to normalize downside losses.
+- **`knock_in_level`** (`float`) — Positive strict downside threshold.
+- **`knock_out_level`** (`float`) — Positive inclusive knock-out threshold.
+- **`lower_strike`** (`float`) — Nonnegative lower terminal strike, at most the upper strike.
+- **`observation_dates`** (`iterable of date`) — Strictly increasing observation dates within the contract life.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`barrier_state`** (`{'none', 'knocked_in', 'knocked_out'} or None, optional`) — Strictly prior events. None is unknown; the string none means no event.
+- **`principal_ratio`** (`float, optional`) — Nonnegative normalized principal, independent of coupons and losses.
 #### Returns
 
-- `SnowballOption` — Validated immutable loss-capped snowball option.
+- `SnowballOption` — Validated owned contract.
 #### Raises
 
-- `TypeError` — If an argument has an incompatible representation.
-- `KiyosiError` — If the core rejects the rates, levels, schedule, state, or dates.
+- `InvalidInputError` — If contractual amounts, life dates or observation terms are invalid.
+#### Notes
+
+Daily knock-in monitoring, unit principal, zero lower strike and initial
+spot as upper strike are used unless the preset overrides them. History
+and trading-calendar consistency are checked during pricing.
 
 ## `otm_snowball`
 
 ```python
-otm_snowball(*, coupon_rate: float, initial_spot: float, knock_in_level: float, knock_out_level: float, upper_strike: float, observation_dates: collections.abc.Iterable[datetime.date], effective_date: datetime.date, expiry_date: datetime.date, barrier_state: typing.Literal['none', 'knocked_out', 'knocked_in'] | None = None, principal_ratio: float = 1.0) -> SnowballOption
+otm_snowball(*, coupon_rate, initial_spot, knock_in_level, knock_out_level, upper_strike, observation_dates, effective_date, expiry_date, barrier_state=None, **fields)
 ```
 
-Create a snowball with a custom upper terminal strike.
+Create a snowball with a replaced upper terminal strike.
 
 #### Parameters
 
-- **`coupon_rate`** (`float`) — Annualized coupon rate.
-- **`initial_spot`** (`float`) — Positive reference spot.
-- **`knock_in_level`** (`float`) — Lower knock-in barrier level.
-- **`knock_out_level`** (`float`) — Knock-out level applied to every observation.
-- **`upper_strike`** (`float`) — Upper terminal participation strike.
-- **`observation_dates`** (`iterable[datetime.date]`) — Ordered knock-out observations at 00:00 UTC.
-- **`effective_date, expiry_date`** (`datetime.date`) — Note effective and expiry dates, each anchored at 00:00 UTC.
-- **`barrier_state`** (`{'none', 'knocked_out', 'knocked_in'} | None, optional`) — State before valuation; required after an observation has occurred.
-- **`principal_ratio`** (`float, optional`) — Normalized principal repayment component; coupons and downside are separate.
+- **`coupon_rate`** (`float`) — Finite annual coupon rate in decimal units.
+- **`initial_spot`** (`float`) — Positive reference spot used to normalize downside losses.
+- **`knock_in_level`** (`float`) — Positive strict downside threshold.
+- **`knock_out_level`** (`float`) — Positive inclusive knock-out threshold.
+- **`upper_strike`** (`float`) — Positive upper terminal settlement strike.
+- **`observation_dates`** (`iterable of date`) — Strictly increasing observation dates within the contract life.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`barrier_state`** (`{'none', 'knocked_in', 'knocked_out'} or None, optional`) — Strictly prior events. None is unknown; the string none means no event.
+- **`principal_ratio`** (`float, optional`) — Nonnegative normalized principal, independent of coupons and losses.
 #### Returns
 
-- `SnowballOption` — Validated immutable out-of-the-money snowball option.
+- `SnowballOption` — Validated owned contract.
 #### Raises
 
-- `TypeError` — If an argument has an incompatible representation.
-- `KiyosiError` — If the core rejects the rates, levels, schedule, state, or dates.
+- `InvalidInputError` — If contractual amounts, life dates or observation terms are invalid.
+#### Notes
+
+Daily knock-in monitoring, unit principal, zero lower strike and initial
+spot as upper strike are used unless the preset overrides them. History
+and trading-calendar consistency are checked during pricing.
 
 ## `parachute_snowball`
 
 ```python
-parachute_snowball(*, coupon_rate: float, initial_spot: float, knock_in_level: float, knock_out_level: float, final_knock_out_level: float, observation_dates: collections.abc.Iterable[datetime.date], effective_date: datetime.date, expiry_date: datetime.date, barrier_state: typing.Literal['none', 'knocked_out', 'knocked_in'] | None = None, principal_ratio: float = 1.0) -> SnowballOption
+parachute_snowball(*, coupon_rate, initial_spot, knock_in_level, knock_out_level, final_knock_out_level, observation_dates, effective_date, expiry_date, barrier_state=None, **fields)
 ```
 
-Create a snowball with a distinct final knock-out barrier.
+Create a snowball with a distinct final knock-out level.
 
 #### Parameters
 
-- **`coupon_rate`** (`float`) — Annualized coupon rate.
-- **`initial_spot`** (`float`) — Positive reference spot.
-- **`knock_in_level`** (`float`) — Lower knock-in barrier level.
-- **`knock_out_level`** (`float`) — Knock-out level before the final observation.
-- **`final_knock_out_level`** (`float`) — Knock-out level at the final observation.
-- **`observation_dates`** (`iterable[datetime.date]`) — Ordered knock-out observations at 00:00 UTC.
-- **`effective_date, expiry_date`** (`datetime.date`) — Note effective and expiry dates, each anchored at 00:00 UTC.
-- **`barrier_state`** (`{'none', 'knocked_out', 'knocked_in'} | None, optional`) — State before valuation; required after an observation has occurred.
-- **`principal_ratio`** (`float, optional`) — Normalized principal repayment component; coupons and downside are separate.
+- **`coupon_rate`** (`float`) — Finite annual coupon rate in decimal units.
+- **`initial_spot`** (`float`) — Positive reference spot used to normalize downside losses.
+- **`knock_in_level`** (`float`) — Positive strict downside threshold.
+- **`knock_out_level`** (`float`) — Positive inclusive knock-out threshold.
+- **`final_knock_out_level`** (`float`) — Positive threshold replacing only the final knock-out level.
+- **`observation_dates`** (`iterable of date`) — Strictly increasing observation dates within the contract life.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`barrier_state`** (`{'none', 'knocked_in', 'knocked_out'} or None, optional`) — Strictly prior events. None is unknown; the string none means no event.
+- **`principal_ratio`** (`float, optional`) — Nonnegative normalized principal, independent of coupons and losses.
 #### Returns
 
-- `SnowballOption` — Validated immutable snowball option.
+- `SnowballOption` — Validated owned contract.
 #### Raises
 
-- `TypeError` — If an argument has an incompatible representation.
-- `KiyosiError` — If the core rejects the rates, levels, schedule, state, or dates.
+- `InvalidInputError` — If contractual amounts, life dates or observation terms are invalid.
+#### Notes
+
+Daily knock-in monitoring, unit principal, zero lower strike and initial
+spot as upper strike are used unless the preset overrides them. History
+and trading-calendar consistency are checked during pricing.
 
 ## `standard_snowball`
 
 ```python
-standard_snowball(*, coupon_rate: float, initial_spot: float, knock_in_level: float, knock_out_level: float, observation_dates: collections.abc.Iterable[datetime.date], effective_date: datetime.date, expiry_date: datetime.date, barrier_state: typing.Literal['none', 'knocked_out', 'knocked_in'] | None = None, principal_ratio: float = 1.0) -> SnowballOption
+standard_snowball(*, coupon_rate, initial_spot, knock_in_level, knock_out_level, observation_dates, effective_date, expiry_date, barrier_state=None, **fields)
 ```
 
-Create a standard or European snowball preset.
-
-The called factory determines whether the knock-in barrier is observed every
-trading day or only at expiry.
+Create constant knock-out coupons and levels with daily knock-in
+monitoring.
 
 #### Parameters
 
-- **`coupon_rate`** (`float`) — Annualized coupon rate used for knock-out and maturity coupons.
-- **`initial_spot`** (`float`) — Positive reference spot.
-- **`knock_in_level`** (`float`) — Lower knock-in barrier level.
-- **`knock_out_level`** (`float`) — Knock-out level applied to every observation.
-- **`observation_dates`** (`iterable[datetime.date]`) — Ordered knock-out observations at 00:00 UTC.
-- **`effective_date, expiry_date`** (`datetime.date`) — Note effective and expiry dates, each anchored at 00:00 UTC.
-- **`barrier_state`** (`{'none', 'knocked_out', 'knocked_in'} | None, optional`) — State before valuation; required after an observation has occurred.
-- **`principal_ratio`** (`float, optional`) — Normalized principal repayment component; coupons and downside are separate.
+- **`coupon_rate`** (`float`) — Finite annual coupon rate in decimal units.
+- **`initial_spot`** (`float`) — Positive reference spot used to normalize downside losses.
+- **`knock_in_level`** (`float`) — Positive strict downside threshold.
+- **`knock_out_level`** (`float`) — Positive inclusive knock-out threshold.
+- **`observation_dates`** (`iterable of date`) — Strictly increasing observation dates within the contract life.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`barrier_state`** (`{'none', 'knocked_in', 'knocked_out'} or None, optional`) — Strictly prior events. None is unknown; the string none means no event.
+- **`principal_ratio`** (`float, optional`) — Nonnegative normalized principal, independent of coupons and losses.
 #### Returns
 
-- `SnowballOption` — Validated immutable snowball option.
+- `SnowballOption` — Validated owned contract.
 #### Raises
 
-- `TypeError` — If an argument has an incompatible representation.
-- `KiyosiError` — If the core rejects the rates, levels, schedule, state, or dates.
+- `InvalidInputError` — If contractual amounts, life dates or observation terms are invalid.
+#### Notes
+
+Daily knock-in monitoring, unit principal, zero lower strike and initial
+spot as upper strike are used unless the preset overrides them. History
+and trading-calendar consistency are checked during pricing.
 
 ## `step_down_snowball`
 
 ```python
-step_down_snowball(*, coupon_rate: float, initial_spot: float, knock_in_level: float, initial_knock_out_level: float, knock_out_level_decrement: float, observation_dates: collections.abc.Iterable[datetime.date], effective_date: datetime.date, expiry_date: datetime.date, barrier_state: typing.Literal['none', 'knocked_out', 'knocked_in'] | None = None, principal_ratio: float = 1.0) -> SnowballOption
+step_down_snowball(*, coupon_rate, initial_spot, knock_in_level, initial_knock_out_level, knock_out_level_decrement, observation_dates, effective_date, expiry_date, barrier_state=None, **fields)
 ```
 
-Create a snowball with linearly decreasing knock-out barriers.
+Create a snowball with decreasing knock-out levels.
 
 #### Parameters
 
-- **`coupon_rate`** (`float`) — Annualized coupon rate.
-- **`initial_spot`** (`float`) — Positive reference spot.
-- **`knock_in_level`** (`float`) — Lower knock-in barrier level.
-- **`initial_knock_out_level`** (`float`) — Knock-out level at the first observation.
-- **`knock_out_level_decrement`** (`float`) — Amount subtracted from each successive knock-out level.
-- **`observation_dates`** (`iterable[datetime.date]`) — Ordered knock-out observations at 00:00 UTC.
-- **`effective_date, expiry_date`** (`datetime.date`) — Note effective and expiry dates, each anchored at 00:00 UTC.
-- **`barrier_state`** (`{'none', 'knocked_out', 'knocked_in'} | None, optional`) — State before valuation; required after an observation has occurred.
-- **`principal_ratio`** (`float, optional`) — Normalized principal repayment component; coupons and downside are separate.
+- **`coupon_rate`** (`float`) — Finite annual coupon rate in decimal units.
+- **`initial_spot`** (`float`) — Positive reference spot used to normalize downside losses.
+- **`knock_in_level`** (`float`) — Positive strict downside threshold.
+- **`initial_knock_out_level`** (`float`) — Positive knock-out threshold at the first observation.
+- **`knock_out_level_decrement`** (`float`) — Absolute price decrement after each observation; may be negative.
+- **`observation_dates`** (`iterable of date`) — Strictly increasing observation dates within the contract life.
+- **`effective_date`** (`datetime.date`) — Inclusive first contract date.
+- **`expiry_date`** (`datetime.date`) — Final contract date; expiry is at midnight UTC.
+- **`barrier_state`** (`{'none', 'knocked_in', 'knocked_out'} or None, optional`) — Strictly prior events. None is unknown; the string none means no event.
+- **`principal_ratio`** (`float, optional`) — Nonnegative normalized principal, independent of coupons and losses.
 #### Returns
 
-- `SnowballOption` — Validated immutable snowball option.
+- `SnowballOption` — Validated owned contract.
 #### Raises
 
-- `TypeError` — If an argument has an incompatible representation.
-- `KiyosiError` — If the core rejects the rates, levels, schedule, state, or dates.
+- `InvalidInputError` — If contractual amounts, life dates or observation terms are invalid.
+#### Notes
+
+Daily knock-in monitoring, unit principal, zero lower strike and initial
+spot as upper strike are used unless the preset overrides them. History
+and trading-calendar consistency are checked during pricing.
+Decrements apply after each observation; the first uses the initial
+value. Signed coupons and decrements are accepted if all expanded terms
+remain valid.

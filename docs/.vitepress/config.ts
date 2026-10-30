@@ -4,9 +4,10 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'kiyosi',
-  description: '基于 C++23 的衍生品定价库，提供 Python 接口，支持普通期权、奇异期权和结构化产品。',
+  description: '以 Rust 为核心的 Python 衍生品定价库，支持普通期权、奇异期权和结构化产品。',
   lang: 'zh-CN',
   base: process.env.DOCS_BASE || '/',
+  srcExclude: ['public/**'],
   async buildEnd({ outDir }) {
     const legacyPages = [
       'index',
@@ -15,7 +16,6 @@ export default defineConfig({
       'guide/first-price',
       'guide/engines',
       'reference/python',
-      'cpp/building',
     ]
     for (const page of legacyPages) {
       const file = `${page}.html`
@@ -67,14 +67,14 @@ export default defineConfig({
         items: [
           { text: '定价引擎', link: '/guide/engines' },
           { text: 'Python API 概览', link: '/reference/python' },
-          { text: '构建 C++ 库', link: '/cpp/building' },
+          { text: '构建 Rust 核心', link: '/rust/building' },
         ],
       },
       {
         text: 'API 参考',
         items: [
           { text: '概览', link: '/api/' },
-          { text: 'C++ API', link: '/api/cpp/' },
+          { text: 'Rust API', link: '/api/rust/kiyosi_core/index.html', target: '_self' },
           { text: 'Python API', link: '/api/python/' },
         ],
       },

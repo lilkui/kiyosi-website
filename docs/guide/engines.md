@@ -1,52 +1,51 @@
 ---
-description: 按金融工具类型比较 kiyosi 的定价方法，并选择 CPU 或 CUDA 蒙特卡洛后端。
+description: 按产品选择 kiyosi 定价算法，配置数值方法和 CPU 蒙特卡洛采样。
 ---
 
 # 定价引擎
 
-请按金融工具类型选择引擎。虽然各引擎都使用 `price(instrument, context)` 接口，但支持的产品范围不同。
+请按金融工具类型选择引擎。虽然各引擎都使用 `price(instrument, context)` 接口，但支持的产品和模型条件不同。本页对应 kiyosi **0.14.0**。
 
 ## 支持的产品与方法 {#instrument-coverage}
 
 | 产品类型 | 可用定价方法 |
 | --- | --- |
-| 欧式普通期权 | 解析法、CRR 二叉树法、有限差分法、积分法、蒙特卡洛法 |
-| 美式普通期权 | Bjerksund-Stensland 近似、CRR 二叉树法、有限差分法、蒙特卡洛法 |
-| 现金或无、资产或无数字期权 | 解析法、有限差分法、积分法 |
-| 障碍期权 | 解析法、有限差分法 |
-| 二元障碍期权和触碰期权 | 解析法 |
-| 几何平均亚式期权 | 闭式解 |
-| 算术平均亚式期权 | Turnbull-Wakeman 近似 |
-| 累购产品 | 有限差分法、蒙特卡洛法 |
-| 凤凰产品和各类雪球结构 | 有限差分法、蒙特卡洛法 |
+| 欧式普通期权 | BSM 解析法、CRR 二叉树、积分、有限差分、蒙特卡洛 |
+| 美式普通期权 | Bjerksund–Stensland 2002 近似、CRR、有限差分、最小二乘蒙特卡洛 |
+| 现金或无、资产或无数字期权 | 解析法、CRR、积分、有限差分、蒙特卡洛 |
+| 几何平均亚式期权 | 连续平均解析法、蒙特卡洛 |
+| 算术平均亚式期权 | Turnbull–Wakeman 连续平均近似、蒙特卡洛 |
+| 单障碍期权 | 解析法、CRR、积分、有限差分、蒙特卡洛 |
+| 双障碍期权 | 解析级数、有限差分、蒙特卡洛 |
+| 二元障碍、单触碰、单不触碰期权 | 解析法、有限差分 |
+| 双触碰、双不触碰期权 | 有限差分 |
+| 雪球、二元雪球、三元雪球、凤凰结构 | 积分、有限差分、蒙特卡洛 |
+| 累购／累沽 | 积分、有限差分、蒙特卡洛 |
+| 区间累计 | BSM 区间概率解析求和 |
 
-上表根据 kiyosi 0.11.0 的公开引擎和[产品说明](https://github.com/lilkui/kiyosi/blob/main/README.md#支持的产品与功能)整理。雪球和凤凰产品共用 `FiniteDifferenceAutocallableEngine` 或 `MonteCarloAutocallableEngine`，累购产品仍使用各自的引擎。完整签名见[定价 API](/api/python/kiyosi-pricing)。
-
-`AnalyticBarrierEngine` 和 `AnalyticBinaryBarrierEngine` 使用 BGK 障碍平移近似处理离散观察。对于尚未触碰障碍、且仍有未来观察日的合约，最后一次观察必须安排在到期日，现价也必须位于平移后障碍的未触碰一侧。不满足支持条件时，引擎会抛出类别为 `UNSUPPORTED_OPERATION` 的 `KiyosiError`。详见[定价 API](/api/python/kiyosi-pricing#analyticbarrierengine)。
+雪球和凤凰共用 `QuadratureAutocallableEngine`、`FiniteDifferenceAutocallableEngine` 或 `MonteCarloAutocallableEngine`。累购使用对应的 `AccumulatorEngine`。欧式解析引擎为 `AnalyticEuropeanEngine`。完整名称、参数及支持条件见[定价 API](/api/python/kiyosi-pricing)。
 
 ## 引擎配置与验证 {#engine-settings}
 
-Python 数值引擎在构造时验证配置。二叉树步数须为 1–1,000,000；蒙特卡洛路径数须为 1–10,000,000，普通期权的 `step_count` 须为 2–10,000，美式期权在到期前定价时至少需要 3 步。有限差分网格还受各引擎的上限约束。无效配置会在构造时抛出 `KiyosiError`，合约、市场和后端可用性则在定价时检查。
+数值引擎在构造时验证配置，合约与市场条件在定价时验证。引擎配置只读；调整网格或采样时，创建新引擎。
 
-引擎配置只读。如需修改路径数、网格或后端，请创建新引擎。
-
-## 选择计算后端 {#select-a-backend}
-
-蒙特卡洛引擎默认使用 CPU。如需使用 CUDA，可沿用[首次定价](./first-price)中的 `option` 和 `context`：
+例如，使用 Crank–Nicolson 有限差分格式：
 
 ```python
-from kiyosi.pricing import MonteCarloVanillaEngine
+from kiyosi.pricing import FiniteDifferenceVanillaEngine
 
-engine = MonteCarloVanillaEngine(backend="cuda")
-price = engine.price(option, context)
-print(price)
+engine = FiniteDifferenceVanillaEngine(
+    asset_step_count=400,
+    time_step_count=800,
+    scheme="crank_nicolson",
+)
 ```
 
-使用 CUDA 需要启用了 CUDA 支持的 kiyosi 构建，以及兼容的 NVIDIA GPU 和驱动。默认后端是 `"cpu"`。CUDA 仅用于蒙特卡洛方法，解析引擎和有限差分引擎不会因此转到 GPU 上运行。所选后端不可用时，会抛出类别为 `BACKEND_UNAVAILABLE` 的 `KiyosiError`。
+输入不合法时会抛出 `InvalidInputError`；不受支持的产品或模型条件会抛出 `UnsupportedOperationError`。应根据各引擎的参考文档选择参数，不能仅凭共享的调用接口推断支持范围。
 
 ## CPU 并发与复现 {#cpu-concurrency}
 
-三个蒙特卡洛引擎均支持 `thread_count`，用于限制单次 CPU 调用的并发数：`0` 为自动选择，`1` 为串行，正整数为并发上限。它不限制整个进程的线程总数。沿用首次定价的对象：
+蒙特卡洛在 CPU 上运行。`thread_count=0` 自动选择工作线程，`1` 表示串行，正整数限制单次调用的工作线程数；它不限制整个进程的线程数。沿用[首次定价](./first-price)中的对象：
 
 ```python
 from kiyosi.pricing import MonteCarloVanillaEngine
@@ -56,10 +55,22 @@ estimate = engine.price(option, context)
 print(estimate)
 ```
 
-固定种子时，同一库版本、构建和标准库实现下的 CPU 结果不随线程数改变；不保证跨版本或 CPU / CUDA 结果一致。CUDA 要求 `thread_count=0`。并发调用可共享只读引擎，每次调用会同步完成自己的计算。
+固定种子时，同一构建中的随机抽样不随线程数改变；不保证跨版本或构建完全一致。每次调用同步完成自己的计算，可并发共享只读引擎。
+
+## 采样与误差估计 {#sampling-and-error}
+
+可选 `sampling="pseudo_random"` 或经过扰乱的 `"sobol"`。Sobol 要求路径数为二的幂；`antithetic=True` 将相反的正态随机数配对。欧式普通期权可使用统计接口：
+
+```python
+engine = MonteCarloVanillaEngine(path_count=100_000, seed=42)
+result = engine.price_with_statistics(option, context)
+print(result.price, result.standard_error, result.confidence_interval)
+```
+
+Sobol 采样不报告采样标准误差和置信区间，相应字段为 `None`。欧式普通期权直接采样终值，`step_count` 不影响其价格；美式期权使用离散行权网格。详细约束见 [MonteCarloVanillaEngine](/api/python/kiyosi-pricing#montecarlovanillaengine)。
 
 ## 如何比较定价方法 {#compare-methods-carefully}
 
-比较不同引擎时，应使用相同的合约条款和市场输入。解析法直接按公式计算，数值方法则会引入近似误差或模拟误差。各引擎的具体设置见[定价模块](https://github.com/lilkui/kiyosi/blob/main/python/kiyosi/pricing.py)和[定价测试](https://github.com/lilkui/kiyosi/tree/main/tests/pricing)。
+使用相同的合约条款、估值时点与市场输入。数值方法引入离散或模拟误差，需要分别检查网格收敛与采样误差。隐含参数求解器的容差不能衡量蒙特卡洛误差。
 
-当前所有模型的适用范围均受 [Black-Scholes-Merton 模型假设](./introduction#model-scope)限制。
+模型范围见[简介](./introduction#model-scope)。产品与算法表依据[上游 README](https://github.com/lilkui/kiyosi/blob/748942203c99ffb5f011dbdcd06312d6b5f4a06c/README.md#支持的产品与算法)整理，更多用例见[Python 测试](https://github.com/lilkui/kiyosi/tree/748942203c99ffb5f011dbdcd06312d6b5f4a06c/tests/python)。

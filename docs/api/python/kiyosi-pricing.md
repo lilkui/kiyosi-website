@@ -5,521 +5,509 @@ outline: [2, 4]
 
 # `kiyosi.pricing`
 
-Pricing engines, analytics, and implied-value solvers.
+Price contracts, compute sensitivities, and solve implied parameters.
+
+``FiniteDifferenceScheme`` selects ``"explicit_euler"``, ``"implicit_euler"``
+or ``"crank_nicolson"`` (with initial damping). ``MonteCarloSampling`` selects
+``"pseudo_random"`` or scrambled ``"sobol"``; a fixed seed reproduces draws
+across thread counts in the same build. Sobol estimates omit sampling error.
+
+``CouponQuoteConvention`` controls whether a snowball's maturity coupon
+shifts with observation coupons (``"shift_maturity_coupon"``) or stays fixed
+(``"preserve_maturity_coupon"``). Phoenix coupon solves omit this choice.
+
+## Examples
+
+Price a European call and request its delta and vega:
+
+```python
+>>> from datetime import date
+>>> from kiyosi.instruments import EuropeanOption
+>>> from kiyosi.market import BlackScholesMertonParameters, PricingContext
+>>> from kiyosi.pricing import AnalyticEuropeanEngine
+>>> option = EuropeanOption(
+...     option_type="call", strike=100,
+...     effective_date=date(2025, 1, 1), expiry_date=date(2026, 1, 1),
+... )
+>>> context = PricingContext(
+...     model_parameters=BlackScholesMertonParameters(
+...         risk_free_rate=0.05, dividend_yield=0.02, volatility=0.2,
+...     ),
+...     spot_price=100, valuation_time=date(2025, 1, 1),
+... )
+>>> result = AnalyticEuropeanEngine().price_with_greeks(
+...     option, context, greeks=["delta", "vega"],
+... )
+>>> round(result.price, 6)
+9.227006
+>>> result.require("delta") > 0
+True
+```
+
+
+Recover the model volatility from its price using a chosen bracket:
+
+```python
+>>> sigma = implied_volatility(
+...     AnalyticEuropeanEngine(), option, context, result.price,
+...     lower_bound=0.1, upper_bound=0.3,
+... )
+>>> round(sigma, 6)
+0.2
+```
 
 ## `AnalyticBarrierEngine`
 
 ```python
-AnalyticBarrierEngine(self) -> None
+AnalyticBarrierEngine()
 ```
 
-Stateless pricing engine.
+Flat-rate single-barrier analytics with BGK scheduled monitoring.
 
-The engine has no configuration and may be reused across supported instruments
-and contexts. Concurrent calls are safe.
+#### See Also
 
-Scheduled monitoring is approximated with a BGK barrier shift. Untouched contracts
-with future observations require a final observation at expiry; shorter monitoring
-windows raise KiyosiError with category UNSUPPORTED_OPERATION. Spot must lie strictly
-on the unbreached side of the shifted barrier; otherwise the approximation raises
-the same error. Resolved settlements remain supported.
-
-### 构造函数
-
-Create a stateless pricing engine.
-
-#### Returns
-
-- `pricing engine` — Reusable engine with no mutable configuration.
+BarrierOption : Supported contract.
 
 ### `price`
 
 ```python
-price(self, instrument: BarrierOption, context: PricingContext) -> float
+price(self, /, instrument, context)
 ```
 
-Price an instrument under a market context.
+Return the price without changing the instrument or context.
 
 #### Parameters
 
-- **`instrument`** (`instrument`) — Instrument accepted by this overload.
-- **`context`** (`PricingContext`) — Market state and valuation instant.
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
 #### Returns
 
-- `float` — Instrument price. No Greeks are calculated.
+- `float` — Present value of remaining contractual payments.
 #### Raises
 
-- `KiyosiError` — If instrument terms, context, engine settings, backend availability, or the requested valuation are invalid.
-#### Notes
-
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
 
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, instrument: BarrierOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
 ```
 
-Compute price and the explicitly selected Greeks.
+Return the price and selected sensitivities.
 
-Pass one lowercase Greek name or an iterable of them, or set ``all_greeks=True`` to
-request all ten. These forms are mutually exclusive. Native values are reused;
-missing feasible measures use numerical price differences. Unrequested or
-undefined measures are None, never zero sentinels. At expiry or a monitored
-barrier hit-state boundary, only price is available. Feasible bumped valuation
-failures fail the entire operation.
-At current autocallable-product event thresholds, undefined spot and time
-sensitivities remain None while feasible rate and volatility sensitivities survive.
+#### Parameters
 
-Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
-use asset-price units, volatility and rate shifts use decimal units, and time
-shifts use calendar days. Collapsed or asymmetric stencils leave affected
-numerical Greeks unavailable. Monte Carlo valuations share one seed per request
-without changing the engine. Concurrent calls are safe.
-For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
-exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
-and bump-size bias remain; check convergence for the valuation.
-
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
 #### Returns
 
-- `PricingResult` — Price and requested available Greeks, with Greek units.
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
 #### Raises
 
-- `TypeError` — If a Greek representation, engine/instrument pairing, or shift representation is incompatible.
-- `OverflowError` — If time_shift_days is outside the C++ int range.
-- `KiyosiError` — If the Greek request or settings are invalid, or a required valuation fails.
-#### Notes
-
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
 
 ## `AnalyticBinaryBarrierEngine`
 
 ```python
-AnalyticBinaryBarrierEngine(self) -> None
+AnalyticBinaryBarrierEngine()
 ```
 
-Stateless pricing engine.
+Flat-rate binary-barrier and single-touch analytics.
 
-The engine has no configuration and may be reused across supported instruments
-and contexts. Concurrent calls are safe.
+#### See Also
 
-Scheduled monitoring is approximated with a BGK barrier shift. Untouched contracts
-with future observations require a final observation at expiry; shorter monitoring
-windows raise KiyosiError with category UNSUPPORTED_OPERATION. Spot must lie strictly
-on the unbreached side of the shifted barrier; otherwise the approximation raises
-the same error. Resolved settlements remain supported.
-
-### 构造函数
-
-Create a stateless pricing engine.
-
-#### Returns
-
-- `pricing engine` — Reusable engine with no mutable configuration.
+BinaryBarrierOption : Supported contract.
+TouchOption : Supported contract.
 
 ### `price`
 
 ```python
-price(self, instrument: BinaryBarrierOption, context: PricingContext) -> float
-price(self, instrument: TouchOption, context: PricingContext) -> float
+price(self, /, instrument, context)
 ```
 
-Price an instrument under a market context.
+Return the price without changing the instrument or context.
 
 #### Parameters
 
-- **`instrument`** (`instrument`) — Instrument accepted by this overload.
-- **`context`** (`PricingContext`) — Market state and valuation instant.
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
 #### Returns
 
-- `float` — Instrument price. No Greeks are calculated.
+- `float` — Present value of remaining contractual payments.
 #### Raises
 
-- `KiyosiError` — If instrument terms, context, engine settings, backend availability, or the requested valuation are invalid.
-#### Notes
-
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
 
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, instrument: BinaryBarrierOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-price_with_greeks(self, instrument: TouchOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
 ```
 
-Compute price and the explicitly selected Greeks.
+Return the price and selected sensitivities.
 
-Pass one lowercase Greek name or an iterable of them, or set ``all_greeks=True`` to
-request all ten. These forms are mutually exclusive. Native values are reused;
-missing feasible measures use numerical price differences. Unrequested or
-undefined measures are None, never zero sentinels. At expiry or a monitored
-barrier hit-state boundary, only price is available. Feasible bumped valuation
-failures fail the entire operation.
-At current autocallable-product event thresholds, undefined spot and time
-sensitivities remain None while feasible rate and volatility sensitivities survive.
+#### Parameters
 
-Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
-use asset-price units, volatility and rate shifts use decimal units, and time
-shifts use calendar days. Collapsed or asymmetric stencils leave affected
-numerical Greeks unavailable. Monte Carlo valuations share one seed per request
-without changing the engine. Concurrent calls are safe.
-For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
-exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
-and bump-size bias remain; check convergence for the valuation.
-
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
 #### Returns
 
-- `PricingResult` — Price and requested available Greeks, with Greek units.
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
 #### Raises
 
-- `TypeError` — If a Greek representation, engine/instrument pairing, or shift representation is incompatible.
-- `OverflowError` — If time_shift_days is outside the C++ int range.
-- `KiyosiError` — If the Greek request or settings are invalid, or a required valuation fails.
-#### Notes
-
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
 
 ## `AnalyticDigitalEngine`
 
 ```python
-AnalyticDigitalEngine(self) -> None
+AnalyticDigitalEngine()
 ```
 
-Stateless pricing engine.
+Analytic European digital pricing with deterministic rate curves.
 
-The engine has no configuration and may be reused across supported instruments
-and contexts. Concurrent calls are safe.
+#### See Also
 
-### 构造函数
-
-Create a stateless pricing engine.
-
-#### Returns
-
-- `pricing engine` — Reusable engine with no mutable configuration.
+CashOrNothingOption : Supported contract.
+AssetOrNothingOption : Supported contract.
 
 ### `price`
 
 ```python
-price(self, instrument: CashOrNothingOption, context: PricingContext) -> float
-price(self, instrument: AssetOrNothingOption, context: PricingContext) -> float
+price(self, /, instrument, context)
 ```
 
-Price an instrument under a market context.
+Return the price without changing the instrument or context.
 
 #### Parameters
 
-- **`instrument`** (`instrument`) — Instrument accepted by this overload.
-- **`context`** (`PricingContext`) — Market state and valuation instant.
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
 #### Returns
 
-- `float` — Instrument price. No Greeks are calculated.
+- `float` — Present value of remaining contractual payments.
 #### Raises
 
-- `KiyosiError` — If instrument terms, context, engine settings, backend availability, or the requested valuation are invalid.
-#### Notes
-
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
 
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, instrument: CashOrNothingOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-price_with_greeks(self, instrument: AssetOrNothingOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
 ```
 
-Compute price and the explicitly selected Greeks.
+Return the price and selected sensitivities.
 
-Pass one lowercase Greek name or an iterable of them, or set ``all_greeks=True`` to
-request all ten. These forms are mutually exclusive. Native values are reused;
-missing feasible measures use numerical price differences. Unrequested or
-undefined measures are None, never zero sentinels. At expiry or a monitored
-barrier hit-state boundary, only price is available. Feasible bumped valuation
-failures fail the entire operation.
-At current autocallable-product event thresholds, undefined spot and time
-sensitivities remain None while feasible rate and volatility sensitivities survive.
+#### Parameters
 
-Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
-use asset-price units, volatility and rate shifts use decimal units, and time
-shifts use calendar days. Collapsed or asymmetric stencils leave affected
-numerical Greeks unavailable. Monte Carlo valuations share one seed per request
-without changing the engine. Concurrent calls are safe.
-For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
-exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
-and bump-size bias remain; check convergence for the valuation.
-
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
 #### Returns
 
-- `PricingResult` — Price and requested available Greeks, with Greek units.
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
 #### Raises
 
-- `TypeError` — If a Greek representation, engine/instrument pairing, or shift representation is incompatible.
-- `OverflowError` — If time_shift_days is outside the C++ int range.
-- `KiyosiError` — If the Greek request or settings are invalid, or a required valuation fails.
-#### Notes
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
 
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+## `AnalyticDoubleBarrierEngine`
+
+```python
+AnalyticDoubleBarrierEngine()
+```
+
+Flat-rate continuous double-barrier analytics.
+
+#### See Also
+
+DoubleBarrierOption : Supported contract.
+
+### `price`
+
+```python
+price(self, /, instrument, context)
+```
+
+Return the price without changing the instrument or context.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+#### Returns
+
+- `float` — Present value of remaining contractual payments.
+#### Raises
+
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
+
+### `price_with_greeks`
+
+```python
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+```
+
+Return the price and selected sensitivities.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
+#### Returns
+
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
+#### Raises
+
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
+
+## `AnalyticEuropeanEngine`
+
+```python
+AnalyticEuropeanEngine()
+```
+
+Analytic European vanilla pricing with deterministic rate curves.
+
+#### See Also
+
+EuropeanOption : Supported contract.
+
+### `price_with_greeks`
+
+```python
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+```
+
+Return the price and selected sensitivities.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
+#### Returns
+
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
+#### Raises
+
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
+
+### `price`
+
+```python
+price(self, /, instrument, context)
+```
+
+Return the price without changing the instrument or context.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+#### Returns
+
+- `float` — Present value of remaining contractual payments.
+#### Raises
+
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
 
 ## `AnalyticGeometricAveragePriceEngine`
 
 ```python
-AnalyticGeometricAveragePriceEngine(self) -> None
+AnalyticGeometricAveragePriceEngine()
 ```
 
-Stateless pricing engine.
+Analytic continuous average-price pricing.
 
-The engine has no configuration and may be reused across supported instruments
-and contexts. Concurrent calls are safe.
+#### Notes
 
-### 构造函数
-
-Create a stateless pricing engine.
-
-#### Returns
-
-- `pricing engine` — Reusable engine with no mutable configuration.
+AnalyticGeometricAveragePriceEngine accepts geometric averages and
+deterministic curves. TurnbullWakemanArithmeticAveragePriceEngine uses
+a Levy-compatible moment approximation and requires flat rates before
+expiry. It accepts arithmetic averages.
 
 ### `price`
 
 ```python
-price(self, instrument: GeometricAveragePriceOption, context: PricingContext) -> float
+price(self, /, instrument, context)
 ```
 
-Price an instrument under a market context.
+Return the price without changing the instrument or context.
 
 #### Parameters
 
-- **`instrument`** (`instrument`) — Instrument accepted by this overload.
-- **`context`** (`PricingContext`) — Market state and valuation instant.
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
 #### Returns
 
-- `float` — Instrument price. No Greeks are calculated.
+- `float` — Present value of remaining contractual payments.
 #### Raises
 
-- `KiyosiError` — If instrument terms, context, engine settings, backend availability, or the requested valuation are invalid.
-#### Notes
-
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
 
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, instrument: GeometricAveragePriceOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
 ```
 
-Compute price and the explicitly selected Greeks.
+Return the price and selected sensitivities.
 
-Pass one lowercase Greek name or an iterable of them, or set ``all_greeks=True`` to
-request all ten. These forms are mutually exclusive. Native values are reused;
-missing feasible measures use numerical price differences. Unrequested or
-undefined measures are None, never zero sentinels. At expiry or a monitored
-barrier hit-state boundary, only price is available. Feasible bumped valuation
-failures fail the entire operation.
-At current autocallable-product event thresholds, undefined spot and time
-sensitivities remain None while feasible rate and volatility sensitivities survive.
+#### Parameters
 
-Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
-use asset-price units, volatility and rate shifts use decimal units, and time
-shifts use calendar days. Collapsed or asymmetric stencils leave affected
-numerical Greeks unavailable. Monte Carlo valuations share one seed per request
-without changing the engine. Concurrent calls are safe.
-For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
-exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
-and bump-size bias remain; check convergence for the valuation.
-
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
 #### Returns
 
-- `PricingResult` — Price and requested available Greeks, with Greek units.
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
 #### Raises
 
-- `TypeError` — If a Greek representation, engine/instrument pairing, or shift representation is incompatible.
-- `OverflowError` — If time_shift_days is outside the C++ int range.
-- `KiyosiError` — If the Greek request or settings are invalid, or a required valuation fails.
-#### Notes
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
 
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
-
-## `AnalyticVanillaEngine`
+## `AnalyticRangeAccrualEngine`
 
 ```python
-AnalyticVanillaEngine(self) -> None
+AnalyticRangeAccrualEngine()
 ```
 
-Stateless pricing engine.
+Exact BSM range-coupon marginals with deterministic rate curves.
 
-The engine has no configuration and may be reused across supported instruments
-and contexts. Concurrent calls are safe.
+#### See Also
 
-### 构造函数
-
-Create a stateless pricing engine.
-
-#### Returns
-
-- `pricing engine` — Reusable engine with no mutable configuration.
+RangeAccrualOption : Supported contract.
 
 ### `price`
 
 ```python
-price(self, instrument: EuropeanOption, context: PricingContext) -> float
+price(self, /, instrument, context)
 ```
 
-Price an instrument under a market context.
+Return the price without changing the instrument or context.
 
 #### Parameters
 
-- **`instrument`** (`instrument`) — Instrument accepted by this overload.
-- **`context`** (`PricingContext`) — Market state and valuation instant.
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
 #### Returns
 
-- `float` — Instrument price. No Greeks are calculated.
+- `float` — Present value of remaining contractual payments.
 #### Raises
 
-- `KiyosiError` — If instrument terms, context, engine settings, backend availability, or the requested valuation are invalid.
-#### Notes
-
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
 
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, instrument: EuropeanOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
 ```
 
-Compute price and the explicitly selected Greeks.
+Return the price and selected sensitivities.
 
-Pass one lowercase Greek name or an iterable of them, or set ``all_greeks=True`` to
-request all ten. These forms are mutually exclusive. Native values are reused;
-missing feasible measures use numerical price differences. Unrequested or
-undefined measures are None, never zero sentinels. At expiry or a monitored
-barrier hit-state boundary, only price is available. Feasible bumped valuation
-failures fail the entire operation.
-At current autocallable-product event thresholds, undefined spot and time
-sensitivities remain None while feasible rate and volatility sensitivities survive.
+#### Parameters
 
-Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
-use asset-price units, volatility and rate shifts use decimal units, and time
-shifts use calendar days. Collapsed or asymmetric stencils leave affected
-numerical Greeks unavailable. Monte Carlo valuations share one seed per request
-without changing the engine. Concurrent calls are safe.
-For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
-exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
-and bump-size bias remain; check convergence for the valuation.
-
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
 #### Returns
 
-- `PricingResult` — Price and requested available Greeks, with Greek units.
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
 #### Raises
 
-- `TypeError` — If a Greek representation, engine/instrument pairing, or shift representation is incompatible.
-- `OverflowError` — If time_shift_days is outside the C++ int range.
-- `KiyosiError` — If the Greek request or settings are invalid, or a required valuation fails.
-#### Notes
-
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
 
 ## `BjerksundStenslandVanillaEngine`
 
 ```python
-BjerksundStenslandVanillaEngine(self) -> None
+BjerksundStenslandVanillaEngine()
 ```
 
-Stateless pricing engine.
+Bjerksund-Stensland 2002 American approximation with flat rates.
 
-The engine has no configuration and may be reused across supported instruments
-and contexts. Concurrent calls are safe.
+#### See Also
 
-### 构造函数
-
-Create a stateless pricing engine.
-
-#### Returns
-
-- `pricing engine` — Reusable engine with no mutable configuration.
+AmericanOption : Supported contract.
 
 ### `price`
 
 ```python
-price(self, instrument: AmericanOption, context: PricingContext) -> float
+price(self, /, instrument, context)
 ```
 
-Price an instrument under a market context.
+Return the price without changing the instrument or context.
 
 #### Parameters
 
-- **`instrument`** (`instrument`) — Instrument accepted by this overload.
-- **`context`** (`PricingContext`) — Market state and valuation instant.
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
 #### Returns
 
-- `float` — Instrument price. No Greeks are calculated.
+- `float` — Present value of remaining contractual payments.
 #### Raises
 
-- `KiyosiError` — If instrument terms, context, engine settings, backend availability, or the requested valuation are invalid.
-#### Notes
-
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
 
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, instrument: AmericanOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
 ```
 
-Compute price and the explicitly selected Greeks.
+Return the price and selected sensitivities.
 
-Pass one lowercase Greek name or an iterable of them, or set ``all_greeks=True`` to
-request all ten. These forms are mutually exclusive. Native values are reused;
-missing feasible measures use numerical price differences. Unrequested or
-undefined measures are None, never zero sentinels. At expiry or a monitored
-barrier hit-state boundary, only price is available. Feasible bumped valuation
-failures fail the entire operation.
-At current autocallable-product event thresholds, undefined spot and time
-sensitivities remain None while feasible rate and volatility sensitivities survive.
+#### Parameters
 
-Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
-use asset-price units, volatility and rate shifts use decimal units, and time
-shifts use calendar days. Collapsed or asymmetric stencils leave affected
-numerical Greeks unavailable. Monte Carlo valuations share one seed per request
-without changing the engine. Concurrent calls are safe.
-For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
-exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
-and bump-size bias remain; check convergence for the valuation.
-
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
 #### Returns
 
-- `PricingResult` — Price and requested available Greeks, with Greek units.
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
 #### Raises
 
-- `TypeError` — If a Greek representation, engine/instrument pairing, or shift representation is incompatible.
-- `OverflowError` — If time_shift_days is outside the C++ int range.
-- `KiyosiError` — If the Greek request or settings are invalid, or a required valuation fails.
-#### Notes
-
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
 
 ## `CouponQuoteConvention`
 
@@ -527,562 +515,814 @@ is deferred until the synchronous core computation returns.
 CouponQuoteConvention = typing.Literal['shift_maturity_coupon', 'preserve_maturity_coupon']
 ```
 
-## `CoxRossRubinsteinVanillaEngine`
+## `CoxRossRubinsteinBarrierEngine`
 
 ```python
-CoxRossRubinsteinVanillaEngine(self, step_count: int = 256) -> None
+CoxRossRubinsteinBarrierEngine(**fields)
 ```
 
-Cox-Ross-Rubinstein binomial vanilla-option engine.
-
-Configuration is immutable and validated at construction. Market-dependent tree
-constraints are checked when pricing.
-
-### 构造函数
-
-Create an engine with validated Cox-Ross-Rubinstein settings.
+Flat-rate Cox-Ross-Rubinstein tree pricing.
 
 #### Parameters
 
-- **`step_count`** (`int, optional`) — Number of binomial time steps. Uses the core default when omitted.
+- **`step_count`** (`int, optional`) — Number of tree time steps, from 1 through 1,000,000; defaults to 256.
 #### Raises
 
-- `TypeError` — If ``step_count`` is not an integer.
-- `OverflowError` — If ``step_count`` is outside the C++ ``int`` range.
-- `KiyosiError` — INVALID_PARAMETER if the step count is outside 1..1,000,000.
-#### Notes
+- `InvalidInputError` — If step_count is outside 1 through 1,000,000.
+#### See Also
 
-The step count is validated at construction; accepted range is 1..1,000,000.
-
-### `step_count`
-
-Number of binomial time steps.
+BarrierOption : Supported contract.
 
 ### `price`
 
 ```python
-price(self, instrument: EuropeanOption, context: PricingContext) -> float
-price(self, instrument: AmericanOption, context: PricingContext) -> float
+price(self, /, instrument, context)
 ```
 
-Price an instrument under a market context.
+Return the price without changing the instrument or context.
 
 #### Parameters
 
-- **`instrument`** (`instrument`) — Instrument accepted by this overload.
-- **`context`** (`PricingContext`) — Market state and valuation instant.
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
 #### Returns
 
-- `float` — Instrument price. No Greeks are calculated.
+- `float` — Present value of remaining contractual payments.
 #### Raises
 
-- `KiyosiError` — If instrument terms, context, engine settings, backend availability, or the requested valuation are invalid.
-#### Notes
-
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
 
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, instrument: EuropeanOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-price_with_greeks(self, instrument: AmericanOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
 ```
 
-Compute price and the explicitly selected Greeks.
+Return the price and selected sensitivities.
 
-Pass one lowercase Greek name or an iterable of them, or set ``all_greeks=True`` to
-request all ten. These forms are mutually exclusive. Native values are reused;
-missing feasible measures use numerical price differences. Unrequested or
-undefined measures are None, never zero sentinels. At expiry or a monitored
-barrier hit-state boundary, only price is available. Feasible bumped valuation
-failures fail the entire operation.
-At current autocallable-product event thresholds, undefined spot and time
-sensitivities remain None while feasible rate and volatility sensitivities survive.
+#### Parameters
 
-Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
-use asset-price units, volatility and rate shifts use decimal units, and time
-shifts use calendar days. Collapsed or asymmetric stencils leave affected
-numerical Greeks unavailable. Monte Carlo valuations share one seed per request
-without changing the engine. Concurrent calls are safe.
-For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
-exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
-and bump-size bias remain; check convergence for the valuation.
-
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
 #### Returns
 
-- `PricingResult` — Price and requested available Greeks, with Greek units.
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
 #### Raises
 
-- `TypeError` — If a Greek representation, engine/instrument pairing, or shift representation is incompatible.
-- `OverflowError` — If time_shift_days is outside the C++ int range.
-- `KiyosiError` — If the Greek request or settings are invalid, or a required valuation fails.
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
+
+### `step_count`
+
+Return the configured grid size.
+
+## `CoxRossRubinsteinDigitalEngine`
+
+```python
+CoxRossRubinsteinDigitalEngine(**fields)
+```
+
+Flat-rate Cox-Ross-Rubinstein tree pricing.
+
+#### Parameters
+
+- **`step_count`** (`int, optional`) — Number of tree time steps, from 1 through 1,000,000; defaults to 256.
+#### Raises
+
+- `InvalidInputError` — If step_count is outside 1 through 1,000,000.
 #### Notes
 
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+The vanilla engine accepts EuropeanOption and AmericanOption; the
+digital engine accepts CashOrNothingOption and AssetOrNothingOption.
+
+### `price`
+
+```python
+price(self, /, instrument, context)
+```
+
+Return the price without changing the instrument or context.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+#### Returns
+
+- `float` — Present value of remaining contractual payments.
+#### Raises
+
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
+
+### `price_with_greeks`
+
+```python
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+```
+
+Return the price and selected sensitivities.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
+#### Returns
+
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
+#### Raises
+
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
+
+### `step_count`
+
+Return the configured grid size.
+
+## `CoxRossRubinsteinVanillaEngine`
+
+```python
+CoxRossRubinsteinVanillaEngine(**fields)
+```
+
+Flat-rate Cox-Ross-Rubinstein tree pricing.
+
+#### Parameters
+
+- **`step_count`** (`int, optional`) — Number of tree time steps, from 1 through 1,000,000; defaults to 256.
+#### Raises
+
+- `InvalidInputError` — If step_count is outside 1 through 1,000,000.
+#### Notes
+
+The vanilla engine accepts EuropeanOption and AmericanOption; the
+digital engine accepts CashOrNothingOption and AssetOrNothingOption.
+
+### `price`
+
+```python
+price(self, /, instrument, context)
+```
+
+Return the price without changing the instrument or context.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+#### Returns
+
+- `float` — Present value of remaining contractual payments.
+#### Raises
+
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
+
+### `price_with_greeks`
+
+```python
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+```
+
+Return the price and selected sensitivities.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
+#### Returns
+
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
+#### Raises
+
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
+
+### `step_count`
+
+Return the configured grid size.
 
 ## `FiniteDifferenceAccumulatorEngine`
 
 ```python
-FiniteDifferenceAccumulatorEngine(self, *, asset_step_count: int = 200, time_step_count: int = 200, scheme: typing.Literal['explicit_euler', 'implicit_euler', 'crank_nicolson'] = 'crank_nicolson', asset_upper_boundary: float | None = None) -> None
+FiniteDifferenceAccumulatorEngine(**fields)
 ```
 
-Finite-difference pricing engine with immutable configuration.
-
-Configuration is validated at construction. Contract, market, and backend availability
-are checked when pricing.
-Vanilla, digital, and barrier engines accept 3..10,000 asset steps and 1..100,000
-time steps. Accumulator and autocallable engines accept 3..2,000 asset steps and
-1..2,000 time steps.
-
-### 构造函数
-
-Create an engine with validated finite-difference settings.
-
-Settings are validated at construction.
-The engine-specific ranges are listed in the engine class documentation.
+Finite-difference pricing with immutable grid settings.
 
 #### Parameters
 
-- **`asset_step_count`** (`int, optional`) — Number of spatial grid steps. Uses the core default when omitted.
-- **`time_step_count`** (`int, optional`) — Number of time grid steps. Uses the core default when omitted.
-- **`scheme`** (`{'explicit_euler', 'implicit_euler', 'crank_nicolson'}, optional`) — Time-stepping scheme. Uses the core default when omitted.
-- **`asset_upper_boundary`** (`float or None, optional`) — Explicit upper asset-grid boundary, or ``None`` for the core default.
+- **`asset_step_count`** (`int, optional`) — Number of spatial steps, at least 3; defaults to 800.
+- **`time_step_count`** (`int, optional`) — Positive time-step budget, default 200; event dates and curve knots are added.
+- **`scheme`** (`FiniteDifferenceScheme, optional`) — Time-marching scheme; defaults to damped Crank-Nicolson.
+- **`asset_upper_boundary`** (`float or None, optional`) — Finite positive upper spot boundary, or None (default) for the automatic domain. Must exceed spot, strike and barriers at pricing.
 #### Raises
 
-- `TypeError` — If a setting has an incompatible representation.
-- `OverflowError` — If an integer setting is outside the C++ ``int`` range.
-- `KiyosiError` — INVALID_PARAMETER if the core rejects the configuration.
+- `InvalidInputError` — If asset_step_count is below 3, time_step_count is below 1, or an explicit upper boundary is nonpositive or non-finite. Boundary coverage and explicit-Euler stability are checked during pricing.
+#### Notes
 
-### `asset_step_count`
-
-Number of spatial grid steps.
-
-### `time_step_count`
-
-Number of time grid steps.
-
-### `scheme`
-
-Finite-difference time-stepping scheme.
-
-### `asset_upper_boundary`
-
-Explicit upper asset-grid boundary, or None for the core default.
+The engine name selects its product family. The vanilla engine accepts
+EuropeanOption and AmericanOption. The digital engine accepts
+CashOrNothingOption and AssetOrNothingOption. The binary-barrier engine
+also accepts TouchOption. The autocallable engine accepts all snowball
+variants and PhoenixOption. Other engines accept their named product.
+Digital pricing requires explicitly flat rates; other families accept
+deterministic rate curves.
 
 ### `price`
 
 ```python
-price(self, instrument: Accumulator, context: PricingContext) -> float
+price(self, /, instrument, context)
 ```
 
-Price an instrument under a market context.
+Return the price without changing the instrument or context.
 
 #### Parameters
 
-- **`instrument`** (`instrument`) — Instrument accepted by this overload.
-- **`context`** (`PricingContext`) — Market state and valuation instant.
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
 #### Returns
 
-- `float` — Instrument price. No Greeks are calculated.
+- `float` — Present value of remaining contractual payments.
 #### Raises
 
-- `KiyosiError` — If instrument terms, context, engine settings, backend availability, or the requested valuation are invalid.
-#### Notes
-
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
 
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, instrument: Accumulator, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
 ```
 
-Compute price and the explicitly selected Greeks.
+Return the price and selected sensitivities.
 
-Pass one lowercase Greek name or an iterable of them, or set ``all_greeks=True`` to
-request all ten. These forms are mutually exclusive. Native values are reused;
-missing feasible measures use numerical price differences. Unrequested or
-undefined measures are None, never zero sentinels. At expiry or a monitored
-barrier hit-state boundary, only price is available. Feasible bumped valuation
-failures fail the entire operation.
-At current autocallable-product event thresholds, undefined spot and time
-sensitivities remain None while feasible rate and volatility sensitivities survive.
+#### Parameters
 
-Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
-use asset-price units, volatility and rate shifts use decimal units, and time
-shifts use calendar days. Collapsed or asymmetric stencils leave affected
-numerical Greeks unavailable. Monte Carlo valuations share one seed per request
-without changing the engine. Concurrent calls are safe.
-For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
-exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
-and bump-size bias remain; check convergence for the valuation.
-
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
 #### Returns
 
-- `PricingResult` — Price and requested available Greeks, with Greek units.
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
 #### Raises
 
-- `TypeError` — If a Greek representation, engine/instrument pairing, or shift representation is incompatible.
-- `OverflowError` — If time_shift_days is outside the C++ int range.
-- `KiyosiError` — If the Greek request or settings are invalid, or a required valuation fails.
-#### Notes
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
 
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+### `asset_upper_boundary`
+
+Return the explicit upper spot boundary, or None for automatic selection.
+
+### `time_step_count`
+
+Return the configured time-step budget before event insertion.
+
+### `scheme`
+
+Return the configured time-marching choice string.
+
+### `asset_step_count`
+
+Return the configured spatial grid budget.
 
 ## `FiniteDifferenceAutocallableEngine`
 
 ```python
-FiniteDifferenceAutocallableEngine(self, *, asset_step_count: int = 200, time_step_count: int = 200, scheme: typing.Literal['explicit_euler', 'implicit_euler', 'crank_nicolson'] = 'crank_nicolson', asset_upper_boundary: float | None = None) -> None
+FiniteDifferenceAutocallableEngine(**fields)
 ```
 
-Finite-difference pricing engine with immutable configuration.
-
-Configuration is validated at construction. Contract, market, and backend availability
-are checked when pricing.
-Vanilla, digital, and barrier engines accept 3..10,000 asset steps and 1..100,000
-time steps. Accumulator and autocallable engines accept 3..2,000 asset steps and
-1..2,000 time steps.
-
-### 构造函数
-
-Create an engine with validated finite-difference settings.
-
-Settings are validated at construction.
-The engine-specific ranges are listed in the engine class documentation.
+Finite-difference pricing with immutable grid settings.
 
 #### Parameters
 
-- **`asset_step_count`** (`int, optional`) — Number of spatial grid steps. Uses the core default when omitted.
-- **`time_step_count`** (`int, optional`) — Number of time grid steps. Uses the core default when omitted.
-- **`scheme`** (`{'explicit_euler', 'implicit_euler', 'crank_nicolson'}, optional`) — Time-stepping scheme. Uses the core default when omitted.
-- **`asset_upper_boundary`** (`float or None, optional`) — Explicit upper asset-grid boundary, or ``None`` for the core default.
+- **`asset_step_count`** (`int, optional`) — Number of spatial steps, at least 3; defaults to 800.
+- **`time_step_count`** (`int, optional`) — Positive time-step budget, default 200; event dates and curve knots are added.
+- **`scheme`** (`FiniteDifferenceScheme, optional`) — Time-marching scheme; defaults to damped Crank-Nicolson.
+- **`asset_upper_boundary`** (`float or None, optional`) — Finite positive upper spot boundary, or None (default) for the automatic domain. Must exceed spot, strike and barriers at pricing.
 #### Raises
 
-- `TypeError` — If a setting has an incompatible representation.
-- `OverflowError` — If an integer setting is outside the C++ ``int`` range.
-- `KiyosiError` — INVALID_PARAMETER if the core rejects the configuration.
+- `InvalidInputError` — If asset_step_count is below 3, time_step_count is below 1, or an explicit upper boundary is nonpositive or non-finite. Boundary coverage and explicit-Euler stability are checked during pricing.
+#### Notes
 
-### `asset_step_count`
-
-Number of spatial grid steps.
-
-### `time_step_count`
-
-Number of time grid steps.
-
-### `scheme`
-
-Finite-difference time-stepping scheme.
-
-### `asset_upper_boundary`
-
-Explicit upper asset-grid boundary, or None for the core default.
+The engine name selects its product family. The vanilla engine accepts
+EuropeanOption and AmericanOption. The digital engine accepts
+CashOrNothingOption and AssetOrNothingOption. The binary-barrier engine
+also accepts TouchOption. The autocallable engine accepts all snowball
+variants and PhoenixOption. Other engines accept their named product.
+Digital pricing requires explicitly flat rates; other families accept
+deterministic rate curves.
 
 ### `price`
 
 ```python
-price(self, instrument: SnowballOption, context: PricingContext) -> float
-price(self, instrument: BinarySnowballOption, context: PricingContext) -> float
-price(self, instrument: TernarySnowballOption, context: PricingContext) -> float
-price(self, instrument: PhoenixOption, context: PricingContext) -> float
+price(self, /, instrument, context)
 ```
 
-Price an instrument under a market context.
+Return the price without changing the instrument or context.
 
 #### Parameters
 
-- **`instrument`** (`instrument`) — Instrument accepted by this overload.
-- **`context`** (`PricingContext`) — Market state and valuation instant.
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
 #### Returns
 
-- `float` — Instrument price. No Greeks are calculated.
+- `float` — Present value of remaining contractual payments.
 #### Raises
 
-- `KiyosiError` — If instrument terms, context, engine settings, backend availability, or the requested valuation are invalid.
-#### Notes
-
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
 
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, instrument: SnowballOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-price_with_greeks(self, instrument: BinarySnowballOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-price_with_greeks(self, instrument: TernarySnowballOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-price_with_greeks(self, instrument: PhoenixOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
 ```
 
-Compute price and the explicitly selected Greeks.
+Return the price and selected sensitivities.
 
-Pass one lowercase Greek name or an iterable of them, or set ``all_greeks=True`` to
-request all ten. These forms are mutually exclusive. Native values are reused;
-missing feasible measures use numerical price differences. Unrequested or
-undefined measures are None, never zero sentinels. At expiry or a monitored
-barrier hit-state boundary, only price is available. Feasible bumped valuation
-failures fail the entire operation.
-At current autocallable-product event thresholds, undefined spot and time
-sensitivities remain None while feasible rate and volatility sensitivities survive.
+#### Parameters
 
-Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
-use asset-price units, volatility and rate shifts use decimal units, and time
-shifts use calendar days. Collapsed or asymmetric stencils leave affected
-numerical Greeks unavailable. Monte Carlo valuations share one seed per request
-without changing the engine. Concurrent calls are safe.
-For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
-exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
-and bump-size bias remain; check convergence for the valuation.
-
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
 #### Returns
 
-- `PricingResult` — Price and requested available Greeks, with Greek units.
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
 #### Raises
 
-- `TypeError` — If a Greek representation, engine/instrument pairing, or shift representation is incompatible.
-- `OverflowError` — If time_shift_days is outside the C++ int range.
-- `KiyosiError` — If the Greek request or settings are invalid, or a required valuation fails.
-#### Notes
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
 
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+### `scheme`
+
+Return the configured time-marching choice string.
+
+### `time_step_count`
+
+Return the configured time-step budget before event insertion.
+
+### `asset_step_count`
+
+Return the configured spatial grid budget.
+
+### `asset_upper_boundary`
+
+Return the explicit upper spot boundary, or None for automatic selection.
 
 ## `FiniteDifferenceBarrierEngine`
 
 ```python
-FiniteDifferenceBarrierEngine(self, *, asset_step_count: int = 200, time_step_count: int = 200, scheme: typing.Literal['explicit_euler', 'implicit_euler', 'crank_nicolson'] = 'crank_nicolson', asset_upper_boundary: float | None = None) -> None
+FiniteDifferenceBarrierEngine(**fields)
 ```
 
-Finite-difference pricing engine with immutable configuration.
-
-Configuration is validated at construction. Contract, market, and backend availability
-are checked when pricing.
-Vanilla, digital, and barrier engines accept 3..10,000 asset steps and 1..100,000
-time steps. Accumulator and autocallable engines accept 3..2,000 asset steps and
-1..2,000 time steps.
-
-### 构造函数
-
-Create an engine with validated finite-difference settings.
-
-Settings are validated at construction.
-The engine-specific ranges are listed in the engine class documentation.
+Finite-difference pricing with immutable grid settings.
 
 #### Parameters
 
-- **`asset_step_count`** (`int, optional`) — Number of spatial grid steps. Uses the core default when omitted.
-- **`time_step_count`** (`int, optional`) — Number of time grid steps. Uses the core default when omitted.
-- **`scheme`** (`{'explicit_euler', 'implicit_euler', 'crank_nicolson'}, optional`) — Time-stepping scheme. Uses the core default when omitted.
-- **`asset_upper_boundary`** (`float or None, optional`) — Explicit upper asset-grid boundary, or ``None`` for the core default.
+- **`asset_step_count`** (`int, optional`) — Number of spatial steps, at least 3; defaults to 800.
+- **`time_step_count`** (`int, optional`) — Positive time-step budget, default 200; event dates and curve knots are added.
+- **`scheme`** (`FiniteDifferenceScheme, optional`) — Time-marching scheme; defaults to damped Crank-Nicolson.
+- **`asset_upper_boundary`** (`float or None, optional`) — Finite positive upper spot boundary, or None (default) for the automatic domain. Must exceed spot, strike and barriers at pricing.
 #### Raises
 
-- `TypeError` — If a setting has an incompatible representation.
-- `OverflowError` — If an integer setting is outside the C++ ``int`` range.
-- `KiyosiError` — INVALID_PARAMETER if the core rejects the configuration.
+- `InvalidInputError` — If asset_step_count is below 3, time_step_count is below 1, or an explicit upper boundary is nonpositive or non-finite. Boundary coverage and explicit-Euler stability are checked during pricing.
+#### Notes
 
-### `asset_step_count`
-
-Number of spatial grid steps.
-
-### `time_step_count`
-
-Number of time grid steps.
-
-### `scheme`
-
-Finite-difference time-stepping scheme.
-
-### `asset_upper_boundary`
-
-Explicit upper asset-grid boundary, or None for the core default.
+The engine name selects its product family. The vanilla engine accepts
+EuropeanOption and AmericanOption. The digital engine accepts
+CashOrNothingOption and AssetOrNothingOption. The binary-barrier engine
+also accepts TouchOption. The autocallable engine accepts all snowball
+variants and PhoenixOption. Other engines accept their named product.
+Digital pricing requires explicitly flat rates; other families accept
+deterministic rate curves.
 
 ### `price`
 
 ```python
-price(self, instrument: BarrierOption, context: PricingContext) -> float
+price(self, /, instrument, context)
 ```
 
-Price an instrument under a market context.
+Return the price without changing the instrument or context.
 
 #### Parameters
 
-- **`instrument`** (`instrument`) — Instrument accepted by this overload.
-- **`context`** (`PricingContext`) — Market state and valuation instant.
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
 #### Returns
 
-- `float` — Instrument price. No Greeks are calculated.
+- `float` — Present value of remaining contractual payments.
 #### Raises
 
-- `KiyosiError` — If instrument terms, context, engine settings, backend availability, or the requested valuation are invalid.
-#### Notes
-
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
 
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, instrument: BarrierOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
 ```
 
-Compute price and the explicitly selected Greeks.
+Return the price and selected sensitivities.
 
-Pass one lowercase Greek name or an iterable of them, or set ``all_greeks=True`` to
-request all ten. These forms are mutually exclusive. Native values are reused;
-missing feasible measures use numerical price differences. Unrequested or
-undefined measures are None, never zero sentinels. At expiry or a monitored
-barrier hit-state boundary, only price is available. Feasible bumped valuation
-failures fail the entire operation.
-At current autocallable-product event thresholds, undefined spot and time
-sensitivities remain None while feasible rate and volatility sensitivities survive.
+#### Parameters
 
-Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
-use asset-price units, volatility and rate shifts use decimal units, and time
-shifts use calendar days. Collapsed or asymmetric stencils leave affected
-numerical Greeks unavailable. Monte Carlo valuations share one seed per request
-without changing the engine. Concurrent calls are safe.
-For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
-exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
-and bump-size bias remain; check convergence for the valuation.
-
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
 #### Returns
 
-- `PricingResult` — Price and requested available Greeks, with Greek units.
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
 #### Raises
 
-- `TypeError` — If a Greek representation, engine/instrument pairing, or shift representation is incompatible.
-- `OverflowError` — If time_shift_days is outside the C++ int range.
-- `KiyosiError` — If the Greek request or settings are invalid, or a required valuation fails.
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
+
+### `time_step_count`
+
+Return the configured time-step budget before event insertion.
+
+### `asset_upper_boundary`
+
+Return the explicit upper spot boundary, or None for automatic selection.
+
+### `scheme`
+
+Return the configured time-marching choice string.
+
+### `asset_step_count`
+
+Return the configured spatial grid budget.
+
+## `FiniteDifferenceBinaryBarrierEngine`
+
+```python
+FiniteDifferenceBinaryBarrierEngine(**fields)
+```
+
+Finite-difference pricing with immutable grid settings.
+
+#### Parameters
+
+- **`asset_step_count`** (`int, optional`) — Number of spatial steps, at least 3; defaults to 800.
+- **`time_step_count`** (`int, optional`) — Positive time-step budget, default 200; event dates and curve knots are added.
+- **`scheme`** (`FiniteDifferenceScheme, optional`) — Time-marching scheme; defaults to damped Crank-Nicolson.
+- **`asset_upper_boundary`** (`float or None, optional`) — Finite positive upper spot boundary, or None (default) for the automatic domain. Must exceed spot, strike and barriers at pricing.
+#### Raises
+
+- `InvalidInputError` — If asset_step_count is below 3, time_step_count is below 1, or an explicit upper boundary is nonpositive or non-finite. Boundary coverage and explicit-Euler stability are checked during pricing.
 #### Notes
 
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+The engine name selects its product family. The vanilla engine accepts
+EuropeanOption and AmericanOption. The digital engine accepts
+CashOrNothingOption and AssetOrNothingOption. The binary-barrier engine
+also accepts TouchOption. The autocallable engine accepts all snowball
+variants and PhoenixOption. Other engines accept their named product.
+Digital pricing requires explicitly flat rates; other families accept
+deterministic rate curves.
+
+### `price`
+
+```python
+price(self, /, instrument, context)
+```
+
+Return the price without changing the instrument or context.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+#### Returns
+
+- `float` — Present value of remaining contractual payments.
+#### Raises
+
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
+
+### `price_with_greeks`
+
+```python
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+```
+
+Return the price and selected sensitivities.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
+#### Returns
+
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
+#### Raises
+
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
+
+### `asset_step_count`
+
+Return the configured spatial grid budget.
+
+### `asset_upper_boundary`
+
+Return the explicit upper spot boundary, or None for automatic selection.
+
+### `scheme`
+
+Return the configured time-marching choice string.
+
+### `time_step_count`
+
+Return the configured time-step budget before event insertion.
 
 ## `FiniteDifferenceDigitalEngine`
 
 ```python
-FiniteDifferenceDigitalEngine(self, *, asset_step_count: int = 200, time_step_count: int = 200, scheme: typing.Literal['explicit_euler', 'implicit_euler', 'crank_nicolson'] = 'crank_nicolson', asset_upper_boundary: float | None = None) -> None
+FiniteDifferenceDigitalEngine(**fields)
 ```
 
-Finite-difference pricing engine with immutable configuration.
-
-Configuration is validated at construction. Contract, market, and backend availability
-are checked when pricing.
-Vanilla, digital, and barrier engines accept 3..10,000 asset steps and 1..100,000
-time steps. Accumulator and autocallable engines accept 3..2,000 asset steps and
-1..2,000 time steps.
-
-### 构造函数
-
-Create an engine with validated finite-difference settings.
-
-Settings are validated at construction.
-The engine-specific ranges are listed in the engine class documentation.
+Finite-difference pricing with immutable grid settings.
 
 #### Parameters
 
-- **`asset_step_count`** (`int, optional`) — Number of spatial grid steps. Uses the core default when omitted.
-- **`time_step_count`** (`int, optional`) — Number of time grid steps. Uses the core default when omitted.
-- **`scheme`** (`{'explicit_euler', 'implicit_euler', 'crank_nicolson'}, optional`) — Time-stepping scheme. Uses the core default when omitted.
-- **`asset_upper_boundary`** (`float or None, optional`) — Explicit upper asset-grid boundary, or ``None`` for the core default.
+- **`asset_step_count`** (`int, optional`) — Number of spatial steps, at least 3; defaults to 800.
+- **`time_step_count`** (`int, optional`) — Positive time-step budget, default 200; event dates and curve knots are added.
+- **`scheme`** (`FiniteDifferenceScheme, optional`) — Time-marching scheme; defaults to damped Crank-Nicolson.
+- **`asset_upper_boundary`** (`float or None, optional`) — Finite positive upper spot boundary, or None (default) for the automatic domain. Must exceed spot, strike and barriers at pricing.
 #### Raises
 
-- `TypeError` — If a setting has an incompatible representation.
-- `OverflowError` — If an integer setting is outside the C++ ``int`` range.
-- `KiyosiError` — INVALID_PARAMETER if the core rejects the configuration.
+- `InvalidInputError` — If asset_step_count is below 3, time_step_count is below 1, or an explicit upper boundary is nonpositive or non-finite. Boundary coverage and explicit-Euler stability are checked during pricing.
+#### Notes
 
-### `asset_step_count`
-
-Number of spatial grid steps.
-
-### `time_step_count`
-
-Number of time grid steps.
-
-### `scheme`
-
-Finite-difference time-stepping scheme.
-
-### `asset_upper_boundary`
-
-Explicit upper asset-grid boundary, or None for the core default.
+The engine name selects its product family. The vanilla engine accepts
+EuropeanOption and AmericanOption. The digital engine accepts
+CashOrNothingOption and AssetOrNothingOption. The binary-barrier engine
+also accepts TouchOption. The autocallable engine accepts all snowball
+variants and PhoenixOption. Other engines accept their named product.
+Digital pricing requires explicitly flat rates; other families accept
+deterministic rate curves.
 
 ### `price`
 
 ```python
-price(self, instrument: CashOrNothingOption, context: PricingContext) -> float
-price(self, instrument: AssetOrNothingOption, context: PricingContext) -> float
+price(self, /, instrument, context)
 ```
 
-Price an instrument under a market context.
+Return the price without changing the instrument or context.
 
 #### Parameters
 
-- **`instrument`** (`instrument`) — Instrument accepted by this overload.
-- **`context`** (`PricingContext`) — Market state and valuation instant.
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
 #### Returns
 
-- `float` — Instrument price. No Greeks are calculated.
+- `float` — Present value of remaining contractual payments.
 #### Raises
 
-- `KiyosiError` — If instrument terms, context, engine settings, backend availability, or the requested valuation are invalid.
-#### Notes
-
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
 
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, instrument: CashOrNothingOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-price_with_greeks(self, instrument: AssetOrNothingOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
 ```
 
-Compute price and the explicitly selected Greeks.
+Return the price and selected sensitivities.
 
-Pass one lowercase Greek name or an iterable of them, or set ``all_greeks=True`` to
-request all ten. These forms are mutually exclusive. Native values are reused;
-missing feasible measures use numerical price differences. Unrequested or
-undefined measures are None, never zero sentinels. At expiry or a monitored
-barrier hit-state boundary, only price is available. Feasible bumped valuation
-failures fail the entire operation.
-At current autocallable-product event thresholds, undefined spot and time
-sensitivities remain None while feasible rate and volatility sensitivities survive.
+#### Parameters
 
-Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
-use asset-price units, volatility and rate shifts use decimal units, and time
-shifts use calendar days. Collapsed or asymmetric stencils leave affected
-numerical Greeks unavailable. Monte Carlo valuations share one seed per request
-without changing the engine. Concurrent calls are safe.
-For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
-exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
-and bump-size bias remain; check convergence for the valuation.
-
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
 #### Returns
 
-- `PricingResult` — Price and requested available Greeks, with Greek units.
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
 #### Raises
 
-- `TypeError` — If a Greek representation, engine/instrument pairing, or shift representation is incompatible.
-- `OverflowError` — If time_shift_days is outside the C++ int range.
-- `KiyosiError` — If the Greek request or settings are invalid, or a required valuation fails.
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
+
+### `asset_step_count`
+
+Return the configured spatial grid budget.
+
+### `time_step_count`
+
+Return the configured time-step budget before event insertion.
+
+### `asset_upper_boundary`
+
+Return the explicit upper spot boundary, or None for automatic selection.
+
+### `scheme`
+
+Return the configured time-marching choice string.
+
+## `FiniteDifferenceDoubleBarrierEngine`
+
+```python
+FiniteDifferenceDoubleBarrierEngine(**fields)
+```
+
+Finite-difference pricing with immutable grid settings.
+
+#### Parameters
+
+- **`asset_step_count`** (`int, optional`) — Number of spatial steps, at least 3; defaults to 800.
+- **`time_step_count`** (`int, optional`) — Positive time-step budget, default 200; event dates and curve knots are added.
+- **`scheme`** (`FiniteDifferenceScheme, optional`) — Time-marching scheme; defaults to damped Crank-Nicolson.
+- **`asset_upper_boundary`** (`float or None, optional`) — Finite positive upper spot boundary, or None (default) for the automatic domain. Must exceed spot, strike and barriers at pricing.
+#### Raises
+
+- `InvalidInputError` — If asset_step_count is below 3, time_step_count is below 1, or an explicit upper boundary is nonpositive or non-finite. Boundary coverage and explicit-Euler stability are checked during pricing.
 #### Notes
 
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+The engine name selects its product family. The vanilla engine accepts
+EuropeanOption and AmericanOption. The digital engine accepts
+CashOrNothingOption and AssetOrNothingOption. The binary-barrier engine
+also accepts TouchOption. The autocallable engine accepts all snowball
+variants and PhoenixOption. Other engines accept their named product.
+Digital pricing requires explicitly flat rates; other families accept
+deterministic rate curves.
+
+### `price`
+
+```python
+price(self, /, instrument, context)
+```
+
+Return the price without changing the instrument or context.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+#### Returns
+
+- `float` — Present value of remaining contractual payments.
+#### Raises
+
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
+
+### `price_with_greeks`
+
+```python
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+```
+
+Return the price and selected sensitivities.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
+#### Returns
+
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
+#### Raises
+
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
+
+### `scheme`
+
+Return the configured time-marching choice string.
+
+### `time_step_count`
+
+Return the configured time-step budget before event insertion.
+
+### `asset_step_count`
+
+Return the configured spatial grid budget.
+
+### `asset_upper_boundary`
+
+Return the explicit upper spot boundary, or None for automatic selection.
+
+## `FiniteDifferenceDoubleTouchEngine`
+
+```python
+FiniteDifferenceDoubleTouchEngine(**fields)
+```
+
+Finite-difference pricing with immutable grid settings.
+
+#### Parameters
+
+- **`asset_step_count`** (`int, optional`) — Number of spatial steps, at least 3; defaults to 800.
+- **`time_step_count`** (`int, optional`) — Positive time-step budget, default 200; event dates and curve knots are added.
+- **`scheme`** (`FiniteDifferenceScheme, optional`) — Time-marching scheme; defaults to damped Crank-Nicolson.
+- **`asset_upper_boundary`** (`float or None, optional`) — Finite positive upper spot boundary, or None (default) for the automatic domain. Must exceed spot, strike and barriers at pricing.
+#### Raises
+
+- `InvalidInputError` — If asset_step_count is below 3, time_step_count is below 1, or an explicit upper boundary is nonpositive or non-finite. Boundary coverage and explicit-Euler stability are checked during pricing.
+#### Notes
+
+The engine name selects its product family. The vanilla engine accepts
+EuropeanOption and AmericanOption. The digital engine accepts
+CashOrNothingOption and AssetOrNothingOption. The binary-barrier engine
+also accepts TouchOption. The autocallable engine accepts all snowball
+variants and PhoenixOption. Other engines accept their named product.
+Digital pricing requires explicitly flat rates; other families accept
+deterministic rate curves.
+
+### `price`
+
+```python
+price(self, /, instrument, context)
+```
+
+Return the price without changing the instrument or context.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+#### Returns
+
+- `float` — Present value of remaining contractual payments.
+#### Raises
+
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
+
+### `price_with_greeks`
+
+```python
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+```
+
+Return the price and selected sensitivities.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
+#### Returns
+
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
+#### Raises
+
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
+
+### `time_step_count`
+
+Return the configured time-step budget before event insertion.
+
+### `asset_step_count`
+
+Return the configured spatial grid budget.
+
+### `scheme`
+
+Return the configured time-marching choice string.
+
+### `asset_upper_boundary`
+
+Return the explicit upper spot boundary, or None for automatic selection.
 
 ## `FiniteDifferenceScheme`
 
@@ -1093,820 +1333,1465 @@ FiniteDifferenceScheme = typing.Literal['explicit_euler', 'implicit_euler', 'cra
 ## `FiniteDifferenceVanillaEngine`
 
 ```python
-FiniteDifferenceVanillaEngine(self, *, asset_step_count: int = 200, time_step_count: int = 200, scheme: typing.Literal['explicit_euler', 'implicit_euler', 'crank_nicolson'] = 'crank_nicolson', asset_upper_boundary: float | None = None) -> None
+FiniteDifferenceVanillaEngine(**fields)
 ```
 
-Finite-difference pricing engine with immutable configuration.
-
-Configuration is validated at construction. Contract, market, and backend availability
-are checked when pricing.
-Vanilla, digital, and barrier engines accept 3..10,000 asset steps and 1..100,000
-time steps. Accumulator and autocallable engines accept 3..2,000 asset steps and
-1..2,000 time steps.
-
-### 构造函数
-
-Create an engine with validated finite-difference settings.
-
-Settings are validated at construction.
-The engine-specific ranges are listed in the engine class documentation.
+Finite-difference pricing with immutable grid settings.
 
 #### Parameters
 
-- **`asset_step_count`** (`int, optional`) — Number of spatial grid steps. Uses the core default when omitted.
-- **`time_step_count`** (`int, optional`) — Number of time grid steps. Uses the core default when omitted.
-- **`scheme`** (`{'explicit_euler', 'implicit_euler', 'crank_nicolson'}, optional`) — Time-stepping scheme. Uses the core default when omitted.
-- **`asset_upper_boundary`** (`float or None, optional`) — Explicit upper asset-grid boundary, or ``None`` for the core default.
+- **`asset_step_count`** (`int, optional`) — Number of spatial steps, at least 3; defaults to 800.
+- **`time_step_count`** (`int, optional`) — Positive time-step budget, default 200; event dates and curve knots are added.
+- **`scheme`** (`FiniteDifferenceScheme, optional`) — Time-marching scheme; defaults to damped Crank-Nicolson.
+- **`asset_upper_boundary`** (`float or None, optional`) — Finite positive upper spot boundary, or None (default) for the automatic domain. Must exceed spot, strike and barriers at pricing.
 #### Raises
 
-- `TypeError` — If a setting has an incompatible representation.
-- `OverflowError` — If an integer setting is outside the C++ ``int`` range.
-- `KiyosiError` — INVALID_PARAMETER if the core rejects the configuration.
+- `InvalidInputError` — If asset_step_count is below 3, time_step_count is below 1, or an explicit upper boundary is nonpositive or non-finite. Boundary coverage and explicit-Euler stability are checked during pricing.
+#### Notes
 
-### `asset_step_count`
-
-Number of spatial grid steps.
-
-### `time_step_count`
-
-Number of time grid steps.
-
-### `scheme`
-
-Finite-difference time-stepping scheme.
-
-### `asset_upper_boundary`
-
-Explicit upper asset-grid boundary, or None for the core default.
+The engine name selects its product family. The vanilla engine accepts
+EuropeanOption and AmericanOption. The digital engine accepts
+CashOrNothingOption and AssetOrNothingOption. The binary-barrier engine
+also accepts TouchOption. The autocallable engine accepts all snowball
+variants and PhoenixOption. Other engines accept their named product.
+Digital pricing requires explicitly flat rates; other families accept
+deterministic rate curves.
 
 ### `price`
 
 ```python
-price(self, instrument: EuropeanOption, context: PricingContext) -> float
-price(self, instrument: AmericanOption, context: PricingContext) -> float
+price(self, /, instrument, context)
 ```
 
-Price an instrument under a market context.
+Return the price without changing the instrument or context.
 
 #### Parameters
 
-- **`instrument`** (`instrument`) — Instrument accepted by this overload.
-- **`context`** (`PricingContext`) — Market state and valuation instant.
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
 #### Returns
 
-- `float` — Instrument price. No Greeks are calculated.
+- `float` — Present value of remaining contractual payments.
 #### Raises
 
-- `KiyosiError` — If instrument terms, context, engine settings, backend availability, or the requested valuation are invalid.
-#### Notes
-
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
 
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, instrument: EuropeanOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-price_with_greeks(self, instrument: AmericanOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
 ```
 
-Compute price and the explicitly selected Greeks.
+Return the price and selected sensitivities.
 
-Pass one lowercase Greek name or an iterable of them, or set ``all_greeks=True`` to
-request all ten. These forms are mutually exclusive. Native values are reused;
-missing feasible measures use numerical price differences. Unrequested or
-undefined measures are None, never zero sentinels. At expiry or a monitored
-barrier hit-state boundary, only price is available. Feasible bumped valuation
-failures fail the entire operation.
-At current autocallable-product event thresholds, undefined spot and time
-sensitivities remain None while feasible rate and volatility sensitivities survive.
+#### Parameters
 
-Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
-use asset-price units, volatility and rate shifts use decimal units, and time
-shifts use calendar days. Collapsed or asymmetric stencils leave affected
-numerical Greeks unavailable. Monte Carlo valuations share one seed per request
-without changing the engine. Concurrent calls are safe.
-For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
-exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
-and bump-size bias remain; check convergence for the valuation.
-
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
 #### Returns
 
-- `PricingResult` — Price and requested available Greeks, with Greek units.
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
 #### Raises
 
-- `TypeError` — If a Greek representation, engine/instrument pairing, or shift representation is incompatible.
-- `OverflowError` — If time_shift_days is outside the C++ int range.
-- `KiyosiError` — If the Greek request or settings are invalid, or a required valuation fails.
-#### Notes
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
 
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+### `asset_step_count`
+
+Return the configured spatial grid budget.
+
+### `scheme`
+
+Return the configured time-marching choice string.
+
+### `time_step_count`
+
+Return the configured time-step budget before event insertion.
+
+### `asset_upper_boundary`
+
+Return the explicit upper spot boundary, or None for automatic selection.
 
 ## `MonteCarloAccumulatorEngine`
 
 ```python
-MonteCarloAccumulatorEngine(self, *, path_count: int = 20000, seed: int | None = 1, backend: typing.Literal['cpu', 'cuda'] = 'cpu', thread_count: int = 0) -> None
+MonteCarloAccumulatorEngine(**fields)
 ```
 
-Trading-day Monte Carlo engine with immutable configuration.
-
-Configuration is validated at construction. Contract, market, and backend availability
-are checked when pricing.
-Accumulator and autocallable engines accept 1..10,000,000 paths.
-
-### 构造函数
-
-Create an engine with validated Monte Carlo settings.
-
-Settings are validated at construction.
+Flat-rate CPU Monte Carlo pricing for accumulators.
 
 #### Parameters
 
-- **`path_count`** (`int, optional`) — Number of simulated paths. Uses the core default when omitted.
-- **`seed`** (`int or None, optional`) — Non-negative random seed. Uses the core default when omitted. CPU paths have separate random streams; early knock-out does not shift later paths' draws.
-- **`backend`** (`{'cpu', 'cuda'}, optional`) — CPU or CUDA execution backend.
-- **`thread_count`** (`int, optional`) — Per-call CPU concurrency cap: 0 automatic, 1 serial. CUDA requires 0. Seeded CPU results are identical across thread counts in the same build.
+- **`path_count`** (`int, optional`) — Exact path count, 1 through 10,000,000; defaults to 100,000. Sobol sampling requires a power of two.
+- **`step_count`** (`int, optional`) — Grid size, 2 through 10,000; defaults to 50. Validated even when unused; see Notes for product-specific use.
+- **`seed`** (`int or None, optional`) — Unsigned 64-bit seed, or None (default) to use system entropy.
+- **`thread_count`** (`int, optional`) — Nonnegative worker cap per call: zero (default) is automatic, one is serial.
+- **`sampling`** (`MonteCarloSampling, optional`) — Sampling method; defaults to pseudo_random.
+- **`antithetic`** (`bool, optional`) — Pair opposite normal draws; defaults to False. An odd path count leaves one unpaired path.
 #### Raises
 
-- `TypeError` — If a setting has an incompatible representation.
-- `OverflowError` — If an integer is outside its C++ representation range.
-- `KiyosiError` — INVALID_PARAMETER if the core rejects the configuration.
+- `InvalidInputError` — If paths are outside 1 through 10,000,000, steps outside 2 through 10,000, thread_count is negative, or Sobol paths are not a power of two.
+#### See Also
 
-### `path_count`
+Accumulator : Supported contract.
 
-Number of simulated paths.
+#### Notes
 
-### `seed`
-
-Non-negative random seed.
-
-### `backend`
-
-CPU or CUDA execution backend.
-
-### `thread_count`
-
-Per-call CPU concurrency cap; 0 automatic, 1 serial.
+Fixed seeds reproduce results across thread counts in the same build.
+Each call owns its workers and samples. Greeks and solves pin a seed per
+request; solver tolerances do not measure sampling error.
+Simulation uses the future trading dates; step_count is validated but
+unused. A current knock-out settles before any purchase.
 
 ### `price`
 
 ```python
-price(self, instrument: Accumulator, context: PricingContext) -> float
+price(self, /, instrument, context)
 ```
 
-Price an instrument under a market context.
+Return the price without changing the instrument or context.
 
 #### Parameters
 
-- **`instrument`** (`instrument`) — Instrument accepted by this overload.
-- **`context`** (`PricingContext`) — Market state and valuation instant.
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
 #### Returns
 
-- `float` — Instrument price. No Greeks are calculated.
+- `float` — Present value of remaining contractual payments.
 #### Raises
 
-- `KiyosiError` — If instrument terms, context, engine settings, backend availability, or the requested valuation are invalid.
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
 #### Notes
 
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+System entropy and worker-creation failures raise OSError.
+
+### `price_with_statistics`
+
+```python
+price_with_statistics(self, /, instrument, context)
+```
+
+Return the price and estimated sampling uncertainty.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+#### Returns
+
+- `MonteCarloEstimate` — Mean, optional standard error and asymptotic 95% confidence interval.
+#### Raises
+
+- `KiyosiError` — If domain validation or numerical pricing fails.
+- `OSError` — If system entropy or worker creation fails.
 
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, instrument: Accumulator, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
 ```
 
-Compute price and the explicitly selected Greeks.
+Return the price and selected sensitivities.
 
-Pass one lowercase Greek name or an iterable of them, or set ``all_greeks=True`` to
-request all ten. These forms are mutually exclusive. Native values are reused;
-missing feasible measures use numerical price differences. Unrequested or
-undefined measures are None, never zero sentinels. At expiry or a monitored
-barrier hit-state boundary, only price is available. Feasible bumped valuation
-failures fail the entire operation.
-At current autocallable-product event thresholds, undefined spot and time
-sensitivities remain None while feasible rate and volatility sensitivities survive.
+#### Parameters
 
-Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
-use asset-price units, volatility and rate shifts use decimal units, and time
-shifts use calendar days. Collapsed or asymmetric stencils leave affected
-numerical Greeks unavailable. Monte Carlo valuations share one seed per request
-without changing the engine. Concurrent calls are safe.
-For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
-exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
-and bump-size bias remain; check convergence for the valuation.
-
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
 #### Returns
 
-- `PricingResult` — Price and requested available Greeks, with Greek units.
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
 #### Raises
 
-- `TypeError` — If a Greek representation, engine/instrument pairing, or shift representation is incompatible.
-- `OverflowError` — If time_shift_days is outside the C++ int range.
-- `KiyosiError` — If the Greek request or settings are invalid, or a required valuation fails.
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
 #### Notes
 
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+System entropy and worker-creation failures raise OSError.
+
+### `antithetic`
+
+Return whether opposite normal draws are paired.
+
+### `path_count`
+
+Return the exact number of sampled paths.
+
+### `thread_count`
+
+Return the per-call worker cap; zero selects automatic sizing.
+
+### `sampling`
+
+Return the sampling choice string: pseudo_random or sobol.
+
+### `step_count`
+
+Return the configured grid size.
+
+### `seed`
+
+Return the unsigned 64-bit seed, or None for system entropy.
+
+## `MonteCarloAsianEngine`
+
+```python
+MonteCarloAsianEngine(**fields)
+```
+
+Flat-rate CPU Monte Carlo pricing for continuous average-price options.
+
+#### Parameters
+
+- **`path_count`** (`int, optional`) — Exact path count, 1 through 10,000,000; defaults to 100,000. Sobol sampling requires a power of two.
+- **`step_count`** (`int, optional`) — Grid size, 2 through 10,000; defaults to 50. Validated even when unused; see Notes for product-specific use.
+- **`seed`** (`int or None, optional`) — Unsigned 64-bit seed, or None (default) to use system entropy.
+- **`thread_count`** (`int, optional`) — Nonnegative worker cap per call: zero (default) is automatic, one is serial.
+- **`sampling`** (`MonteCarloSampling, optional`) — Sampling method; defaults to pseudo_random.
+- **`antithetic`** (`bool, optional`) — Pair opposite normal draws; defaults to False. An odd path count leaves one unpaired path.
+#### Raises
+
+- `InvalidInputError` — If paths are outside 1 through 10,000,000, steps outside 2 through 10,000, thread_count is negative, or Sobol paths are not a power of two.
+#### See Also
+
+GeometricAveragePriceOption : Supported contract.
+ArithmeticAveragePriceOption : Supported contract.
+
+#### Notes
+
+Fixed seeds reproduce results across thread counts in the same build.
+Each call owns its workers and samples. Greeks and solves pin a seed per
+request; solver tolerances do not measure sampling error.
+Geometric averages and single fixings sample exact distributions.
+Arithmetic averages use step_count trapezoidal intervals with the first
+interval integrated conditionally.
+
+### `price`
+
+```python
+price(self, /, instrument, context)
+```
+
+Return the price without changing the instrument or context.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+#### Returns
+
+- `float` — Present value of remaining contractual payments.
+#### Raises
+
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
+#### Notes
+
+System entropy and worker-creation failures raise OSError.
+
+### `price_with_greeks`
+
+```python
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+```
+
+Return the price and selected sensitivities.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
+#### Returns
+
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
+#### Raises
+
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
+#### Notes
+
+System entropy and worker-creation failures raise OSError.
+
+### `path_count`
+
+Return the exact number of sampled paths.
+
+### `seed`
+
+Return the unsigned 64-bit seed, or None for system entropy.
+
+### `step_count`
+
+Return the configured grid size.
+
+### `thread_count`
+
+Return the per-call worker cap; zero selects automatic sizing.
+
+### `antithetic`
+
+Return whether opposite normal draws are paired.
+
+### `sampling`
+
+Return the sampling choice string: pseudo_random or sobol.
 
 ## `MonteCarloAutocallableEngine`
 
 ```python
-MonteCarloAutocallableEngine(self, *, path_count: int = 20000, seed: int | None = 1, backend: typing.Literal['cpu', 'cuda'] = 'cpu', thread_count: int = 0) -> None
+MonteCarloAutocallableEngine(**fields)
 ```
 
-Trading-day Monte Carlo engine with immutable configuration.
-
-Configuration is validated at construction. Contract, market, and backend availability
-are checked when pricing.
-Accumulator and autocallable engines accept 1..10,000,000 paths.
-
-### 构造函数
-
-Create an engine with validated Monte Carlo settings.
-
-Settings are validated at construction.
+Flat-rate CPU Monte Carlo pricing for snowball and Phoenix notes.
 
 #### Parameters
 
-- **`path_count`** (`int, optional`) — Number of simulated paths. Uses the core default when omitted.
-- **`seed`** (`int or None, optional`) — Non-negative random seed. Uses the core default when omitted. CPU paths have separate random streams; early knock-out does not shift later paths' draws.
-- **`backend`** (`{'cpu', 'cuda'}, optional`) — CPU or CUDA execution backend.
-- **`thread_count`** (`int, optional`) — Per-call CPU concurrency cap: 0 automatic, 1 serial. CUDA requires 0. Seeded CPU results are identical across thread counts in the same build.
+- **`path_count`** (`int, optional`) — Exact path count, 1 through 10,000,000; defaults to 100,000. Sobol sampling requires a power of two.
+- **`step_count`** (`int, optional`) — Grid size, 2 through 10,000; defaults to 50. Validated even when unused; see Notes for product-specific use.
+- **`seed`** (`int or None, optional`) — Unsigned 64-bit seed, or None (default) to use system entropy.
+- **`thread_count`** (`int, optional`) — Nonnegative worker cap per call: zero (default) is automatic, one is serial.
+- **`sampling`** (`MonteCarloSampling, optional`) — Sampling method; defaults to pseudo_random.
+- **`antithetic`** (`bool, optional`) — Pair opposite normal draws; defaults to False. An odd path count leaves one unpaired path.
 #### Raises
 
-- `TypeError` — If a setting has an incompatible representation.
-- `OverflowError` — If an integer is outside its C++ representation range.
-- `KiyosiError` — INVALID_PARAMETER if the core rejects the configuration.
+- `InvalidInputError` — If paths are outside 1 through 10,000,000, steps outside 2 through 10,000, thread_count is negative, or Sobol paths are not a power of two.
+#### See Also
 
-### `path_count`
+SnowballOption : Supported contract.
+BinarySnowballOption : Supported contract.
+TernarySnowballOption : Supported contract.
+PhoenixOption : Supported contract.
 
-Number of simulated paths.
+#### Notes
 
-### `seed`
-
-Non-negative random seed.
-
-### `backend`
-
-CPU or CUDA execution backend.
-
-### `thread_count`
-
-Per-call CPU concurrency cap; 0 automatic, 1 serial.
+Fixed seeds reproduce results across thread counts in the same build.
+Each call owns its workers and samples. Greeks and solves pin a seed per
+request; solver tolerances do not measure sampling error.
+Simulation uses trading days when knock-in matters, or observation
+dates and expiry otherwise. step_count is validated but unused.
 
 ### `price`
 
 ```python
-price(self, instrument: SnowballOption, context: PricingContext) -> float
-price(self, instrument: BinarySnowballOption, context: PricingContext) -> float
-price(self, instrument: TernarySnowballOption, context: PricingContext) -> float
-price(self, instrument: PhoenixOption, context: PricingContext) -> float
+price(self, /, instrument, context)
 ```
 
-Price an instrument under a market context.
+Return the price without changing the instrument or context.
 
 #### Parameters
 
-- **`instrument`** (`instrument`) — Instrument accepted by this overload.
-- **`context`** (`PricingContext`) — Market state and valuation instant.
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
 #### Returns
 
-- `float` — Instrument price. No Greeks are calculated.
+- `float` — Present value of remaining contractual payments.
 #### Raises
 
-- `KiyosiError` — If instrument terms, context, engine settings, backend availability, or the requested valuation are invalid.
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
 #### Notes
 
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+System entropy and worker-creation failures raise OSError.
+
+### `price_with_statistics`
+
+```python
+price_with_statistics(self, /, instrument, context)
+```
+
+Return the price and estimated sampling uncertainty.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+#### Returns
+
+- `MonteCarloEstimate` — Mean, optional standard error and asymptotic 95% confidence interval.
+#### Raises
+
+- `KiyosiError` — If domain validation or numerical pricing fails.
+- `OSError` — If system entropy or worker creation fails.
 
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, instrument: SnowballOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-price_with_greeks(self, instrument: BinarySnowballOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-price_with_greeks(self, instrument: TernarySnowballOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-price_with_greeks(self, instrument: PhoenixOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
 ```
 
-Compute price and the explicitly selected Greeks.
+Return the price and selected sensitivities.
 
-Pass one lowercase Greek name or an iterable of them, or set ``all_greeks=True`` to
-request all ten. These forms are mutually exclusive. Native values are reused;
-missing feasible measures use numerical price differences. Unrequested or
-undefined measures are None, never zero sentinels. At expiry or a monitored
-barrier hit-state boundary, only price is available. Feasible bumped valuation
-failures fail the entire operation.
-At current autocallable-product event thresholds, undefined spot and time
-sensitivities remain None while feasible rate and volatility sensitivities survive.
+#### Parameters
 
-Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
-use asset-price units, volatility and rate shifts use decimal units, and time
-shifts use calendar days. Collapsed or asymmetric stencils leave affected
-numerical Greeks unavailable. Monte Carlo valuations share one seed per request
-without changing the engine. Concurrent calls are safe.
-For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
-exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
-and bump-size bias remain; check convergence for the valuation.
-
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
 #### Returns
 
-- `PricingResult` — Price and requested available Greeks, with Greek units.
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
 #### Raises
 
-- `TypeError` — If a Greek representation, engine/instrument pairing, or shift representation is incompatible.
-- `OverflowError` — If time_shift_days is outside the C++ int range.
-- `KiyosiError` — If the Greek request or settings are invalid, or a required valuation fails.
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
 #### Notes
 
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+System entropy and worker-creation failures raise OSError.
 
-## `MonteCarloBackend`
+### `step_count`
+
+Return the configured grid size.
+
+### `seed`
+
+Return the unsigned 64-bit seed, or None for system entropy.
+
+### `antithetic`
+
+Return whether opposite normal draws are paired.
+
+### `sampling`
+
+Return the sampling choice string: pseudo_random or sobol.
+
+### `path_count`
+
+Return the exact number of sampled paths.
+
+### `thread_count`
+
+Return the per-call worker cap; zero selects automatic sizing.
+
+## `MonteCarloBarrierEngine`
 
 ```python
-MonteCarloBackend = typing.Literal['cpu', 'cuda']
+MonteCarloBarrierEngine(**fields)
+```
+
+Flat-rate CPU Monte Carlo pricing for single-barrier vanilla options.
+
+#### Parameters
+
+- **`path_count`** (`int, optional`) — Exact path count, 1 through 10,000,000; defaults to 100,000. Sobol sampling requires a power of two.
+- **`step_count`** (`int, optional`) — Grid size, 2 through 10,000; defaults to 50. Validated even when unused; see Notes for product-specific use.
+- **`seed`** (`int or None, optional`) — Unsigned 64-bit seed, or None (default) to use system entropy.
+- **`thread_count`** (`int, optional`) — Nonnegative worker cap per call: zero (default) is automatic, one is serial.
+- **`sampling`** (`MonteCarloSampling, optional`) — Sampling method; defaults to pseudo_random.
+- **`antithetic`** (`bool, optional`) — Pair opposite normal draws; defaults to False. An odd path count leaves one unpaired path.
+#### Raises
+
+- `InvalidInputError` — If paths are outside 1 through 10,000,000, steps outside 2 through 10,000, thread_count is negative, or Sobol paths are not a power of two.
+#### See Also
+
+BarrierOption : Supported contract.
+
+#### Notes
+
+Fixed seeds reproduce results across thread counts in the same build.
+Each call owns its workers and samples. Greeks and solves pin a seed per
+request; solver tolerances do not measure sampling error.
+Monitoring uses continuous survival or the original fixing dates;
+step_count is validated but unused. Only delta and gamma are returned.
+
+### `price`
+
+```python
+price(self, /, instrument, context)
+```
+
+Return the price without changing the instrument or context.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+#### Returns
+
+- `float` — Present value of remaining contractual payments.
+#### Raises
+
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
+#### Notes
+
+System entropy and worker-creation failures raise OSError.
+
+### `price_with_greeks`
+
+```python
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+```
+
+Return the price and selected sensitivities.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
+#### Returns
+
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
+#### Raises
+
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
+#### Notes
+
+System entropy and worker-creation failures raise OSError.
+
+### `sampling`
+
+Return the sampling choice string: pseudo_random or sobol.
+
+### `path_count`
+
+Return the exact number of sampled paths.
+
+### `seed`
+
+Return the unsigned 64-bit seed, or None for system entropy.
+
+### `step_count`
+
+Return the configured grid size.
+
+### `thread_count`
+
+Return the per-call worker cap; zero selects automatic sizing.
+
+### `antithetic`
+
+Return whether opposite normal draws are paired.
+
+## `MonteCarloDigitalEngine`
+
+```python
+MonteCarloDigitalEngine(**fields)
+```
+
+Flat-rate CPU Monte Carlo pricing for European digitals.
+
+#### Parameters
+
+- **`path_count`** (`int, optional`) — Exact path count, 1 through 10,000,000; defaults to 100,000. Sobol sampling requires a power of two.
+- **`step_count`** (`int, optional`) — Grid size, 2 through 10,000; defaults to 50. Validated even when unused; see Notes for product-specific use.
+- **`seed`** (`int or None, optional`) — Unsigned 64-bit seed, or None (default) to use system entropy.
+- **`thread_count`** (`int, optional`) — Nonnegative worker cap per call: zero (default) is automatic, one is serial.
+- **`sampling`** (`MonteCarloSampling, optional`) — Sampling method; defaults to pseudo_random.
+- **`antithetic`** (`bool, optional`) — Pair opposite normal draws; defaults to False. An odd path count leaves one unpaired path.
+#### Raises
+
+- `InvalidInputError` — If paths are outside 1 through 10,000,000, steps outside 2 through 10,000, thread_count is negative, or Sobol paths are not a power of two.
+#### See Also
+
+CashOrNothingOption : Supported contract.
+AssetOrNothingOption : Supported contract.
+
+#### Notes
+
+Fixed seeds reproduce results across thread counts in the same build.
+Each call owns its workers and samples. Greeks and solves pin a seed per
+request; solver tolerances do not measure sampling error.
+Terminal sampling ignores step_count. Only native delta and gamma are
+returned; other requested Greeks remain absent.
+
+### `price`
+
+```python
+price(self, /, instrument, context)
+```
+
+Return the price without changing the instrument or context.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+#### Returns
+
+- `float` — Present value of remaining contractual payments.
+#### Raises
+
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
+#### Notes
+
+System entropy and worker-creation failures raise OSError.
+
+### `price_with_greeks`
+
+```python
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+```
+
+Return the price and selected sensitivities.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
+#### Returns
+
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
+#### Raises
+
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
+#### Notes
+
+System entropy and worker-creation failures raise OSError.
+
+### `path_count`
+
+Return the exact number of sampled paths.
+
+### `thread_count`
+
+Return the per-call worker cap; zero selects automatic sizing.
+
+### `seed`
+
+Return the unsigned 64-bit seed, or None for system entropy.
+
+### `antithetic`
+
+Return whether opposite normal draws are paired.
+
+### `sampling`
+
+Return the sampling choice string: pseudo_random or sobol.
+
+### `step_count`
+
+Return the configured grid size.
+
+## `MonteCarloDoubleBarrierEngine`
+
+```python
+MonteCarloDoubleBarrierEngine(**fields)
+```
+
+Flat-rate CPU Monte Carlo pricing for double-barrier vanilla options.
+
+#### Parameters
+
+- **`path_count`** (`int, optional`) — Exact path count, 1 through 10,000,000; defaults to 100,000. Sobol sampling requires a power of two.
+- **`step_count`** (`int, optional`) — Grid size, 2 through 10,000; defaults to 50. Validated even when unused; see Notes for product-specific use.
+- **`seed`** (`int or None, optional`) — Unsigned 64-bit seed, or None (default) to use system entropy.
+- **`thread_count`** (`int, optional`) — Nonnegative worker cap per call: zero (default) is automatic, one is serial.
+- **`sampling`** (`MonteCarloSampling, optional`) — Sampling method; defaults to pseudo_random.
+- **`antithetic`** (`bool, optional`) — Pair opposite normal draws; defaults to False. An odd path count leaves one unpaired path.
+#### Raises
+
+- `InvalidInputError` — If paths are outside 1 through 10,000,000, steps outside 2 through 10,000, thread_count is negative, or Sobol paths are not a power of two.
+#### See Also
+
+DoubleBarrierOption : Supported contract.
+
+#### Notes
+
+Fixed seeds reproduce results across thread counts in the same build.
+Each call owns its workers and samples. Greeks and solves pin a seed per
+request; solver tolerances do not measure sampling error.
+Monitoring uses continuous survival or the original fixing dates;
+step_count is validated but unused. Only delta and gamma are returned.
+
+### `price`
+
+```python
+price(self, /, instrument, context)
+```
+
+Return the price without changing the instrument or context.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+#### Returns
+
+- `float` — Present value of remaining contractual payments.
+#### Raises
+
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
+#### Notes
+
+System entropy and worker-creation failures raise OSError.
+
+### `price_with_greeks`
+
+```python
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+```
+
+Return the price and selected sensitivities.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
+#### Returns
+
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
+#### Raises
+
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
+#### Notes
+
+System entropy and worker-creation failures raise OSError.
+
+### `sampling`
+
+Return the sampling choice string: pseudo_random or sobol.
+
+### `path_count`
+
+Return the exact number of sampled paths.
+
+### `seed`
+
+Return the unsigned 64-bit seed, or None for system entropy.
+
+### `step_count`
+
+Return the configured grid size.
+
+### `antithetic`
+
+Return whether opposite normal draws are paired.
+
+### `thread_count`
+
+Return the per-call worker cap; zero selects automatic sizing.
+
+## `MonteCarloEstimate`
+
+```python
+MonteCarloEstimate()
+```
+
+Monte Carlo price with optional sampling uncertainty.
+
+#### Notes
+
+Standard error uses independent pseudorandom observations or even
+antithetic pair means. The interval is an asymptotic 95% normal interval.
+Uncertainty is absent for Sobol, insufficient independent samples and odd
+antithetic counts; known pseudorandom settlements have zero uncertainty.
+
+### `price`
+
+Return the finite price in contract payment units.
+
+### `standard_error`
+
+Return sampling standard error, or None when unavailable.
+
+### `confidence_interval`
+
+Return the asymptotic 95% interval, or None when unavailable.
+
+## `MonteCarloSampling`
+
+```python
+MonteCarloSampling = typing.Literal['pseudo_random', 'sobol']
 ```
 
 ## `MonteCarloVanillaEngine`
 
 ```python
-MonteCarloVanillaEngine(self, *, path_count: int = 100000, step_count: int = 50, seed: int | None = None, backend: typing.Literal['cpu', 'cuda'] = 'cpu', thread_count: int = 0) -> None
+MonteCarloVanillaEngine(**fields)
 ```
 
-Monte Carlo vanilla-option engine with immutable configuration.
-
-Configuration is validated at construction. Contract, market, and backend availability
-are checked when pricing.
-Accepts 1..10,000,000 paths and 2..10,000 steps; American pricing before
-expiry requires at least 3 steps.
-European prices sample the exact terminal distribution; valid step counts do not affect them.
-American calls with nonpositive dividends and nonnegative rates use that distribution
-with an immediate-exercise lower bound. Rate stencils crossing zero retain exercise-grid
-simulations on both sides.
-
-### 构造函数
-
-Create an engine with validated Monte Carlo settings.
+Flat-rate CPU Monte Carlo pricing for European and American vanilla
+options.
 
 #### Parameters
 
-- **`path_count`** (`int, optional`) — Number of simulated paths. Uses the core default when omitted.
-- **`step_count`** (`int, optional`) — American time grid points; validated but unused for European pricing. Uses the core default when omitted.
-- **`seed`** (`int or None, optional`) — Non-negative random seed, or ``None`` for nondeterministic seeding.
-- **`backend`** (`{'cpu', 'cuda'}, optional`) — CPU or CUDA execution backend.
-- **`thread_count`** (`int, optional`) — Per-call CPU concurrency cap: 0 automatic, 1 serial. CUDA requires 0. Seeded CPU results are identical across thread counts in the same build.
+- **`path_count`** (`int, optional`) — Exact path count, 1 through 10,000,000; defaults to 100,000. Sobol sampling requires a power of two.
+- **`step_count`** (`int, optional`) — Grid size, 2 through 10,000; defaults to 50. Validated even when unused; see Notes for product-specific use.
+- **`seed`** (`int or None, optional`) — Unsigned 64-bit seed, or None (default) to use system entropy.
+- **`thread_count`** (`int, optional`) — Nonnegative worker cap per call: zero (default) is automatic, one is serial.
+- **`sampling`** (`MonteCarloSampling, optional`) — Sampling method; defaults to pseudo_random.
+- **`antithetic`** (`bool, optional`) — Pair opposite normal draws; defaults to False. An odd path count leaves one unpaired path.
 #### Raises
 
-- `TypeError` — If a setting has an incompatible representation.
-- `OverflowError` — If an integer is outside its C++ representation range.
-- `KiyosiError` — INVALID_PARAMETER if the core rejects the configuration.
+- `InvalidInputError` — If paths are outside 1 through 10,000,000, steps outside 2 through 10,000, thread_count is negative, or Sobol paths are not a power of two.
+#### See Also
+
+EuropeanOption : Supported contract.
+AmericanOption : Supported contract.
+
 #### Notes
 
-Settings are validated at construction.
-
-### `path_count`
-
-Number of simulated paths.
-
-### `step_count`
-
-American time grid points; validated but unused for European pricing.
-
-### `seed`
-
-Optional non-negative random seed.
-
-### `backend`
-
-CPU or CUDA execution backend.
-
-### `thread_count`
-
-Per-call CPU concurrency cap; 0 automatic, 1 serial.
+Fixed seeds reproduce results across thread counts in the same build.
+Each call owns its workers and samples. Greeks and solves pin a seed per
+request; solver tolerances do not measure sampling error.
+European pricing samples the exact terminal distribution and ignores
+step_count. American exercise grids use step_count points and require at
+least three before expiry.
 
 ### `price`
 
 ```python
-price(self, instrument: EuropeanOption, context: PricingContext) -> float
-price(self, instrument: AmericanOption, context: PricingContext) -> float
+price(self, /, instrument, context)
 ```
 
-Price an instrument under a market context.
+Return the price without changing the instrument or context.
 
 #### Parameters
 
-- **`instrument`** (`instrument`) — Instrument accepted by this overload.
-- **`context`** (`PricingContext`) — Market state and valuation instant.
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
 #### Returns
 
-- `float` — Instrument price. No Greeks are calculated.
+- `float` — Present value of remaining contractual payments.
 #### Raises
 
-- `KiyosiError` — If instrument terms, context, engine settings, backend availability, or the requested valuation are invalid.
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
 #### Notes
 
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+System entropy and worker-creation failures raise OSError.
+
+### `price_with_statistics`
+
+```python
+price_with_statistics(self, /, instrument, context)
+```
+
+Return the price and estimated sampling uncertainty.
+
+#### Parameters
+
+- **`instrument`** (`EuropeanOption`) — European vanilla contract; American statistics are not exposed.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+#### Returns
+
+- `MonteCarloEstimate` — Mean, optional standard error and asymptotic 95% confidence interval.
+#### Raises
+
+- `KiyosiError` — If domain validation or numerical pricing fails.
+- `OSError` — If system entropy or worker creation fails.
 
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, instrument: EuropeanOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-price_with_greeks(self, instrument: AmericanOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None | None = None, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
 ```
 
-Compute price and the explicitly selected Greeks.
+Return the price and selected sensitivities.
 
-Pass one lowercase Greek name or an iterable of them, or set ``all_greeks=True`` to
-request all ten. These forms are mutually exclusive. Native values are reused;
-missing feasible measures use numerical price differences. Unrequested or
-undefined measures are None, never zero sentinels. At expiry or a monitored
-barrier hit-state boundary, only price is available. Feasible bumped valuation
-failures fail the entire operation.
-At current autocallable-product event thresholds, undefined spot and time
-sensitivities remain None while feasible rate and volatility sensitivities survive.
+#### Parameters
 
-Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
-use asset-price units, volatility and rate shifts use decimal units, and time
-shifts use calendar days. Collapsed or asymmetric stencils leave affected
-numerical Greeks unavailable. Monte Carlo valuations share one seed per request
-without changing the engine. Concurrent calls are safe.
-For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
-exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
-and bump-size bias remain; check convergence for the valuation.
-
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float or None, optional`) — Positive finite absolute spot bump. European default: 0.01 spot units. American default: 8% of spot; None also selects this American default.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
 #### Returns
 
-- `PricingResult` — Price and requested available Greeks, with Greek units.
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
 #### Raises
 
-- `TypeError` — If a Greek representation, engine/instrument pairing, or shift representation is incompatible.
-- `OverflowError` — If time_shift_days is outside the C++ int range.
-- `KiyosiError` — If the Greek request or settings are invalid, or a required valuation fails.
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
 #### Notes
 
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+System entropy and worker-creation failures raise OSError.
+For American vanilla options, omitted or None `spot_shift` uses 8% of
+spot; other bumps use the shared core defaults.
+
+### `sampling`
+
+Return the sampling choice string: pseudo_random or sobol.
+
+### `antithetic`
+
+Return whether opposite normal draws are paired.
+
+### `seed`
+
+Return the unsigned 64-bit seed, or None for system entropy.
+
+### `path_count`
+
+Return the exact number of sampled paths.
+
+### `thread_count`
+
+Return the per-call worker cap; zero selects automatic sizing.
+
+### `step_count`
+
+Return the configured grid size.
+
+## `PricingResult`
+
+```python
+PricingResult()
+```
+
+Finite price and optional finite price sensitivities.
+
+#### Notes
+
+Unavailable or unrequested Greeks are None. Spot derivatives are per spot
+unit, volatility/rate derivatives per percentage point, and time
+derivatives per calendar day of forward valuation time.
+
+### `require`
+
+```python
+require(self, /, measure)
+```
+
+Return a requested Greek or raise when it is unavailable.
+
+#### Parameters
+
+- **`measure`** (`str`) — Greek name, such as delta or vega.
+#### Returns
+
+- `float` — Finite sensitivity in PricingResult reporting units.
+#### Raises
+
+- `UnsupportedOperationError` — If the measure was not requested or is undefined at this valuation.
+
+### `speed`
+
+Return speed, or None if unrequested or unavailable.
+
+### `charm`
+
+Return charm, or None if unrequested or unavailable.
+
+### `color`
+
+Return color, or None if unrequested or unavailable.
+
+### `rho`
+
+Return rho, or None if unrequested or unavailable.
+
+### `zomma`
+
+Return zomma, or None if unrequested or unavailable.
+
+### `price`
+
+Return the finite price in contract payment units.
+
+### `vanna`
+
+Return vanna, or None if unrequested or unavailable.
+
+### `delta`
+
+Return delta, or None if unrequested or unavailable.
+
+### `gamma`
+
+Return gamma, or None if unrequested or unavailable.
+
+### `vega`
+
+Return vega, or None if unrequested or unavailable.
+
+### `theta`
+
+Return theta, or None if unrequested or unavailable.
+
+## `QuadratureAccumulatorEngine`
+
+```python
+QuadratureAccumulatorEngine(**fields)
+```
+
+Flat-rate quadrature pricing with immutable integration settings.
+
+#### Parameters
+
+- **`asset_step_count`** (`int, optional`) — Spatial grid budget, at least 4; defaults to 512.
+- **`integration_standard_deviations`** (`float, optional`) — Positive finite integration extent in standard deviations; defaults to 8.
+#### Raises
+
+- `InvalidInputError` — If asset_step_count is below 4 or integration_standard_deviations is nonpositive or non-finite.
+#### See Also
+
+Accumulator : Supported contract.
+
+### `price`
+
+```python
+price(self, /, instrument, context)
+```
+
+Return the price without changing the instrument or context.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+#### Returns
+
+- `float` — Present value of remaining contractual payments.
+#### Raises
+
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
+
+### `price_with_greeks`
+
+```python
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+```
+
+Return the price and selected sensitivities.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
+#### Returns
+
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
+#### Raises
+
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
+
+### `asset_step_count`
+
+Return the configured spatial grid budget.
+
+### `integration_standard_deviations`
+
+Return the integration extent in standard deviations.
+
+## `QuadratureAutocallableEngine`
+
+```python
+QuadratureAutocallableEngine(**fields)
+```
+
+Flat-rate quadrature pricing with immutable integration settings.
+
+#### Parameters
+
+- **`asset_step_count`** (`int, optional`) — Spatial grid budget, at least 4; defaults to 512.
+- **`integration_standard_deviations`** (`float, optional`) — Positive finite integration extent in standard deviations; defaults to 8.
+#### Raises
+
+- `InvalidInputError` — If asset_step_count is below 4 or integration_standard_deviations is nonpositive or non-finite.
+#### See Also
+
+SnowballOption : Supported contract.
+BinarySnowballOption : Supported contract.
+TernarySnowballOption : Supported contract.
+PhoenixOption : Supported contract.
+
+### `price`
+
+```python
+price(self, /, instrument, context)
+```
+
+Return the price without changing the instrument or context.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+#### Returns
+
+- `float` — Present value of remaining contractual payments.
+#### Raises
+
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
+
+### `price_with_greeks`
+
+```python
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+```
+
+Return the price and selected sensitivities.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
+#### Returns
+
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
+#### Raises
+
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
+
+### `asset_step_count`
+
+Return the configured spatial grid budget.
+
+### `integration_standard_deviations`
+
+Return the integration extent in standard deviations.
+
+## `QuadratureBarrierEngine`
+
+```python
+QuadratureBarrierEngine(**fields)
+```
+
+Flat-rate quadrature pricing with immutable integration settings.
+
+#### Parameters
+
+- **`asset_step_count`** (`int, optional`) — Spatial grid budget, at least 4; defaults to 512.
+- **`integration_standard_deviations`** (`float, optional`) — Positive finite integration extent in standard deviations; defaults to 8.
+#### Raises
+
+- `InvalidInputError` — If asset_step_count is below 4 or integration_standard_deviations is nonpositive or non-finite.
+#### See Also
+
+BarrierOption : Supported contract.
+
+### `price`
+
+```python
+price(self, /, instrument, context)
+```
+
+Return the price without changing the instrument or context.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+#### Returns
+
+- `float` — Present value of remaining contractual payments.
+#### Raises
+
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
+
+### `price_with_greeks`
+
+```python
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+```
+
+Return the price and selected sensitivities.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
+#### Returns
+
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
+#### Raises
+
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
+
+### `asset_step_count`
+
+Return the configured spatial grid budget.
+
+### `integration_standard_deviations`
+
+Return the integration extent in standard deviations.
 
 ## `QuadratureDigitalEngine`
 
 ```python
-QuadratureDigitalEngine(self) -> None
+QuadratureDigitalEngine()
 ```
 
-Stateless pricing engine.
+Flat-rate terminal quadrature with a fixed 2,048-panel Simpson rule.
 
-The engine has no configuration and may be reused across supported instruments
-and contexts. Concurrent calls are safe.
+#### Notes
 
-### 构造函数
-
-Create a stateless pricing engine.
-
-#### Returns
-
-- `pricing engine` — Reusable engine with no mutable configuration.
+The vanilla engine accepts EuropeanOption; the digital engine accepts
+CashOrNothingOption and AssetOrNothingOption.
 
 ### `price`
 
 ```python
-price(self, instrument: CashOrNothingOption, context: PricingContext) -> float
-price(self, instrument: AssetOrNothingOption, context: PricingContext) -> float
+price(self, /, instrument, context)
 ```
 
-Price an instrument under a market context.
+Return the price without changing the instrument or context.
 
 #### Parameters
 
-- **`instrument`** (`instrument`) — Instrument accepted by this overload.
-- **`context`** (`PricingContext`) — Market state and valuation instant.
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
 #### Returns
 
-- `float` — Instrument price. No Greeks are calculated.
+- `float` — Present value of remaining contractual payments.
 #### Raises
 
-- `KiyosiError` — If instrument terms, context, engine settings, backend availability, or the requested valuation are invalid.
-#### Notes
-
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
 
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, instrument: CashOrNothingOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
-price_with_greeks(self, instrument: AssetOrNothingOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
 ```
 
-Compute price and the explicitly selected Greeks.
+Return the price and selected sensitivities.
 
-Pass one lowercase Greek name or an iterable of them, or set ``all_greeks=True`` to
-request all ten. These forms are mutually exclusive. Native values are reused;
-missing feasible measures use numerical price differences. Unrequested or
-undefined measures are None, never zero sentinels. At expiry or a monitored
-barrier hit-state boundary, only price is available. Feasible bumped valuation
-failures fail the entire operation.
-At current autocallable-product event thresholds, undefined spot and time
-sensitivities remain None while feasible rate and volatility sensitivities survive.
+#### Parameters
 
-Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
-use asset-price units, volatility and rate shifts use decimal units, and time
-shifts use calendar days. Collapsed or asymmetric stencils leave affected
-numerical Greeks unavailable. Monte Carlo valuations share one seed per request
-without changing the engine. Concurrent calls are safe.
-For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
-exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
-and bump-size bias remain; check convergence for the valuation.
-
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
 #### Returns
 
-- `PricingResult` — Price and requested available Greeks, with Greek units.
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
 #### Raises
 
-- `TypeError` — If a Greek representation, engine/instrument pairing, or shift representation is incompatible.
-- `OverflowError` — If time_shift_days is outside the C++ int range.
-- `KiyosiError` — If the Greek request or settings are invalid, or a required valuation fails.
-#### Notes
-
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
 
 ## `QuadratureVanillaEngine`
 
 ```python
-QuadratureVanillaEngine(self) -> None
+QuadratureVanillaEngine()
 ```
 
-Stateless pricing engine.
+Flat-rate terminal quadrature with a fixed 2,048-panel Simpson rule.
 
-The engine has no configuration and may be reused across supported instruments
-and contexts. Concurrent calls are safe.
+#### Notes
 
-### 构造函数
-
-Create a stateless pricing engine.
-
-#### Returns
-
-- `pricing engine` — Reusable engine with no mutable configuration.
+The vanilla engine accepts EuropeanOption; the digital engine accepts
+CashOrNothingOption and AssetOrNothingOption.
 
 ### `price`
 
 ```python
-price(self, instrument: EuropeanOption, context: PricingContext) -> float
+price(self, /, instrument, context)
 ```
 
-Price an instrument under a market context.
+Return the price without changing the instrument or context.
 
 #### Parameters
 
-- **`instrument`** (`instrument`) — Instrument accepted by this overload.
-- **`context`** (`PricingContext`) — Market state and valuation instant.
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
 #### Returns
 
-- `float` — Instrument price. No Greeks are calculated.
+- `float` — Present value of remaining contractual payments.
 #### Raises
 
-- `KiyosiError` — If instrument terms, context, engine settings, backend availability, or the requested valuation are invalid.
-#### Notes
-
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
 
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, instrument: EuropeanOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
 ```
 
-Compute price and the explicitly selected Greeks.
+Return the price and selected sensitivities.
 
-Pass one lowercase Greek name or an iterable of them, or set ``all_greeks=True`` to
-request all ten. These forms are mutually exclusive. Native values are reused;
-missing feasible measures use numerical price differences. Unrequested or
-undefined measures are None, never zero sentinels. At expiry or a monitored
-barrier hit-state boundary, only price is available. Feasible bumped valuation
-failures fail the entire operation.
-At current autocallable-product event thresholds, undefined spot and time
-sensitivities remain None while feasible rate and volatility sensitivities survive.
+#### Parameters
 
-Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
-use asset-price units, volatility and rate shifts use decimal units, and time
-shifts use calendar days. Collapsed or asymmetric stencils leave affected
-numerical Greeks unavailable. Monte Carlo valuations share one seed per request
-without changing the engine. Concurrent calls are safe.
-For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
-exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
-and bump-size bias remain; check convergence for the valuation.
-
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
 #### Returns
 
-- `PricingResult` — Price and requested available Greeks, with Greek units.
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
 #### Raises
 
-- `TypeError` — If a Greek representation, engine/instrument pairing, or shift representation is incompatible.
-- `OverflowError` — If time_shift_days is outside the C++ int range.
-- `KiyosiError` — If the Greek request or settings are invalid, or a required valuation fails.
-#### Notes
-
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
 
 ## `TurnbullWakemanArithmeticAveragePriceEngine`
 
 ```python
-TurnbullWakemanArithmeticAveragePriceEngine(self) -> None
+TurnbullWakemanArithmeticAveragePriceEngine()
 ```
 
-Stateless pricing engine.
+Analytic continuous average-price pricing.
 
-The engine has no configuration and may be reused across supported instruments
-and contexts. Concurrent calls are safe.
+#### Notes
 
-### 构造函数
-
-Create a stateless pricing engine.
-
-#### Returns
-
-- `pricing engine` — Reusable engine with no mutable configuration.
+AnalyticGeometricAveragePriceEngine accepts geometric averages and
+deterministic curves. TurnbullWakemanArithmeticAveragePriceEngine uses
+a Levy-compatible moment approximation and requires flat rates before
+expiry. It accepts arithmetic averages.
 
 ### `price`
 
 ```python
-price(self, instrument: ArithmeticAveragePriceOption, context: PricingContext) -> float
+price(self, /, instrument, context)
 ```
 
-Price an instrument under a market context.
+Return the price without changing the instrument or context.
 
 #### Parameters
 
-- **`instrument`** (`instrument`) — Instrument accepted by this overload.
-- **`context`** (`PricingContext`) — Market state and valuation instant.
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
 #### Returns
 
-- `float` — Instrument price. No Greeks are calculated.
+- `float` — Present value of remaining contractual payments.
 #### Raises
 
-- `KiyosiError` — If instrument terms, context, engine settings, backend availability, or the requested valuation are invalid.
-#### Notes
-
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
 
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, instrument: ArithmeticAveragePriceOption, context: PricingContext, greeks: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'] | collections.abc.Iterable[typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']] | None = None, *, all_greeks: bool = False, spot_shift: float | None = 0.01, volatility_shift: float = 0.0001, rate_shift: float = 0.0001, time_shift_days: int = 1) -> PricingResult
+price_with_greeks(self, /, instrument, context, greeks=None, **settings)
 ```
 
-Compute price and the explicitly selected Greeks.
+Return the price and selected sensitivities.
 
-Pass one lowercase Greek name or an iterable of them, or set ``all_greeks=True`` to
-request all ten. These forms are mutually exclusive. Native values are reused;
-missing feasible measures use numerical price differences. Unrequested or
-undefined measures are None, never zero sentinels. At expiry or a monitored
-barrier hit-state boundary, only price is available. Feasible bumped valuation
-failures fail the entire operation.
-At current autocallable-product event thresholds, undefined spot and time
-sensitivities remain None while feasible rate and volatility sensitivities survive.
+#### Parameters
 
-Shift keyword arguments are absolute and use core-owned defaults. Spot shifts
-use asset-price units, volatility and rate shifts use decimal units, and time
-shifts use calendar days. Collapsed or asymmetric stencils leave affected
-numerical Greeks unavailable. Monte Carlo valuations share one seed per request
-without changing the engine. Concurrent calls are safe.
-For American Monte Carlo, omitted or None spot_shift uses 8% of spot to reduce
-exercise-decision sampling noise. Explicit shifts remain absolute. Sampling error
-and bump-size bias remain; check convergence for the valuation.
-
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
+- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
 #### Returns
 
-- `PricingResult` — Price and requested available Greeks, with Greek units.
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
 #### Raises
 
-- `TypeError` — If a Greek representation, engine/instrument pairing, or shift representation is incompatible.
-- `OverflowError` — If time_shift_days is outside the C++ int range.
-- `KiyosiError` — If the Greek request or settings are invalid, or a required valuation fails.
-#### Notes
-
-Operational exceptions and cancellation follow the package-level contract in
-`kiyosi`: allocation failures raise MemoryError, and Python signal handling
-is deferred until the synchronous core computation returns.
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
 
 ## `implied_coupon`
 
 ```python
-implied_coupon(engine: FiniteDifferenceAutocallableEngine, instrument: SnowballOption, context: PricingContext, observed_price: float, *, quote_convention: typing.Literal['shift_maturity_coupon', 'preserve_maturity_coupon'], lower_bound: float = 0.0, upper_bound: float = 2.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_coupon(engine: MonteCarloAutocallableEngine, instrument: SnowballOption, context: PricingContext, observed_price: float, *, quote_convention: typing.Literal['shift_maturity_coupon', 'preserve_maturity_coupon'], lower_bound: float = 0.0, upper_bound: float = 2.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_coupon(engine: FiniteDifferenceAutocallableEngine, instrument: BinarySnowballOption, context: PricingContext, observed_price: float, *, quote_convention: typing.Literal['shift_maturity_coupon', 'preserve_maturity_coupon'], lower_bound: float = 0.0, upper_bound: float = 2.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_coupon(engine: MonteCarloAutocallableEngine, instrument: BinarySnowballOption, context: PricingContext, observed_price: float, *, quote_convention: typing.Literal['shift_maturity_coupon', 'preserve_maturity_coupon'], lower_bound: float = 0.0, upper_bound: float = 2.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_coupon(engine: FiniteDifferenceAutocallableEngine, instrument: TernarySnowballOption, context: PricingContext, observed_price: float, *, quote_convention: typing.Literal['shift_maturity_coupon', 'preserve_maturity_coupon'], lower_bound: float = 0.0, upper_bound: float = 2.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_coupon(engine: MonteCarloAutocallableEngine, instrument: TernarySnowballOption, context: PricingContext, observed_price: float, *, quote_convention: typing.Literal['shift_maturity_coupon', 'preserve_maturity_coupon'], lower_bound: float = 0.0, upper_bound: float = 2.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_coupon(engine: FiniteDifferenceAutocallableEngine, instrument: PhoenixOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0, upper_bound: float = 2.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_coupon(engine: MonteCarloAutocallableEngine, instrument: PhoenixOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0, upper_bound: float = 2.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
+implied_coupon(engine, instrument, context, observed_price, **settings)
 ```
 
-Solve for a coupon rate that matches an observed price.
+Solve the annual coupon that reproduces an observed price.
 
 #### Parameters
 
-- **`engine`** (`pricing engine`) — Engine used for trial valuations.
-- **`instrument`** (`SnowballOption, BinarySnowballOption, TernarySnowballOption, or PhoenixOption`) — Instrument supported by the engine.
-- **`context`** (`PricingContext`) — Market state used by the solver.
-- **`observed_price`** (`float`) — Target instrument price.
-- **`quote_convention`** (`{'shift_maturity_coupon', 'preserve_maturity_coupon'}`) — Required for snowball instruments: whether the maturity coupon shifts with quoted knock-out coupons. Omit this argument for Phoenix instruments.
-- **`lower_bound, upper_bound`** (`float, optional`) — Finite coupon-rate search interval, which may include negative rates. Omitted values use core defaults.
-- **`price_tolerance`** (`float, optional`) — Absolute price-error tolerance; Monte Carlo sampling error is not bounded.
-- **`parameter_tolerance`** (`float, optional`) — Absolute search-interval tolerance in volatility or coupon-rate units. The solver stops when either tolerance is met.
-- **`max_iterations`** (`int, optional`) — Maximum solver iterations.
+- **`engine`** (`object`) — QuadratureAutocallableEngine, FiniteDifferenceAutocallableEngine or MonteCarloAutocallableEngine.
+- **`instrument`** (`object`) — SnowballOption, BinarySnowballOption, TernarySnowballOption or PhoenixOption; the original is unchanged.
+- **`context`** (`PricingContext`) — Market snapshot; the original is unchanged.
+- **`observed_price`** (`float`) — Finite target price in the engine's payment units.
+- **`quote_convention`** (`CouponQuoteConvention`) — Required for snowballs: shift_maturity_coupon shifts the maturity coupon with observation coupons; preserve_maturity_coupon keeps it fixed. Omit this keyword for Phoenix.
+- **`lower_bound`** (`float, optional`) — Finite lower annual coupon in decimal units; defaults to 0. Signed bounds are accepted when the resulting contract terms are valid.
+- **`upper_bound`** (`float, optional`) — Finite upper annual coupon, above lower_bound; defaults to 2.
+- **`price_tolerance`** (`float, optional`) — Positive finite absolute price residual tolerance; defaults to 1e-8.
+- **`parameter_tolerance`** (`float, optional`) — Positive finite bracket-width tolerance in decimal units; defaults to 1e-8. Either tolerance can stop iteration.
+- **`max_iterations`** (`int, optional`) — Positive iteration budget; defaults to 100. Endpoint and affine-interpolation evaluations do not use this budget.
 #### Returns
 
-- `float` — Implied annualized coupon rate.
-An unseeded Monte Carlo engine uses one random seed throughout this solve.
-Monte Carlo and finite-difference engines first try interpolation and verify its
-price residual. If the price tolerance is not met, the solver uses bisection.
-
+- `float` — Annual parameter in decimal units.
 #### Raises
 
-- `TypeError` — If the engine/instrument combination or an argument is incompatible.
-- `KiyosiError` — If inputs are invalid, the target is not bracketed, or the solver fails.
+- `InvalidInputError` — If the quote, settings or repriced terms are invalid.
+- `UnsupportedOperationError` — If the combination is unsupported or the parameter is not identifiable.
+- `RootNotBracketedError` — If the supplied endpoints do not bracket the target.
+- `NonConvergenceError` — If the iteration budget is exhausted.
+- `ComputationFailureError` — If a price, residual or numerical evaluation is non-finite.
+#### Notes
+
+Pricing failures propagate. Monte Carlo solves pin one seed per request;
+tolerances constrain the sampled price curve, not its sampling error.
+Snowballs shift all observation coupons relative to the first one,
+including past observations. The maturity convention controls the final
+coupon; the ternary minimum remains fixed. Phoenix replaces its
+conditional annual coupon. Trials use affine interpolation, then bisection.
 
 ## `implied_volatility`
 
 ```python
-implied_volatility(engine: AnalyticVanillaEngine, instrument: EuropeanOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: QuadratureVanillaEngine, instrument: EuropeanOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: CoxRossRubinsteinVanillaEngine, instrument: EuropeanOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: CoxRossRubinsteinVanillaEngine, instrument: AmericanOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: BjerksundStenslandVanillaEngine, instrument: AmericanOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: FiniteDifferenceVanillaEngine, instrument: EuropeanOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: FiniteDifferenceVanillaEngine, instrument: AmericanOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: MonteCarloVanillaEngine, instrument: EuropeanOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: MonteCarloVanillaEngine, instrument: AmericanOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: AnalyticDigitalEngine, instrument: CashOrNothingOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: AnalyticDigitalEngine, instrument: AssetOrNothingOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: QuadratureDigitalEngine, instrument: CashOrNothingOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: QuadratureDigitalEngine, instrument: AssetOrNothingOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: FiniteDifferenceDigitalEngine, instrument: CashOrNothingOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: FiniteDifferenceDigitalEngine, instrument: AssetOrNothingOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: AnalyticBarrierEngine, instrument: BarrierOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: FiniteDifferenceBarrierEngine, instrument: BarrierOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: AnalyticBinaryBarrierEngine, instrument: BinaryBarrierOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: AnalyticBinaryBarrierEngine, instrument: TouchOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: AnalyticGeometricAveragePriceEngine, instrument: GeometricAveragePriceOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: TurnbullWakemanArithmeticAveragePriceEngine, instrument: ArithmeticAveragePriceOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: FiniteDifferenceAccumulatorEngine, instrument: Accumulator, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: MonteCarloAccumulatorEngine, instrument: Accumulator, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: FiniteDifferenceAutocallableEngine, instrument: SnowballOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: FiniteDifferenceAutocallableEngine, instrument: BinarySnowballOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: FiniteDifferenceAutocallableEngine, instrument: TernarySnowballOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: FiniteDifferenceAutocallableEngine, instrument: PhoenixOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: MonteCarloAutocallableEngine, instrument: SnowballOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: MonteCarloAutocallableEngine, instrument: BinarySnowballOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: MonteCarloAutocallableEngine, instrument: TernarySnowballOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
-implied_volatility(engine: MonteCarloAutocallableEngine, instrument: PhoenixOption, context: PricingContext, observed_price: float, *, lower_bound: float = 0.0001, upper_bound: float = 4.0, price_tolerance: float = 1e-08, parameter_tolerance: float = 1e-08, max_iterations: int = 100) -> float
+implied_volatility(engine, instrument, context, observed_price, **settings)
 ```
 
-Solve for the volatility that matches an observed price.
-
-Uses safeguarded Brent interpolation, with bisection when needed to retain the bracket.
+Solve the annual volatility that reproduces an observed price.
 
 #### Parameters
 
-- **`engine`** (`pricing engine`) — Engine used for trial valuations.
-- **`instrument`** (`instrument`) — Instrument supported by the engine.
-- **`context`** (`PricingContext`) — Market state whose volatility is varied.
-- **`observed_price`** (`float`) — Target instrument price.
-- **`lower_bound, upper_bound`** (`float, optional`) — Volatility search interval. Omitted values use core defaults. CRR searches intersect this interval with the tree's admissible volatility range.
-- **`price_tolerance`** (`float, optional`) — Absolute price-error tolerance; Monte Carlo sampling error is not bounded.
-- **`parameter_tolerance`** (`float, optional`) — Absolute search-interval tolerance in volatility or coupon-rate units. The solver stops when either tolerance is met.
-- **`max_iterations`** (`int, optional`) — Maximum solver iterations.
+- **`engine`** (`object`) — Supported pricing engine for the instrument.
+- **`instrument`** (`object`) — Contract to reprice; the original is unchanged.
+- **`context`** (`PricingContext`) — Market snapshot; the original is unchanged.
+- **`observed_price`** (`float`) — Finite target price in the engine's payment units.
+- **`lower_bound`** (`float, optional`) — Positive finite lower annual volatility in decimal units; defaults to 0.0001.
+- **`upper_bound`** (`float, optional`) — Finite upper annual volatility, above lower_bound; defaults to 4.
+- **`price_tolerance`** (`float, optional`) — Positive finite absolute price residual tolerance; defaults to 1e-8.
+- **`parameter_tolerance`** (`float, optional`) — Positive finite bracket-width tolerance in decimal units; defaults to 1e-8. Either tolerance can stop iteration.
+- **`max_iterations`** (`int, optional`) — Positive iteration budget; defaults to 100.
 #### Returns
 
-- `float` — Implied volatility as a decimal rate.
-An unseeded Monte Carlo engine uses one random seed throughout this solve.
-Known volatility-independent payments raise ``KiyosiError`` with category
-``UNSUPPORTED_OPERATION``.
-
+- `float` — Annual parameter in decimal units.
 #### Raises
 
-- `TypeError` — If the engine/instrument combination or an argument is incompatible.
-- `KiyosiError` — If inputs are invalid, the target is not bracketed, or the solver fails.
+- `InvalidInputError` — If the quote, settings or repriced terms are invalid.
+- `UnsupportedOperationError` — If the combination is unsupported or the parameter is not identifiable.
+- `RootNotBracketedError` — If the supplied endpoints do not bracket the target.
+- `NonConvergenceError` — If the iteration budget is exhausted.
+- `ComputationFailureError` — If a price, residual or numerical evaluation is non-finite.
+#### Notes
+
+Pricing failures propagate. Monte Carlo solves pin one seed per request;
+tolerances constrain the sampled price curve, not its sampling error.
+Digital prices can have several volatility roots. The supplied bracket
+selects a root; CRR engines restrict it to their admissible tree domain.

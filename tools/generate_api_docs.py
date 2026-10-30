@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate VitePress API pages from kiyosi Doxygen XML and Python docstrings."""
+"""Generate VitePress API pages from the pinned kiyosi Python package."""
 
 import argparse
 import enum
@@ -7,344 +7,13 @@ import importlib
 import inspect
 import re
 import shutil
-import xml.etree.ElementTree as ET
-from collections import defaultdict
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import get_origin
 
 PYTHON_MODULES = ("kiyosi", "kiyosi.instruments", "kiyosi.market", "kiyosi.pricing")
 PROTOCOL_METHODS = {"__contains__", "__getitem__", "__iter__", "__len__"}
 GENERATED_MARKER = ".kiyosi-api-generated"
-
-
-def text_of(node: ET.Element | None) -> str:
-    return "" if node is None else "".join(node.itertext()).strip()
-
-
-def clean_space(value: str) -> str:
-    return re.sub(r"[ \t\r\f\v]+", " ", value).strip()
-
-
-def markdown_inline(node: ET.Element) -> str:
-    pieces = [node.text or ""]
-    for child in node:
-        content = markdown_node(child, inline=True)
-        pieces.append(content)
-        pieces.append(child.tail or "")
-    return clean_space("".join(pieces))
-
-
-def markdown_node(node: ET.Element, *, inline: bool = False) -> str:
-    tag = node.tag
-    if tag in {"computeroutput", "ref"}:
-        return f"`{text_of(node)}`"
-    if tag == "bold":
-        return f"**{markdown_inline(node)}**"
-    if tag == "emphasis":
-        return f"*{markdown_inline(node)}*"
-    if tag == "ulink":
-        return f"[{markdown_inline(node)}]({node.get('url', '')})"
-    if tag == "linebreak":
-        return "  \n"
-    if tag == "sp":
-        return " "
-    if tag == "formula":
-        return f"`{text_of(node)}`"
-    if tag == "programlisting":
-        lines = [
-            clean_space("".join(line.itertext())) for line in node.findall("codeline")
-        ]
-        return f"\n```cpp\n{'\n'.join(lines)}\n```\n"
-    if tag in {"itemizedlist", "orderedlist"}:
-        marker = "-" if tag == "itemizedlist" else "1."
-        items = [
-            f"{marker} {markdown_inline(item)}" for item in node.findall("listitem")
-        ]
-        return "\n" + "\n".join(items) + "\n"
-    if tag == "parameterlist":
-        labels = {
-            "param": "参数",
-            "retval": "返回值",
-            "exception": "异常",
-            "templateparam": "模板参数",
-        }
-        rows = []
-        for item in node.findall("parameteritem"):
-            names = [text_of(name) for name in item.findall("parameternamelist/parametername")]
-            description = render_description(item.find("parameterdescription"))
-            rows.append(f"- `{', '.join(names)}` — {description}")
-        label = labels.get(node.get("kind", ""), "参数")
-        return f"\n**{label}**\n\n" + "\n".join(rows) + "\n"
-    if tag == "simplesect":
-        labels = {
-            "return": "返回值",
-            "note": "注意",
-            "warning": "警告",
-            "see": "另请参阅",
-            "pre": "前置条件",
-            "post": "后置条件",
-            "remark": "备注",
-            "author": "作者",
-            "authors": "作者",
-            "copyright": "版权",
-            "date": "日期",
-            "version": "版本",
-            "since": "起始版本",
-            "invariant": "不变条件",
-            "par": "说明",
-            "rcs": "版本控制信息",
-        }
-        label = labels.get(node.get("kind", ""), "说明")
-        return f"\n**{label}:** {markdown_inline(node)}\n"
-    if tag == "xrefsect":
-        title = text_of(node.find("xreftitle")) or "注意"
-        description = render_description(node.find("xrefdescription"))
-        return f"\n**{title}:** {description}\n"
-    if tag == "para":
-        return markdown_inline(node) + ("" if inline else "\n\n")
-    return markdown_inline(node)
-
-
-def render_description(node: ET.Element | None) -> str:
-    if node is None:
-        return ""
-    rendered = "".join(markdown_node(child) for child in node)
-    if node.text and node.text.strip():
-        rendered = node.text.strip() + rendered
-    rendered = re.sub(r"[ \t]+\n", "\n", rendered)
-    return re.sub(r"\n{3,}", "\n\n", rendered).strip()
-
-
-def template_prefix(node: ET.Element) -> str:
-    params = node.find("templateparamlist")
-    if params is None:
-        return ""
-    values = []
-    for param in params.findall("param"):
-        value = " ".join(
-            filter(None, (text_of(param.find("type")), text_of(param.find("declname"))))
-        )
-        default = text_of(param.find("defval"))
-        values.append(f"{value} = {default}" if default else value)
-    return f"template <{', '.join(values)}>\n"
-
-
-def member_signature(member: ET.Element) -> str:
-    kind = member.get("kind", "member")
-    definition = text_of(member.find("definition"))
-    args = text_of(member.find("argsstring"))
-    if kind == "enum":
-        scoped = " class" if member.get("strong") == "yes" else ""
-        return f"enum{scoped} {text_of(member.find('name'))}"
-    signature = (definition or text_of(member.find("name"))) + args
-    return template_prefix(member) + re.sub(
-        r"<\s+|\s+>", lambda match: match.group().strip(), signature
-    )
-
-
-def member_markdown(member: ET.Element, level: int = 4) -> str:
-    name = text_of(member.find("name"))
-    parts = [
-        f"{'#' * level} `{name}`",
-        "",
-        "```cpp",
-        member_signature(member),
-        "```",
-        "",
-    ]
-    description = "\n\n".join(
-        value
-        for value in (
-            render_description(member.find("briefdescription")),
-            render_description(member.find("detaileddescription")),
-        )
-        if value
-    )
-    if description:
-        parts.extend((description, ""))
-    enum_values = member.findall("enumvalue")
-    if enum_values:
-        parts.extend(("**枚举值**", ""))
-        for value in enum_values:
-            value_name = text_of(value.find("name"))
-            initializer = text_of(value.find("initializer"))
-            value_description = " ".join(
-                filter(
-                    None,
-                    (
-                        render_description(value.find("briefdescription")),
-                        render_description(value.find("detaileddescription")),
-                    ),
-                )
-            )
-            label = f"`{value_name}{initializer}`"
-            parts.append(
-                f"- {label}" + (f" — {value_description}" if value_description else "")
-            )
-        parts.append("")
-    return "\n".join(parts)
-
-
-def public_members(compound: ET.Element) -> list[ET.Element]:
-    members = []
-    for section in compound.findall("sectiondef"):
-        if section.get("kind", "").startswith("public"):
-            members.extend(section.findall("memberdef"))
-    return [member for member in members if member.get("prot", "public") == "public"]
-
-
-def compound_markdown(compound: ET.Element) -> str:
-    name = text_of(compound.find("compoundname"))
-    kind = compound.get("kind", "type")
-    signature = f"{kind} {name}"
-    bases = [
-        text_of(base) for base in compound.findall("basecompoundref") if text_of(base)
-    ]
-    if bases:
-        signature += " : " + ", ".join(bases)
-    parts = [
-        f"## `{name}`",
-        "",
-        "```cpp",
-        template_prefix(compound) + signature,
-        "```",
-        "",
-    ]
-    description = "\n\n".join(
-        value
-        for value in (
-            render_description(compound.find("briefdescription")),
-            render_description(compound.find("detaileddescription")),
-        )
-        if value
-    )
-    if description:
-        parts.extend((description, ""))
-    members = public_members(compound)
-    if members:
-        parts.extend(("### 成员", ""))
-        for member in members:
-            parts.append(member_markdown(member))
-    return "\n".join(parts).rstrip() + "\n"
-
-
-def source_path(node: ET.Element) -> str | None:
-    location = node.find("location")
-    if location is None:
-        return None
-    file_name = (location.get("file") or "").replace("\\", "/")
-    if "/detail/" in file_name:
-        return None
-    if "include/" in file_name:
-        return file_name[file_name.index("include/") :]
-    if file_name.startswith("kiyosi/"):
-        return "include/" + file_name
-    generated_marker = "/generated/kiyosi/"
-    if generated_marker in file_name:
-        return "include/kiyosi/" + file_name.split(generated_marker, 1)[1]
-    return None
-
-
-def slug_for_header(header: str) -> str:
-    return (
-        header.removeprefix("include/kiyosi/")
-        .removesuffix(".hpp")
-        .replace("/", "-")
-        .replace("_", "-")
-    )
-
-
-def generate_cpp(xml_dir: Path, output: Path) -> int:
-    index = ET.parse(xml_dir / "index.xml").getroot()
-    headers: dict[str, dict[str, list[ET.Element]]] = defaultdict(
-        lambda: {"files": [], "compounds": [], "members": []}
-    )
-    for entry in index.findall("compound"):
-        if entry.get("kind") != "file":
-            continue
-        compound_file = xml_dir / f"{entry.get('refid')}.xml"
-        if not compound_file.exists():
-            continue
-        compound = ET.parse(compound_file).getroot().find("compounddef")
-        if compound is not None and (header := source_path(compound)):
-            headers[header]["files"].append(compound)
-
-    for entry in index.findall("compound"):
-        kind = entry.get("kind")
-        if kind not in {"class", "struct", "concept", "namespace"}:
-            continue
-        compound_file = xml_dir / f"{entry.get('refid')}.xml"
-        if not compound_file.exists():
-            continue
-        compound = ET.parse(compound_file).getroot().find("compounddef")
-        if compound is None:
-            continue
-        name = text_of(compound.find("compoundname"))
-        if not name.startswith("kiyosi") or "::detail" in name:
-            continue
-        if kind == "namespace":
-            for member in compound.findall("sectiondef/memberdef"):
-                header = source_path(member)
-                if header and member.get("prot", "public") == "public":
-                    headers[header]["members"].append(member)
-            continue
-        if compound.get("prot", "public") != "public":
-            continue
-        header = source_path(compound)
-        if not header:
-            continue
-        headers[header]["compounds"].append(compound)
-
-    if not headers:
-        raise RuntimeError("No public kiyosi headers found in Doxygen XML")
-    cpp_dir = output / "cpp"
-    cpp_dir.mkdir(parents=True, exist_ok=True)
-    index_lines = [
-        "---",
-        "description: 根据 kiyosi Doxygen XML 自动生成的完整 C++ API 参考文档。",
-        "---",
-        "",
-        "# C++ API 参考",
-        "",
-        "本参考文档根据公开头文件和 Doxygen XML 自动生成，包含没有注释的声明，以完整列出 API。",
-        "",
-    ]
-    for header in sorted(headers):
-        slug = slug_for_header(header)
-        title = header.removeprefix("include/")
-        index_lines.append(f"- [`<{title}>`](./{slug})")
-        page = [
-            "---",
-            f"description: {title} 中的 C++ API 声明。",
-            "outline: [2, 4]",
-            "---",
-            "",
-            f"# `<{title}>`",
-            "",
-            f"```cpp\n#include <{title}>\n```",
-            "",
-        ]
-        for file_compound in headers[header]["files"]:
-            file_description = "\n\n".join(
-                filter(
-                    None,
-                    (
-                        render_description(file_compound.find("briefdescription")),
-                        render_description(file_compound.find("detaileddescription")),
-                    ),
-                )
-            )
-            if file_description:
-                page.extend((file_description, ""))
-        for member in headers[header]["members"]:
-            page.append(member_markdown(member, level=2))
-        for compound in headers[header]["compounds"]:
-            page.append(compound_markdown(compound))
-        (cpp_dir / f"{slug}.md").write_text(
-            "\n".join(page).rstrip() + "\n", encoding="utf-8"
-        )
-    (cpp_dir / "index.md").write_text("\n".join(index_lines) + "\n", encoding="utf-8")
-    return len(headers)
 
 
 def split_signature(doc: str, name: str) -> tuple[list[str], str]:
@@ -376,6 +45,14 @@ def python_doc_markdown(doc: str, heading_level: int = 4) -> str:
     index = 0
     while index < len(lines):
         line = lines[index].rstrip()
+        if line.startswith(">>> "):
+            output.extend(("```python", line))
+            index += 1
+            while index < len(lines) and lines[index].strip():
+                output.append(lines[index])
+                index += 1
+            output.extend(("```", ""))
+            continue
         if (
             index + 1 < len(lines)
             and lines[index + 1].strip()
@@ -434,14 +111,15 @@ def callable_signature(obj: object, name: str) -> tuple[list[str], str]:
 
 def class_markdown(name: str, cls: type) -> str:
     parts = [f"## `{name}`", ""]
+    signatures, _ = callable_signature(cls, name)
     init = vars(cls).get("__init__")
+    init_body = ""
     if init is not None:
-        signatures, init_body = callable_signature(init, "__init__")
-        signatures = [value.replace("__init__", name, 1) for value in signatures]
-        if signatures:
-            parts.extend(("```python", "\n".join(signatures), "```", ""))
-    else:
-        init_body = ""
+        init_signatures, init_body = callable_signature(init, "__init__")
+        if not signatures:
+            signatures = [value.replace("__init__", name, 1) for value in init_signatures]
+    if signatures:
+        parts.extend(("```python", "\n".join(signatures), "```", ""))
     if init_body.startswith("Initialize self.  See help(type(self))"):
         init_body = ""
     class_doc = inspect.getdoc(cls) or ""
@@ -460,9 +138,12 @@ def class_markdown(name: str, cls: type) -> str:
     for member_name, member in vars(cls).items():
         if member_name.startswith("_") and member_name not in PROTOCOL_METHODS:
             continue
+        if isinstance(member, (staticmethod, classmethod)):
+            member = getattr(cls, member_name)
         if not (
             callable(member)
             or isinstance(member, property)
+            or inspect.isdatadescriptor(member)
             or inspect.ismethoddescriptor(member)
         ):
             continue
@@ -496,7 +177,7 @@ def generate_python(output: Path) -> int:
         "",
         "# Python API 参考",
         "",
-        "以下页面根据各公开模块的导出对象、运行时签名和文档字符串自动生成，也包含 nanobind 原生绑定对象。导出对象以 `__all__` 为准；未声明 `__all__` 时，使用模块中的公开名称。",
+        "以下页面根据各公开模块的导出对象、运行时签名和文档字符串自动生成，也包含 PyO3 原生绑定对象。导出对象以 `__all__` 为准；未声明 `__all__` 时，使用模块中的公开名称。",
         "",
     ]
     for module_name in PYTHON_MODULES:
@@ -549,20 +230,22 @@ def generate_python(output: Path) -> int:
     return len(PYTHON_MODULES)
 
 
-def write_overview(output: Path) -> None:
+def write_overview(output: Path, version: str, revision: str) -> None:
     (output / "index.md").write_text(
         f"""---
-description: 自动生成的 kiyosi C++ 和 Python API 完整参考文档。
+description: kiyosi Python API 与 Rust API 参考文档。
 ---
 
 # API 参考
 
-本参考文档根据 kiyosi 的公开 C++ 头文件和已安装的 Python API 自动生成。
+本参考文档根据同一上游提交的 Python 公开接口与 Rust 文档注释生成。
 
-kiyosi 版本：**{importlib.import_module('kiyosi').__version__}**。
+kiyosi 版本：**{version}**；[源码提交 `{revision[:7]}`](https://github.com/lilkui/kiyosi/tree/{revision})。
 
-- [C++ API](./cpp/)：各公开头文件中的声明和 Doxygen 注释。
 - [Python API](./python/)：公开导出对象、签名、成员和文档字符串。
+- <a href="./rust/kiyosi_core/index.html" target="_self">Rust API</a>：原生 rustdoc，提供类型、trait、实现、源码链接和独立搜索。
+
+Rust API 使用 rustdoc 的界面与搜索；网站的本地搜索涵盖中文指南和 Python API。
 
 ::: warning 早期开发阶段
 Kiyosi 当前不保证 API 向后兼容。更新库后，请重新生成这些参考页面。
@@ -575,11 +258,11 @@ Kiyosi 当前不保证 API 向后兼容。更新库后，请重新生成这些�
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--doxygen-xml",
-        type=Path,
+        "--version",
         required=True,
-        help="Directory containing Doxygen index.xml",
+        help="Expected installed kiyosi version",
     )
+    parser.add_argument("--revision", required=True, help="Pinned upstream commit")
     parser.add_argument(
         "--output",
         type=Path,
@@ -589,30 +272,32 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> None:
-    args = parse_args()
-    if not (args.doxygen_xml / "index.xml").is_file():
-        raise SystemExit(f"Doxygen index not found: {args.doxygen_xml / 'index.xml'}")
+def generate(output: Path, version: str, revision: str) -> None:
+    actual = importlib.import_module("kiyosi").__version__
+    if actual != version:
+        raise RuntimeError(f"kiyosi version mismatch: expected {version}, got {actual}")
     if (
-        args.output.exists()
-        and any(args.output.iterdir())
-        and not (args.output / GENERATED_MARKER).is_file()
+        output.exists()
+        and any(output.iterdir())
+        and not (output / GENERATED_MARKER).is_file()
     ):
-        raise SystemExit(f"Refusing to replace unmarked directory: {args.output}")
-    if args.output.exists():
-        shutil.rmtree(args.output)
-    args.output.mkdir(parents=True)
-    (args.output / GENERATED_MARKER).write_text(
-        "Generated by tools/generate_api_docs.py.\n", encoding="utf-8"
-    )
-    cpp_headers = generate_cpp(args.doxygen_xml, args.output)
-    python_modules = generate_python(args.output)
-    write_overview(args.output)
-    print(
-        f"Generated {cpp_headers} C++ header pages and {python_modules} Python module pages "
-        f"in {args.output}"
-    )
+        raise RuntimeError(f"Refusing to replace unmarked directory: {output}")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    # Build first so import or rendering failures preserve the previous reference.
+    with TemporaryDirectory(dir=output.parent) as temporary:
+        staged = Path(temporary) / "api"
+        staged.mkdir()
+        python_modules = generate_python(staged)
+        write_overview(staged, version, revision)
+        (staged / GENERATED_MARKER).write_text(
+            f"Generated by tools/generate_api_docs.py from {revision}.\n", encoding="utf-8"
+        )
+        if output.exists():
+            shutil.rmtree(output)
+        staged.rename(output)
+    print(f"Generated {python_modules} Python module pages in {output}")
 
 
 if __name__ == "__main__":
-    main()
+    args = parse_args()
+    generate(args.output, args.version, args.revision)

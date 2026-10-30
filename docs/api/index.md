@@ -1,15 +1,17 @@
 ---
-description: 自动生成的 kiyosi C++ 和 Python API 完整参考文档。
+description: kiyosi Python API 与 Rust API 参考文档。
 ---
 
 # API 参考
 
-本参考文档根据 kiyosi 的公开 C++ 头文件和已安装的 Python API 自动生成。
+本参考文档根据同一上游提交的 Python 公开接口与 Rust 文档注释生成。
 
-kiyosi 版本：**0.11.0**。
+kiyosi 版本：**0.14.0**；[源码提交 `7489422`](https://github.com/lilkui/kiyosi/tree/748942203c99ffb5f011dbdcd06312d6b5f4a06c)。
 
-- [C++ API](./cpp/)：各公开头文件中的声明和 Doxygen 注释。
 - [Python API](./python/)：公开导出对象、签名、成员和文档字符串。
+- <a href="./rust/kiyosi_core/index.html" target="_self">Rust API</a>：原生 rustdoc，提供类型、trait、实现、源码链接和独立搜索。
+
+Rust API 使用 rustdoc 的界面与搜索；网站的本地搜索涵盖中文指南和 Python API。
 
 ::: warning 早期开发阶段
 Kiyosi 当前不保证 API 向后兼容。更新库后，请重新生成这些参考页面。

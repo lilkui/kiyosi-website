@@ -5,81 +5,41 @@ outline: [2, 4]
 
 # `kiyosi`
 
-Python API for the kiyosi derivatives pricing core.
+Price derivatives with validated Rust contracts and engines.
 
-## Failures and cancellation
+## Notes
 
-Representation and signature errors use Python's built-in exceptions. Core domain
-rejections and reported backend failures raise KiyosiError; inspect its category.
-CUDA unavailability and execution failures use BACKEND_UNAVAILABLE and
-BACKEND_FAILURE, and invalid numerical results use INVALID_RESULT.
+Domain failures raise a specific `KiyosiError` subclass:
+`InvalidInputError`, `UnsupportedOperationError`, `ComputationFailureError`,
+`RootNotBracketedError` or `NonConvergenceError`. Catch a subclass for one
+failure category or `KiyosiError` for any domain failure. Representation
+and signature errors use native Python exceptions; reported operational
+failures use `OSError`. Internal Rust panics are separate from domain
+exceptions; allocation exhaustion may terminate the process.
 
-Allocation failures, including CUDA device-memory exhaustion, raise MemoryError.
-Other native runtime/internal exceptions use the binding's built-in exception
-mappings; for example, entropy-source runtime failures raise RuntimeError.
-Valid settings do not guarantee sufficient memory or other resources.
+Contract and calendar dates require `datetime.date`, excluding datetime
+instances. Instant inputs accept dates at midnight UTC or timezone-aware
+datetimes normalized to UTC; naive datetimes are rejected. Numeric inputs
+reject booleans and unintended lossy conversions.
 
-Pricing, Greeks and implied-value solves are synchronous. Scalar prices from the
-AnalyticVanilla, AnalyticDigital, AnalyticBarrier, AnalyticBinaryBarrier,
-AnalyticGeometricAveragePrice and TurnbullWakemanArithmeticAveragePrice engines
-keep the GIL to avoid thread handoff overhead for short formulas, except that
-scheduled AnalyticBarrier and AnalyticBinaryBarrier prices release it while
-validating and pricing their observation schedules. AnalyticVanilla and
-AnalyticDigital Greek requests also keep the GIL, as do delta-only requests for
-the two Asian engines. Other scalar prices, Greek requests and implied-value
-solves release it during core computation.
-These calls provide no cancellation interface or signal polling within the core.
-When they run on the main thread, Python signal handling, including
-Ctrl-C/KeyboardInterrupt, is deferred until control returns to Python. It does not
-stop an in-progress core computation or become a KiyosiError.
+Values own their data and expose read-only properties. Shared and distinct
+instances support concurrent reads and pricing. Replacement creates a new
+value. Long calculations release the GIL around owned Rust inputs; short
+analytic calls may retain it.
 
-## `ErrorCategory`
+`Greek` accepts delta, gamma, speed, theta, charm, color, vega, vanna,
+zomma and rho. Spot derivatives use spot units, volatility and rate
+derivatives use percentage points, and time derivatives use calendar days
+of forward valuation time. `PricingResult` leaves unavailable or
+unrequested sensitivities as None; `require` raises if one is absent.
 
-Stable category for a core domain error.
+Calls are synchronous, without core cancellation or signal polling. Python
+signal handling, including `KeyboardInterrupt`, resumes when control
+returns to Python.
 
-#### Attributes
+## `ComputationFailureError`
 
-- `INVALID_OPTION` — Invalid or internally inconsistent instrument terms.
-- `INVALID_STRIKE` — Invalid strike value.
-- `INVALID_VOLATILITY` — Invalid volatility value.
-- `INVALID_RISK_FREE_RATE` — Invalid risk-free rate.
-- `INVALID_DIVIDEND_YIELD` — Invalid dividend yield.
-- `INVALID_SPOT_PRICE` — Invalid spot price.
-- `INVALID_DATE` — Invalid calendar date.
-- `INVALID_TIME_RANGE` — Invalid or reversed time range.
-- `INVALID_RESULT` — Missing or invalid pricing result.
-- `INVALID_SCHEDULE` — Invalid observation schedule.
-- `INVALID_CALENDAR` — Invalid trading calendar.
-- `INVALID_PARAMETER` — Invalid numerical or engine parameter.
-- `UNBRACKETED_VOLATILITY` — Observed price is not bracketed by the volatility bounds.
-- `SOLVER_NON_CONVERGENCE` — A numerical solver exhausted its iteration limit.
-- `SOLVER_NON_FINITE` — A numerical solver encountered a non-finite value.
-- `UNBRACKETED_COUPON` — Observed price is not bracketed by the coupon bounds.
-- `BACKEND_UNAVAILABLE` — Requested computation backend is unavailable.
-- `BACKEND_FAILURE` — Requested computation backend failed.
-- `UNSUPPORTED_OPERATION` — Engine or instrument does not support the requested operation.
-
-### 枚举值
-
-- `INVALID_OPTION` = `1`
-- `INVALID_STRIKE` = `2`
-- `INVALID_VOLATILITY` = `3`
-- `INVALID_RISK_FREE_RATE` = `4`
-- `INVALID_DIVIDEND_YIELD` = `5`
-- `INVALID_SPOT_PRICE` = `6`
-- `INVALID_DATE` = `7`
-- `INVALID_TIME_RANGE` = `8`
-- `INVALID_RESULT` = `9`
-- `INVALID_SCHEDULE` = `10`
-- `INVALID_CALENDAR` = `11`
-- `INVALID_PARAMETER` = `12`
-- `UNBRACKETED_VOLATILITY` = `13`
-- `SOLVER_NON_CONVERGENCE` = `14`
-- `SOLVER_NON_FINITE` = `15`
-- `UNBRACKETED_COUPON` = `16`
-- `BACKEND_UNAVAILABLE` = `17`
-- `BACKEND_FAILURE` = `18`
-- `UNSUPPORTED_OPERATION` = `19`
+Non-finite numerical result or unavailable computation state.
 
 ## `Greek`
 
@@ -87,100 +47,104 @@ Stable category for a core domain error.
 Greek = typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']
 ```
 
+## `InvalidInputError`
+
+Invalid parameters, dates, schedules or contract history.
+
 ## `KiyosiError`
 
-Core domain validation or pricing error.
+Base exception for structured domain failures.
 
-#### Parameters
+## `NonConvergenceError`
 
-- **`message`** (`str`) — Human-readable diagnostic message. Callers should branch on ``category`` rather than parse this text.
-#### Attributes
-
-- **`category`** (`ErrorCategory`) — Stable machine-readable error category.
+Iteration or integration limit reached without convergence.
 
 ## `PricingResult`
 
-Read-only price and Greek result.
+```python
+PricingResult()
+```
 
-Price uses instrument value units. Delta, gamma, and speed are per one spot unit,
-squared spot unit, and cubed spot unit. Vega, vanna, and zomma are price, delta,
-and gamma changes per one volatility percentage point (an absolute change of
-0.01). Rho is per one interest-rate percentage point. Theta, charm, and color
-are price, delta, and gamma changes per calendar day as valuation time moves
-forward. Undefined or unsupported Greeks are None, never a zero sentinel.
+Finite price and optional finite price sensitivities.
 
-#### Attributes
+#### Notes
 
-- **`price`** (`float`) — Instrument value.
-- **`delta, gamma, speed`** (`float or None`) — First three spot derivatives.
-- **`theta, charm, color`** (`float or None`) — Daily changes in price, delta, and gamma.
-- **`vega, vanna, zomma`** (`float or None`) — Volatility-point changes in price, delta, and gamma.
-- **`rho`** (`float or None`) — Price change per interest-rate percentage point.
+Unavailable or unrequested Greeks are None. Spot derivatives are per spot
+unit, volatility/rate derivatives per percentage point, and time
+derivatives per calendar day of forward valuation time.
 
 ### `require`
 
 ```python
-require(self, measure: typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']) -> float
+require(self, /, measure)
 ```
 
-Return a required Greek.
+Return a requested Greek or raise when it is unavailable.
 
 #### Parameters
 
-- **`measure`** (`{'delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho'}`) — Greek to retrieve.
+- **`measure`** (`str`) — Greek name, such as delta or vega.
 #### Returns
 
-- `float` — Available Greek value.
+- `float` — Finite sensitivity in PricingResult reporting units.
 #### Raises
 
-- `KiyosiError` — If the requested Greek is unavailable.
-
-### `price`
-
-Instrument value.
-
-### `delta`
-
-First spot derivative, or None when unavailable.
-
-### `gamma`
-
-Second spot derivative, or None when unavailable.
+- `UnsupportedOperationError` — If the measure was not requested or is undefined at this valuation.
 
 ### `speed`
 
-Third spot derivative, or None when unavailable.
-
-### `theta`
-
-Daily price decay, or None when unavailable.
+Return speed, or None if unrequested or unavailable.
 
 ### `charm`
 
-Daily change in delta, or None when unavailable.
+Return charm, or None if unrequested or unavailable.
 
 ### `color`
 
-Daily change in gamma, or None when unavailable.
-
-### `vega`
-
-Price change per volatility percentage point, or None.
-
-### `vanna`
-
-Delta change per volatility percentage point, or None.
-
-### `zomma`
-
-Gamma change per volatility percentage point, or None.
+Return color, or None if unrequested or unavailable.
 
 ### `rho`
 
-Price change per interest-rate percentage point, or None.
+Return rho, or None if unrequested or unavailable.
+
+### `zomma`
+
+Return zomma, or None if unrequested or unavailable.
+
+### `price`
+
+Return the finite price in contract payment units.
+
+### `vanna`
+
+Return vanna, or None if unrequested or unavailable.
+
+### `delta`
+
+Return delta, or None if unrequested or unavailable.
+
+### `gamma`
+
+Return gamma, or None if unrequested or unavailable.
+
+### `vega`
+
+Return vega, or None if unrequested or unavailable.
+
+### `theta`
+
+Return theta, or None if unrequested or unavailable.
+
+## `RootNotBracketedError`
+
+Supplied interval does not bracket a root in the engine's domain.
+
+## `UnsupportedOperationError`
+
+Unsupported pricing combination or unavailable result measure.
 
 ## `__version__`
 
 ```python
-__version__ = '0.11.0'
+__version__ = '0.14.0'
 ```

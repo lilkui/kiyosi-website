@@ -13,7 +13,7 @@ from datetime import date
 
 from kiyosi.instruments import EuropeanOption
 from kiyosi.market import BlackScholesMertonParameters, PricingContext
-from kiyosi.pricing import AnalyticVanillaEngine
+from kiyosi.pricing import AnalyticEuropeanEngine
 
 valuation = date(2025, 1, 1)
 option = EuropeanOption(
@@ -32,7 +32,7 @@ context = PricingContext(
     valuation_time=valuation,
 )
 
-price = AnalyticVanillaEngine().price(option, context)
+price = AnalyticEuropeanEngine().price(option, context)
 print(f"Price: {price:.6f}")  # 9.227006
 ```
 
@@ -62,7 +62,7 @@ python first_price.py
 需要计算敏感度时，调用 `price_with_greeks()`，显式指定所需指标：
 
 ```python
-engine = AnalyticVanillaEngine()
+engine = AnalyticEuropeanEngine()
 result = engine.price_with_greeks(option, context, greeks=["delta", "gamma", "vega"])
 print(result.price, result.delta, result.gamma, result.vega)
 ```
@@ -84,6 +84,6 @@ estimate = MonteCarloVanillaEngine(seed=42, thread_count=4).price(option, contex
 print(estimate)
 ```
 
-蒙特卡洛方法通过数值模拟估算价格，结果可能与解析解不同。`seed` 固定随机种子，`thread_count` 限制单次 CPU 调用的并发数。各类产品支持哪些引擎，以及如何配置 CUDA，见[定价引擎](./engines)。
+蒙特卡洛方法通过数值模拟估算价格，结果可能与解析解不同。`seed` 固定随机种子，`thread_count` 限制单次 CPU 调用的并发数。各类产品的引擎支持范围与采样设置见[定价引擎](./engines)。
 
-本示例改编自 [kiyosi Python 快速入门](https://github.com/lilkui/kiyosi/blob/main/README.md#python-快速上手)。
+本示例改编自 [kiyosi Python 定价模块示例](https://github.com/lilkui/kiyosi/blob/748942203c99ffb5f011dbdcd06312d6b5f4a06c/python/kiyosi/pricing.py)。

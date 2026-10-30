@@ -1,34 +1,56 @@
 # kiyosi 文档
 
-这是 [kiyosi](https://github.com/lilkui/kiyosi) 的 VitePress 文档站，包含自定义首页、明暗主题、本地搜索、入门指南，以及自动生成的 C++ / Python API 参考文档。
+这是 [kiyosi](https://github.com/lilkui/kiyosi) 的 VitePress 文档站，提供中文指南、Python API 参考，以及同站托管的原生 Rust API 文档。保留现有首页、明暗主题和本地搜索。API 参考可保留英文，其余页面与界面使用中文。
 
-除自动生成的 API 参考文档可保留英文外，其余文档和站点界面均使用中文。中文页面从站点根路径访问。代码、命令、标识符和专有名词保留原文。
+当前文档对应 **kiyosi 0.14.0**，上游提交为 `748942203c99ffb5f011dbdcd06312d6b5f4a06c`。版本、完整提交和仓库地址统一记录在 [`upstream.json`](./upstream.json)。
+
+## 构建要求
+
+- Node.js 22+、npm、Git。
+- Python 3.11+，含 `venv` 和 pip；Linux 命令为 `python3`，Windows 需要 `py -3` 启动器。
+- Rust 1.85+、Cargo 和本机编译／链接工具；Windows 使用 MSVC 工具链及 Visual Studio Build Tools。
+- 首次构建需要联网获取上游源码、Python 构建工具及 Cargo 依赖。
+
+Debian / Ubuntu 若提示 `ensurepip is not available`，需安装与解释器匹配的 `python3-venv` 软件包。也可以用已经包含 venv/pip 的 Python 执行 `python tools/prepare_api_docs.py`。
+
+VitePress 1 通过 Vite 版本覆盖使用已修补的构建依赖，升级 VitePress 时需重新评估该配置。
 
 ## 本地开发
-
-需要 Node.js 22+ 和 npm。
-
-通过覆盖 Vite 版本，VitePress 1 使用的是已修补的构建工具和开发服务器依赖。升级 VitePress 时，需重新评估这项配置。
 
 ```sh
 npm ci
 npm run docs:dev
 ```
 
-启动后，打开终端显示的本地地址。Markdown 文档位于 `docs/`，导航配置位于 `docs/.vitepress/config.ts`，样式位于 `docs/.vitepress/theme/style.css`。
+首次启动会先生成两种语言的 API，再启动 VitePress。之后的 Markdown 编辑会热更新。若只修改指南和样式，可在已经成功生成 API 后使用 `npx vitepress dev docs` 直接启动。
+
+指南位于 `docs/guide/`，配置位于 `docs/.vitepress/config.ts`，主题位于 `docs/.vitepress/theme/`。Rust 构建指南位于 `docs/rust/building.md`。
 
 ## 生产构建
 
 ```sh
+npm run docs:test
 npm run docs:build
 npm run docs:preview
 ```
 
-构建时会检查 Markdown 内部链接。构建完成后，将 `docs/.vitepress/dist/` 发布到静态托管服务。目前尚未配置托管账户或部署流程。
+`docs:build` 完成以下步骤：
 
-构建时会为原有的 7 个 `/zh/` 页面生成跳转，并保留查询参数和锚点。旧书签仍可访问对应的中文页面。
+1. 在 `.cache/kiyosi/` 获取并检出 `upstream.json` 指定的完整提交；拒绝覆盖缓存源码中的本地修改。
+2. 核对 Cargo workspace 版本，在 `.cache/venv/` 中从该源码构建并安装 Python 扩展，使用上游 Cargo 锁文件。
+3. 执行 `cargo doc -p kiyosi-core --no-deps --locked`，将 rustdoc 警告视为错误。
+4. 核对 Python 运行时版本，再按公开导出、签名、属性和文档字符串生成 `docs/api/`。
+5. 将完整 rustdoc 目录复制到 `docs/public/api/rust/`，再运行 VitePress，检查 Markdown 内部链接。
 
-默认基础路径为 `/`。部署到子目录时，请在构建前设置 `DOCS_BASE`，路径首尾都需加斜杠。以 GitHub Pages 的 `/kiyosi-website/` 为例：
+发布目录为 **`docs/.vitepress/dist/`**，其中 Rust API 入口为 `api/rust/kiyosi_core/index.html`。发布时必须包含整个目录，以保留 rustdoc 的搜索、静态资源与源码链接。托管服务需支持 `.html` 文件，无需 URL 重写。构建完成后的预览与静态托管无需 Python 或 Rust。
+
+Python API Markdown 提交到仓库，便于审查 API 变化；rustdoc HTML 和构建缓存不提交。缓存加快重复构建，每次仍从固定源码安装扩展，不复用外部环境中可能过期的 kiyosi。此流程固定源码版本，不承诺不同工具链下产物逐字节相同。
+
+Rust API 使用原生 rustdoc 界面及独立搜索；VitePress 本地搜索包含中文指南和 Python API。站点没有配置托管账户或自动部署。
+
+## 部署到子目录
+
+默认基础路径为 `/`。部署到子目录时，设置首尾带斜杠的 `DOCS_BASE`：
 
 ```sh
 DOCS_BASE=/kiyosi-website/ npm run docs:build
@@ -41,47 +63,20 @@ $env:DOCS_BASE = '/kiyosi-website/'
 npm run docs:build
 ```
 
-托管服务需支持 `.html` 文件，无需 URL 重写。
+rustdoc 内部使用相对路径，随整个目录发布即可。原有 `/zh/` 的首页、指南和 Python 概览仍生成跳转，保留查询参数和锚点。
 
-## 内容维护
+## 更新文档版本
 
-指南基于 kiyosi README 编写，并附有源码仓库链接，内容包括安装、完整的 Python 定价示例、引擎支持范围、Python 模块结构和原生 C++ 构建。
+1. 修改 `upstream.json` 的版本和完整提交，确保二者一致。
+2. 同步修订首页、安装、指南、Rust 示例和本文档中的版本、接口及固定源码链接。
+3. 执行 `npm run docs:generate`、`npm run docs:test` 与 `npm run docs:build`，审查生成的 Python API 差异，并运行指南示例。
 
-自动生成的 API 页面已提交到仓库，因此构建网站无需 Python 或 C++ 工具链。
-
-当前文档对应 kiyosi **0.11.0**（源码提交 `541546c`），包含 51 个公开 C++ 头文件页面和 4 个 Python 模块页面。指南中的选择参数使用字符串；`price()` 直接返回数值，`price_with_greeks()` 则需显式指定要计算的 Greeks。数值引擎在构造时验证配置，市场和产品历史更新使用返回副本的 `replace()`。
-
-## 重新生成 API 参考文档
-
-转换工具本身仅使用 Python 标准库。运行前需准备：
-
-- 对应版本 kiyosi 源码生成的 Doxygen XML。
-- Python 解释器，须能导入对应版本已构建的 `kiyosi` 包及其原生扩展。
-
-先安装 Doxygen，再在 kiyosi 仓库中配置文档构建。以下命令适用于 Windows 和 Linux；Windows 下请先打开 Visual Studio Developer PowerShell：
+单独生成 API：
 
 ```sh
-cmake -S . -B build/docs -DBUILD_TESTING=OFF -DKIYOSI_BUILD_DOCS=ON
-cmake --build build/docs --target kiyosi-doxygen
+npm run docs:generate
 ```
 
-构建文档目标无需编译核心库，也不需要 Graphviz 或 Python。CMake 配置需要 oneTBB 2023.1+，未安装时会自动下载。XML 入口为 `build/docs/docs/xml/index.xml`，也可使用其他启用了 `KIYOSI_BUILD_DOCS` 的构建目录。
+生成器按 `__all__` 收集导出；没有 `__all__` 时收集公开名称，保留 `typing.Literal` 类型别名。PyO3 构造签名、原生属性及交互示例均纳入参考。生成失败或版本不匹配时，保留原有 Python 参考；非空目录必须带 `.kiyosi-api-generated` 标记才允许替换，勿在生成目录中编写手工页面。
 
-确认 Python 环境已安装同一版本的 kiyosi，并用 `import kiyosi; print(kiyosi.__version__)` 检查版本是否与 XML 一致，然后运行转换工具。以下 Windows 示例假定 kiyosi 位于本仓库的同级目录：
-
-```powershell
-..\kiyosi\.venv\Scripts\python.exe tools\generate_api_docs.py `
-  --doxygen-xml ..\kiyosi\build\docs\docs\xml `
-  --output docs\api
-```
-
-Linux 可使用对应虚拟环境的 `bin/python`，XML 路径相同。
-
-转换会替换带生成标记的 `docs/api/`。若 Python 模块声明了 `__all__`，工具按该列表收集导出对象；否则收集名称不以下划线开头的公开对象。`typing.Literal` 保留为类型别名。若显式导出的名称缺失，或 XML 中未找到公开头文件，转换会失败。C++ 参考不包含 `detail/` 实现头文件。
-
-验证转换工具和网站：
-
-```powershell
-..\kiyosi\.venv\Scripts\python.exe tools\test_generate_api_docs.py
-npm run docs:build
-```
+清理构建缓存时可以删除 `.cache/` 与 `docs/public/api/rust/`；下次生成会重新下载和构建。架构取舍记录在 [ADR](./docs/adr/0001-rust-documentation-build.md)。
