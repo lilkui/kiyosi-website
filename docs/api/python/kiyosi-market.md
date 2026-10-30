@@ -64,6 +64,14 @@ Immutable BSM rates and strictly positive annual volatility.
 
 - `InvalidInputError` — If scalar rates are non-finite or volatility is nonpositive/non-finite.
 
+### `dividend_curve`
+
+Return an owned copy of the dividend curve.
+
+### `dividend_yield`
+
+Return the scalar dividend yield or an owned node curve.
+
 ### `replace`
 
 ```python
@@ -84,21 +92,13 @@ Return a validated replacement without changing this value.
 
 - `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
 
-### `risk_free_rate`
-
-Return the scalar risk-free rate or an owned node curve.
-
-### `dividend_curve`
-
-Return an owned copy of the dividend curve.
-
 ### `risk_free_curve`
 
 Return an owned copy of the risk-free curve.
 
-### `dividend_yield`
+### `risk_free_rate`
 
-Return the scalar dividend yield or an owned node curve.
+Return the scalar risk-free rate or an owned node curve.
 
 ### `volatility`
 
@@ -112,10 +112,6 @@ BusinessDayConvention = typing.Literal['following', 'preceding']
 
 ## `ObservationSchedule`
 
-```python
-ObservationSchedule()
-```
-
 Immutable ordered observation dates with sequence access.
 
 #### Notes
@@ -124,6 +120,14 @@ Use fixed_interval_schedule or monthly_schedule. The dates property
 returns a copy; iteration retains the schedule owner. Integer indexing
 accepts negative indices and raises IndexError outside the sequence.
 Slices are not supported. len(schedule) counts observations.
+
+### `__getitem__`
+
+```python
+__getitem__(self, key, /)
+```
+
+Return self[key].
 
 ### `__iter__`
 
@@ -140,14 +144,6 @@ __len__(self, /)
 ```
 
 Return len(self).
-
-### `__getitem__`
-
-```python
-__getitem__(self, key, /)
-```
-
-Return self[key].
 
 ### `dates`
 
@@ -171,6 +167,14 @@ Immutable market snapshot for one valuation instant.
 
 - `InvalidInputError` — If spot_price is nonpositive/non-finite or valuation_time is outside either rate curve. Contract-life checks occur at pricing.
 
+### `calendar`
+
+Return an owned copy of the trading calendar.
+
+### `model_parameters`
+
+Return an owned copy of the model parameters.
+
 ### `replace`
 
 ```python
@@ -192,25 +196,17 @@ Return a validated replacement without changing this value.
 
 - `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
 
-### `valuation_time`
+### `spot_price`
 
-Return valuation instant. Dates mean midnight; aware datetimes convert to UTC.
-
-### `calendar`
-
-Return an owned copy of the trading calendar.
+Return positive finite underlying spot price.
 
 ### `valuation_date`
 
 Return the date containing the valuation instant.
 
-### `spot_price`
+### `valuation_time`
 
-Return positive finite underlying spot price.
-
-### `model_parameters`
-
-Return an owned copy of the model parameters.
+Return valuation instant. Dates mean midnight; aware datetimes convert to UTC.
 
 ## `RateTermStructure`
 
@@ -233,6 +229,29 @@ Immutable rate curve with log-linear factors and Actual/365 Fixed time.
 Dated curves reject times before their reference; node curves also reject
 times after the last node. Negative rates are allowed.
 
+### `factor`
+
+```python
+factor(self, /, start, end)
+```
+
+Return the factor over an ordered, covered interval.
+
+#### Parameters
+
+- **`start, end`** (`datetime.date or datetime.datetime`) — Ordered interval endpoints.
+#### Returns
+
+- `float` — Interval factor; underflow to zero is allowed.
+#### Raises
+
+- `InvalidInputError` — If endpoints are reversed or outside curve coverage.
+- `ComputationFailureError` — If the log factor is non-finite or exponentiation overflows.
+
+### `factors`
+
+Return copied node factors, including any parallel shift.
+
 ### `flat`
 
 ```python
@@ -252,24 +271,27 @@ Create a continuously compounded flat rate curve.
 
 - `InvalidInputError` — If the rate is non-finite.
 
-### `factor`
+### `forward_rate`
 
 ```python
-factor(self, /, start, end)
+forward_rate(self, /, time)
 ```
 
-Return the factor over an ordered, covered interval.
+Return the right-hand instantaneous forward rate.
 
 #### Parameters
 
-- **`start, end`** (`datetime.date or datetime.datetime`) — Ordered interval endpoints.
+- **`time`** (`datetime.date or datetime.datetime`) — Query instant. The final node uses its left interval.
 #### Returns
 
-- `float` — Interval factor; underflow to zero is allowed.
+- `float` — Annual continuously compounded forward rate in decimal units.
 #### Raises
 
-- `InvalidInputError` — If endpoints are reversed or outside curve coverage.
-- `ComputationFailureError` — If the log factor is non-finite or exponentiation overflows.
+- `InvalidInputError` — If the instant is outside curve coverage.
+
+### `is_flat`
+
+Return whether the rate curve is explicitly flat.
 
 ### `log_factor`
 
@@ -290,23 +312,17 @@ Return the log factor over an ordered, covered interval.
 - `InvalidInputError` — If endpoints are reversed or outside curve coverage.
 - `ComputationFailureError` — If the result is non-finite.
 
-### `forward_rate`
+### `max_time`
 
-```python
-forward_rate(self, /, time)
-```
+Return the final node time, or None for a flat curve.
 
-Return the right-hand instantaneous forward rate.
+### `nodes`
 
-#### Parameters
+Return a copy of the supplied curve node times.
 
-- **`time`** (`datetime.date or datetime.datetime`) — Query instant. The final node uses its left interval.
-#### Returns
+### `reference_time`
 
-- `float` — Annual continuously compounded forward rate in decimal units.
-#### Raises
-
-- `InvalidInputError` — If the instant is outside curve coverage.
+Return the inclusive lower coverage bound, or None if undated.
 
 ### `shifted`
 
@@ -326,52 +342,13 @@ Create a parallel rate shift without changing this curve.
 
 - `InvalidInputError` — If the shift or resulting rates are non-finite.
 
-### `is_flat`
-
-Return whether the rate curve is explicitly flat.
-
-### `reference_time`
-
-Return the inclusive lower coverage bound, or None if undated.
-
-### `nodes`
-
-Return a copy of the supplied curve node times.
-
-### `max_time`
-
-Return the final node time, or None for a flat curve.
-
-### `factors`
-
-Return copied node factors, including any parallel shift.
-
 ## `TradingCalendar`
-
-```python
-TradingCalendar()
-```
 
 Immutable trading calendar with a fixed annualization basis.
 
 #### Notes
 
 Use the calendar factory functions to construct instances.
-
-### `is_trading_day`
-
-```python
-is_trading_day(self, /, value)
-```
-
-Return whether a date is open in this calendar.
-
-#### Parameters
-
-- **`value`** (`datetime.date`) — Date to test; datetime values are not accepted.
-#### Returns
-
-- `bool` — Whether the date is a trading day, including explicit overrides.
 
 ### `adjust`
 
@@ -392,6 +369,21 @@ Find a trading date in the selected direction, including the input date.
 
 - `InvalidInputError` — If the supported date range is exhausted.
 
+### `is_trading_day`
+
+```python
+is_trading_day(self, /, value)
+```
+
+Return whether a date is open in this calendar.
+
+#### Parameters
+
+- **`value`** (`datetime.date`) — Date to test; datetime values are not accepted.
+#### Returns
+
+- `bool` — Whether the date is a trading day, including explicit overrides.
+
 ### `trading_days_between`
 
 ```python
@@ -410,6 +402,10 @@ Count trading dates in the half-open interval [start, end).
 
 - `InvalidInputError` — If end precedes start.
 
+### `trading_days_per_year`
+
+Return the positive calendar annualization basis.
+
 ### `trading_year_fraction`
 
 ```python
@@ -427,10 +423,6 @@ Return trading-day count divided by the calendar annualization basis.
 #### Raises
 
 - `InvalidInputError` — If end precedes start.
-
-### `trading_days_per_year`
-
-Return the positive calendar annualization basis.
 
 ## `all_days_calendar`
 

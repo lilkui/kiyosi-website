@@ -111,7 +111,14 @@ def callable_signature(obj: object, name: str) -> tuple[list[str], str]:
 
 def class_markdown(name: str, cls: type) -> str:
     parts = [f"## `{name}`", ""]
-    signatures, _ = callable_signature(cls, name)
+    signatures = []
+    # Factory-only native types can inherit object's misleading () signature.
+    if (
+        cls.__new__ is not object.__new__
+        or cls.__init__ is not object.__init__
+        or hasattr(cls, "__signature__")
+    ):
+        signatures, _ = callable_signature(cls, name)
     init = vars(cls).get("__init__")
     init_body = ""
     if init is not None:
@@ -135,7 +142,7 @@ def class_markdown(name: str, cls: type) -> str:
         return "\n".join(parts).rstrip() + "\n"
 
     rendered_members = []
-    for member_name, member in vars(cls).items():
+    for member_name, member in sorted(vars(cls).items()):
         if member_name.startswith("_") and member_name not in PROTOCOL_METHODS:
             continue
         if isinstance(member, (staticmethod, classmethod)):

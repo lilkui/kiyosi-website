@@ -61,10 +61,6 @@ Iteration or integration limit reached without convergence.
 
 ## `PricingResult`
 
-```python
-PricingResult()
-```
-
 Finite price and optional finite price sensitivities.
 
 #### Notes
@@ -72,6 +68,26 @@ Finite price and optional finite price sensitivities.
 Unavailable or unrequested Greeks are None. Spot derivatives are per spot
 unit, volatility/rate derivatives per percentage point, and time
 derivatives per calendar day of forward valuation time.
+
+### `charm`
+
+Return charm, or None if unrequested or unavailable.
+
+### `color`
+
+Return color, or None if unrequested or unavailable.
+
+### `delta`
+
+Return delta, or None if unrequested or unavailable.
+
+### `gamma`
+
+Return gamma, or None if unrequested or unavailable.
+
+### `price`
+
+Return the finite price in contract payment units.
 
 ### `require`
 
@@ -91,49 +107,29 @@ Return a requested Greek or raise when it is unavailable.
 
 - `UnsupportedOperationError` — If the measure was not requested or is undefined at this valuation.
 
-### `speed`
-
-Return speed, or None if unrequested or unavailable.
-
-### `charm`
-
-Return charm, or None if unrequested or unavailable.
-
-### `color`
-
-Return color, or None if unrequested or unavailable.
-
 ### `rho`
 
 Return rho, or None if unrequested or unavailable.
 
-### `zomma`
+### `speed`
 
-Return zomma, or None if unrequested or unavailable.
+Return speed, or None if unrequested or unavailable.
 
-### `price`
+### `theta`
 
-Return the finite price in contract payment units.
+Return theta, or None if unrequested or unavailable.
 
 ### `vanna`
 
 Return vanna, or None if unrequested or unavailable.
 
-### `delta`
-
-Return delta, or None if unrequested or unavailable.
-
-### `gamma`
-
-Return gamma, or None if unrequested or unavailable.
-
 ### `vega`
 
 Return vega, or None if unrequested or unavailable.
 
-### `theta`
+### `zomma`
 
-Return theta, or None if unrequested or unavailable.
+Return zomma, or None if unrequested or unavailable.
 
 ## `RootNotBracketedError`
 

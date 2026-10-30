@@ -294,6 +294,25 @@ Analytic European vanilla pricing with deterministic rate curves.
 
 EuropeanOption : Supported contract.
 
+### `price`
+
+```python
+price(self, /, instrument, context)
+```
+
+Return the price without changing the instrument or context.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+#### Returns
+
+- `float` — Present value of remaining contractual payments.
+#### Raises
+
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
+
 ### `price_with_greeks`
 
 ```python
@@ -318,25 +337,6 @@ Return the price and selected sensitivities.
 #### Raises
 
 - `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
-
-### `price`
-
-```python
-price(self, /, instrument, context)
-```
-
-Return the price without changing the instrument or context.
-
-#### Parameters
-
-- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
-- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-#### Returns
-
-- `float` — Present value of remaining contractual payments.
-#### Raises
-
-- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
 
 ## `AnalyticGeometricAveragePriceEngine`
 
@@ -742,6 +742,14 @@ variants and PhoenixOption. Other engines accept their named product.
 Digital pricing requires explicitly flat rates; other families accept
 deterministic rate curves.
 
+### `asset_step_count`
+
+Return the configured spatial grid budget.
+
+### `asset_upper_boundary`
+
+Return the explicit upper spot boundary, or None for automatic selection.
+
 ### `price`
 
 ```python
@@ -786,21 +794,13 @@ Return the price and selected sensitivities.
 
 - `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
 
-### `asset_upper_boundary`
-
-Return the explicit upper spot boundary, or None for automatic selection.
-
-### `time_step_count`
-
-Return the configured time-step budget before event insertion.
-
 ### `scheme`
 
 Return the configured time-marching choice string.
 
-### `asset_step_count`
+### `time_step_count`
 
-Return the configured spatial grid budget.
+Return the configured time-step budget before event insertion.
 
 ## `FiniteDifferenceAutocallableEngine`
 
@@ -829,6 +829,14 @@ variants and PhoenixOption. Other engines accept their named product.
 Digital pricing requires explicitly flat rates; other families accept
 deterministic rate curves.
 
+### `asset_step_count`
+
+Return the configured spatial grid budget.
+
+### `asset_upper_boundary`
+
+Return the explicit upper spot boundary, or None for automatic selection.
+
 ### `price`
 
 ```python
@@ -880,14 +888,6 @@ Return the configured time-marching choice string.
 ### `time_step_count`
 
 Return the configured time-step budget before event insertion.
-
-### `asset_step_count`
-
-Return the configured spatial grid budget.
-
-### `asset_upper_boundary`
-
-Return the explicit upper spot boundary, or None for automatic selection.
 
 ## `FiniteDifferenceBarrierEngine`
 
@@ -916,6 +916,14 @@ variants and PhoenixOption. Other engines accept their named product.
 Digital pricing requires explicitly flat rates; other families accept
 deterministic rate curves.
 
+### `asset_step_count`
+
+Return the configured spatial grid budget.
+
+### `asset_upper_boundary`
+
+Return the explicit upper spot boundary, or None for automatic selection.
+
 ### `price`
 
 ```python
@@ -960,21 +968,13 @@ Return the price and selected sensitivities.
 
 - `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
 
-### `time_step_count`
-
-Return the configured time-step budget before event insertion.
-
-### `asset_upper_boundary`
-
-Return the explicit upper spot boundary, or None for automatic selection.
-
 ### `scheme`
 
 Return the configured time-marching choice string.
 
-### `asset_step_count`
+### `time_step_count`
 
-Return the configured spatial grid budget.
+Return the configured time-step budget before event insertion.
 
 ## `FiniteDifferenceBinaryBarrierEngine`
 
@@ -1003,6 +1003,14 @@ variants and PhoenixOption. Other engines accept their named product.
 Digital pricing requires explicitly flat rates; other families accept
 deterministic rate curves.
 
+### `asset_step_count`
+
+Return the configured spatial grid budget.
+
+### `asset_upper_boundary`
+
+Return the explicit upper spot boundary, or None for automatic selection.
+
 ### `price`
 
 ```python
@@ -1046,14 +1054,6 @@ Return the price and selected sensitivities.
 #### Raises
 
 - `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
-
-### `asset_step_count`
-
-Return the configured spatial grid budget.
-
-### `asset_upper_boundary`
-
-Return the explicit upper spot boundary, or None for automatic selection.
 
 ### `scheme`
 
@@ -1090,6 +1090,14 @@ variants and PhoenixOption. Other engines accept their named product.
 Digital pricing requires explicitly flat rates; other families accept
 deterministic rate curves.
 
+### `asset_step_count`
+
+Return the configured spatial grid budget.
+
+### `asset_upper_boundary`
+
+Return the explicit upper spot boundary, or None for automatic selection.
+
 ### `price`
 
 ```python
@@ -1134,21 +1142,13 @@ Return the price and selected sensitivities.
 
 - `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
 
-### `asset_step_count`
+### `scheme`
 
-Return the configured spatial grid budget.
+Return the configured time-marching choice string.
 
 ### `time_step_count`
 
 Return the configured time-step budget before event insertion.
-
-### `asset_upper_boundary`
-
-Return the explicit upper spot boundary, or None for automatic selection.
-
-### `scheme`
-
-Return the configured time-marching choice string.
 
 ## `FiniteDifferenceDoubleBarrierEngine`
 
@@ -1177,6 +1177,14 @@ variants and PhoenixOption. Other engines accept their named product.
 Digital pricing requires explicitly flat rates; other families accept
 deterministic rate curves.
 
+### `asset_step_count`
+
+Return the configured spatial grid budget.
+
+### `asset_upper_boundary`
+
+Return the explicit upper spot boundary, or None for automatic selection.
+
 ### `price`
 
 ```python
@@ -1228,14 +1236,6 @@ Return the configured time-marching choice string.
 ### `time_step_count`
 
 Return the configured time-step budget before event insertion.
-
-### `asset_step_count`
-
-Return the configured spatial grid budget.
-
-### `asset_upper_boundary`
-
-Return the explicit upper spot boundary, or None for automatic selection.
 
 ## `FiniteDifferenceDoubleTouchEngine`
 
@@ -1264,6 +1264,14 @@ variants and PhoenixOption. Other engines accept their named product.
 Digital pricing requires explicitly flat rates; other families accept
 deterministic rate curves.
 
+### `asset_step_count`
+
+Return the configured spatial grid budget.
+
+### `asset_upper_boundary`
+
+Return the explicit upper spot boundary, or None for automatic selection.
+
 ### `price`
 
 ```python
@@ -1308,21 +1316,13 @@ Return the price and selected sensitivities.
 
 - `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
 
-### `time_step_count`
-
-Return the configured time-step budget before event insertion.
-
-### `asset_step_count`
-
-Return the configured spatial grid budget.
-
 ### `scheme`
 
 Return the configured time-marching choice string.
 
-### `asset_upper_boundary`
+### `time_step_count`
 
-Return the explicit upper spot boundary, or None for automatic selection.
+Return the configured time-step budget before event insertion.
 
 ## `FiniteDifferenceScheme`
 
@@ -1357,6 +1357,14 @@ variants and PhoenixOption. Other engines accept their named product.
 Digital pricing requires explicitly flat rates; other families accept
 deterministic rate curves.
 
+### `asset_step_count`
+
+Return the configured spatial grid budget.
+
+### `asset_upper_boundary`
+
+Return the explicit upper spot boundary, or None for automatic selection.
+
 ### `price`
 
 ```python
@@ -1401,10 +1409,6 @@ Return the price and selected sensitivities.
 
 - `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
 
-### `asset_step_count`
-
-Return the configured spatial grid budget.
-
 ### `scheme`
 
 Return the configured time-marching choice string.
@@ -1412,10 +1416,6 @@ Return the configured time-marching choice string.
 ### `time_step_count`
 
 Return the configured time-step budget before event insertion.
-
-### `asset_upper_boundary`
-
-Return the explicit upper spot boundary, or None for automatic selection.
 
 ## `MonteCarloAccumulatorEngine`
 
@@ -1448,6 +1448,14 @@ request; solver tolerances do not measure sampling error.
 Simulation uses the future trading dates; step_count is validated but
 unused. A current knock-out settles before any purchase.
 
+### `antithetic`
+
+Return whether opposite normal draws are paired.
+
+### `path_count`
+
+Return the exact number of sampled paths.
+
 ### `price`
 
 ```python
@@ -1469,26 +1477,6 @@ Return the price without changing the instrument or context.
 #### Notes
 
 System entropy and worker-creation failures raise OSError.
-
-### `price_with_statistics`
-
-```python
-price_with_statistics(self, /, instrument, context)
-```
-
-Return the price and estimated sampling uncertainty.
-
-#### Parameters
-
-- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
-- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-#### Returns
-
-- `MonteCarloEstimate` — Mean, optional standard error and asymptotic 95% confidence interval.
-#### Raises
-
-- `KiyosiError` — If domain validation or numerical pricing fails.
-- `OSError` — If system entropy or worker creation fails.
 
 ### `price_with_greeks`
 
@@ -1518,29 +1506,41 @@ Return the price and selected sensitivities.
 
 System entropy and worker-creation failures raise OSError.
 
-### `antithetic`
+### `price_with_statistics`
 
-Return whether opposite normal draws are paired.
+```python
+price_with_statistics(self, /, instrument, context)
+```
 
-### `path_count`
+Return the price and estimated sampling uncertainty.
 
-Return the exact number of sampled paths.
+#### Parameters
 
-### `thread_count`
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+#### Returns
 
-Return the per-call worker cap; zero selects automatic sizing.
+- `MonteCarloEstimate` — Mean, optional standard error and asymptotic 95% confidence interval.
+#### Raises
+
+- `KiyosiError` — If domain validation or numerical pricing fails.
+- `OSError` — If system entropy or worker creation fails.
 
 ### `sampling`
 
 Return the sampling choice string: pseudo_random or sobol.
 
+### `seed`
+
+Return the unsigned 64-bit seed, or None for system entropy.
+
 ### `step_count`
 
 Return the configured grid size.
 
-### `seed`
+### `thread_count`
 
-Return the unsigned 64-bit seed, or None for system entropy.
+Return the per-call worker cap; zero selects automatic sizing.
 
 ## `MonteCarloAsianEngine`
 
@@ -1575,6 +1575,14 @@ Geometric averages and single fixings sample exact distributions.
 Arithmetic averages use step_count trapezoidal intervals with the first
 interval integrated conditionally.
 
+### `antithetic`
+
+Return whether opposite normal draws are paired.
+
+### `path_count`
+
+Return the exact number of sampled paths.
+
 ### `price`
 
 ```python
@@ -1625,9 +1633,9 @@ Return the price and selected sensitivities.
 
 System entropy and worker-creation failures raise OSError.
 
-### `path_count`
+### `sampling`
 
-Return the exact number of sampled paths.
+Return the sampling choice string: pseudo_random or sobol.
 
 ### `seed`
 
@@ -1640,14 +1648,6 @@ Return the configured grid size.
 ### `thread_count`
 
 Return the per-call worker cap; zero selects automatic sizing.
-
-### `antithetic`
-
-Return whether opposite normal draws are paired.
-
-### `sampling`
-
-Return the sampling choice string: pseudo_random or sobol.
 
 ## `MonteCarloAutocallableEngine`
 
@@ -1683,6 +1683,14 @@ request; solver tolerances do not measure sampling error.
 Simulation uses trading days when knock-in matters, or observation
 dates and expiry otherwise. step_count is validated but unused.
 
+### `antithetic`
+
+Return whether opposite normal draws are paired.
+
+### `path_count`
+
+Return the exact number of sampled paths.
+
 ### `price`
 
 ```python
@@ -1704,26 +1712,6 @@ Return the price without changing the instrument or context.
 #### Notes
 
 System entropy and worker-creation failures raise OSError.
-
-### `price_with_statistics`
-
-```python
-price_with_statistics(self, /, instrument, context)
-```
-
-Return the price and estimated sampling uncertainty.
-
-#### Parameters
-
-- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
-- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-#### Returns
-
-- `MonteCarloEstimate` — Mean, optional standard error and asymptotic 95% confidence interval.
-#### Raises
-
-- `KiyosiError` — If domain validation or numerical pricing fails.
-- `OSError` — If system entropy or worker creation fails.
 
 ### `price_with_greeks`
 
@@ -1753,25 +1741,37 @@ Return the price and selected sensitivities.
 
 System entropy and worker-creation failures raise OSError.
 
-### `step_count`
+### `price_with_statistics`
 
-Return the configured grid size.
+```python
+price_with_statistics(self, /, instrument, context)
+```
 
-### `seed`
+Return the price and estimated sampling uncertainty.
 
-Return the unsigned 64-bit seed, or None for system entropy.
+#### Parameters
 
-### `antithetic`
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+#### Returns
 
-Return whether opposite normal draws are paired.
+- `MonteCarloEstimate` — Mean, optional standard error and asymptotic 95% confidence interval.
+#### Raises
+
+- `KiyosiError` — If domain validation or numerical pricing fails.
+- `OSError` — If system entropy or worker creation fails.
 
 ### `sampling`
 
 Return the sampling choice string: pseudo_random or sobol.
 
-### `path_count`
+### `seed`
 
-Return the exact number of sampled paths.
+Return the unsigned 64-bit seed, or None for system entropy.
+
+### `step_count`
+
+Return the configured grid size.
 
 ### `thread_count`
 
@@ -1808,6 +1808,14 @@ request; solver tolerances do not measure sampling error.
 Monitoring uses continuous survival or the original fixing dates;
 step_count is validated but unused. Only delta and gamma are returned.
 
+### `antithetic`
+
+Return whether opposite normal draws are paired.
+
+### `path_count`
+
+Return the exact number of sampled paths.
+
 ### `price`
 
 ```python
@@ -1862,10 +1870,6 @@ System entropy and worker-creation failures raise OSError.
 
 Return the sampling choice string: pseudo_random or sobol.
 
-### `path_count`
-
-Return the exact number of sampled paths.
-
 ### `seed`
 
 Return the unsigned 64-bit seed, or None for system entropy.
@@ -1877,10 +1881,6 @@ Return the configured grid size.
 ### `thread_count`
 
 Return the per-call worker cap; zero selects automatic sizing.
-
-### `antithetic`
-
-Return whether opposite normal draws are paired.
 
 ## `MonteCarloDigitalEngine`
 
@@ -1914,6 +1914,14 @@ request; solver tolerances do not measure sampling error.
 Terminal sampling ignores step_count. Only native delta and gamma are
 returned; other requested Greeks remain absent.
 
+### `antithetic`
+
+Return whether opposite normal draws are paired.
+
+### `path_count`
+
+Return the exact number of sampled paths.
+
 ### `price`
 
 ```python
@@ -1964,29 +1972,21 @@ Return the price and selected sensitivities.
 
 System entropy and worker-creation failures raise OSError.
 
-### `path_count`
+### `sampling`
 
-Return the exact number of sampled paths.
-
-### `thread_count`
-
-Return the per-call worker cap; zero selects automatic sizing.
+Return the sampling choice string: pseudo_random or sobol.
 
 ### `seed`
 
 Return the unsigned 64-bit seed, or None for system entropy.
 
-### `antithetic`
-
-Return whether opposite normal draws are paired.
-
-### `sampling`
-
-Return the sampling choice string: pseudo_random or sobol.
-
 ### `step_count`
 
 Return the configured grid size.
+
+### `thread_count`
+
+Return the per-call worker cap; zero selects automatic sizing.
 
 ## `MonteCarloDoubleBarrierEngine`
 
@@ -2019,6 +2019,14 @@ request; solver tolerances do not measure sampling error.
 Monitoring uses continuous survival or the original fixing dates;
 step_count is validated but unused. Only delta and gamma are returned.
 
+### `antithetic`
+
+Return whether opposite normal draws are paired.
+
+### `path_count`
+
+Return the exact number of sampled paths.
+
 ### `price`
 
 ```python
@@ -2073,10 +2081,6 @@ System entropy and worker-creation failures raise OSError.
 
 Return the sampling choice string: pseudo_random or sobol.
 
-### `path_count`
-
-Return the exact number of sampled paths.
-
 ### `seed`
 
 Return the unsigned 64-bit seed, or None for system entropy.
@@ -2085,19 +2089,11 @@ Return the unsigned 64-bit seed, or None for system entropy.
 
 Return the configured grid size.
 
-### `antithetic`
-
-Return whether opposite normal draws are paired.
-
 ### `thread_count`
 
 Return the per-call worker cap; zero selects automatic sizing.
 
 ## `MonteCarloEstimate`
-
-```python
-MonteCarloEstimate()
-```
 
 Monte Carlo price with optional sampling uncertainty.
 
@@ -2108,6 +2104,10 @@ antithetic pair means. The interval is an asymptotic 95% normal interval.
 Uncertainty is absent for Sobol, insufficient independent samples and odd
 antithetic counts; known pseudorandom settlements have zero uncertainty.
 
+### `confidence_interval`
+
+Return the asymptotic 95% interval, or None when unavailable.
+
 ### `price`
 
 Return the finite price in contract payment units.
@@ -2115,10 +2115,6 @@ Return the finite price in contract payment units.
 ### `standard_error`
 
 Return sampling standard error, or None when unavailable.
-
-### `confidence_interval`
-
-Return the asymptotic 95% interval, or None when unavailable.
 
 ## `MonteCarloSampling`
 
@@ -2160,6 +2156,14 @@ European pricing samples the exact terminal distribution and ignores
 step_count. American exercise grids use step_count points and require at
 least three before expiry.
 
+### `antithetic`
+
+Return whether opposite normal draws are paired.
+
+### `path_count`
+
+Return the exact number of sampled paths.
+
 ### `price`
 
 ```python
@@ -2181,26 +2185,6 @@ Return the price without changing the instrument or context.
 #### Notes
 
 System entropy and worker-creation failures raise OSError.
-
-### `price_with_statistics`
-
-```python
-price_with_statistics(self, /, instrument, context)
-```
-
-Return the price and estimated sampling uncertainty.
-
-#### Parameters
-
-- **`instrument`** (`EuropeanOption`) — European vanilla contract; American statistics are not exposed.
-- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-#### Returns
-
-- `MonteCarloEstimate` — Mean, optional standard error and asymptotic 95% confidence interval.
-#### Raises
-
-- `KiyosiError` — If domain validation or numerical pricing fails.
-- `OSError` — If system entropy or worker creation fails.
 
 ### `price_with_greeks`
 
@@ -2232,35 +2216,43 @@ System entropy and worker-creation failures raise OSError.
 For American vanilla options, omitted or None `spot_shift` uses 8% of
 spot; other bumps use the shared core defaults.
 
+### `price_with_statistics`
+
+```python
+price_with_statistics(self, /, instrument, context)
+```
+
+Return the price and estimated sampling uncertainty.
+
+#### Parameters
+
+- **`instrument`** (`EuropeanOption`) — European vanilla contract; American statistics are not exposed.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+#### Returns
+
+- `MonteCarloEstimate` — Mean, optional standard error and asymptotic 95% confidence interval.
+#### Raises
+
+- `KiyosiError` — If domain validation or numerical pricing fails.
+- `OSError` — If system entropy or worker creation fails.
+
 ### `sampling`
 
 Return the sampling choice string: pseudo_random or sobol.
-
-### `antithetic`
-
-Return whether opposite normal draws are paired.
 
 ### `seed`
 
 Return the unsigned 64-bit seed, or None for system entropy.
 
-### `path_count`
+### `step_count`
 
-Return the exact number of sampled paths.
+Return the configured grid size.
 
 ### `thread_count`
 
 Return the per-call worker cap; zero selects automatic sizing.
 
-### `step_count`
-
-Return the configured grid size.
-
 ## `PricingResult`
-
-```python
-PricingResult()
-```
 
 Finite price and optional finite price sensitivities.
 
@@ -2269,6 +2261,26 @@ Finite price and optional finite price sensitivities.
 Unavailable or unrequested Greeks are None. Spot derivatives are per spot
 unit, volatility/rate derivatives per percentage point, and time
 derivatives per calendar day of forward valuation time.
+
+### `charm`
+
+Return charm, or None if unrequested or unavailable.
+
+### `color`
+
+Return color, or None if unrequested or unavailable.
+
+### `delta`
+
+Return delta, or None if unrequested or unavailable.
+
+### `gamma`
+
+Return gamma, or None if unrequested or unavailable.
+
+### `price`
+
+Return the finite price in contract payment units.
 
 ### `require`
 
@@ -2288,49 +2300,29 @@ Return a requested Greek or raise when it is unavailable.
 
 - `UnsupportedOperationError` — If the measure was not requested or is undefined at this valuation.
 
-### `speed`
-
-Return speed, or None if unrequested or unavailable.
-
-### `charm`
-
-Return charm, or None if unrequested or unavailable.
-
-### `color`
-
-Return color, or None if unrequested or unavailable.
-
 ### `rho`
 
 Return rho, or None if unrequested or unavailable.
 
-### `zomma`
+### `speed`
 
-Return zomma, or None if unrequested or unavailable.
+Return speed, or None if unrequested or unavailable.
 
-### `price`
+### `theta`
 
-Return the finite price in contract payment units.
+Return theta, or None if unrequested or unavailable.
 
 ### `vanna`
 
 Return vanna, or None if unrequested or unavailable.
 
-### `delta`
-
-Return delta, or None if unrequested or unavailable.
-
-### `gamma`
-
-Return gamma, or None if unrequested or unavailable.
-
 ### `vega`
 
 Return vega, or None if unrequested or unavailable.
 
-### `theta`
+### `zomma`
 
-Return theta, or None if unrequested or unavailable.
+Return zomma, or None if unrequested or unavailable.
 
 ## `QuadratureAccumulatorEngine`
 
@@ -2350,6 +2342,14 @@ Flat-rate quadrature pricing with immutable integration settings.
 #### See Also
 
 Accumulator : Supported contract.
+
+### `asset_step_count`
+
+Return the configured spatial grid budget.
+
+### `integration_standard_deviations`
+
+Return the integration extent in standard deviations.
 
 ### `price`
 
@@ -2394,14 +2394,6 @@ Return the price and selected sensitivities.
 #### Raises
 
 - `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
-
-### `asset_step_count`
-
-Return the configured spatial grid budget.
-
-### `integration_standard_deviations`
-
-Return the integration extent in standard deviations.
 
 ## `QuadratureAutocallableEngine`
 
@@ -2425,6 +2417,14 @@ BinarySnowballOption : Supported contract.
 TernarySnowballOption : Supported contract.
 PhoenixOption : Supported contract.
 
+### `asset_step_count`
+
+Return the configured spatial grid budget.
+
+### `integration_standard_deviations`
+
+Return the integration extent in standard deviations.
+
 ### `price`
 
 ```python
@@ -2468,14 +2468,6 @@ Return the price and selected sensitivities.
 #### Raises
 
 - `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
-
-### `asset_step_count`
-
-Return the configured spatial grid budget.
-
-### `integration_standard_deviations`
-
-Return the integration extent in standard deviations.
 
 ## `QuadratureBarrierEngine`
 
@@ -2496,6 +2488,14 @@ Flat-rate quadrature pricing with immutable integration settings.
 
 BarrierOption : Supported contract.
 
+### `asset_step_count`
+
+Return the configured spatial grid budget.
+
+### `integration_standard_deviations`
+
+Return the integration extent in standard deviations.
+
 ### `price`
 
 ```python
@@ -2539,14 +2539,6 @@ Return the price and selected sensitivities.
 #### Raises
 
 - `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
-
-### `asset_step_count`
-
-Return the configured spatial grid budget.
-
-### `integration_standard_deviations`
-
-Return the integration extent in standard deviations.
 
 ## `QuadratureDigitalEngine`
 

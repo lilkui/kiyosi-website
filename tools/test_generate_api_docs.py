@@ -2,7 +2,7 @@ import inspect
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from types import ModuleType
+from types import FrameType, ModuleType
 from typing import Literal
 from unittest.mock import patch
 
@@ -87,6 +87,35 @@ class GeneratorTests(unittest.TestCase):
         rendered = class_markdown("EuropeanOption", Native)
         self.assertIn("EuropeanOption(*, strike)", rendered)
         self.assertNotIn("__init__", rendered)
+
+    def test_omits_constructor_for_factory_only_native_type(self):
+        rendered = class_markdown("Frame", FrameType)
+
+        self.assertNotIn("Frame()", rendered)
+        self.assertIn("## `Frame`", rendered)
+        self.assertIn("### `f_code`", rendered)
+
+    def test_preserves_explicit_parameterless_constructor(self):
+        class Native:
+            def __new__(cls):
+                return super().__new__(cls)
+
+        rendered = class_markdown("Engine", Native)
+        self.assertIn("Engine()", rendered)
+
+    def test_member_output_is_independent_of_declaration_order(self):
+        members = {
+            "zeta": property(doc="Last property."),
+            "alpha": property(doc="First property."),
+        }
+        first = type("Native", (), members)
+        second = type("Native", (), dict(reversed(members.items())))
+
+        rendered = class_markdown("Native", first)
+        self.assertEqual(rendered, class_markdown("Native", second))
+        self.assertLess(rendered.index("### `alpha`"), rendered.index("### `zeta`"))
+        self.assertIn("First property.", rendered)
+        self.assertIn("Last property.", rendered)
 
     def test_renders_native_data_descriptors(self):
         class Native:

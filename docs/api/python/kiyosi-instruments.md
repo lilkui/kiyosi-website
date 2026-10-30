@@ -55,6 +55,30 @@ A current midnight knock-out precedes purchases and purchases no units.
 Acceleration applies strictly below strike. History is caller asserted;
 do not value a contract whose settlement has already occurred.
 
+### `acceleration_factor`
+
+Return nonnegative quantity multiplier applied strictly below strike.
+
+### `accumulated_quantity`
+
+Return caller-asserted outstanding quantity strictly before valuation.
+
+### `daily_quantity`
+
+Return nonnegative finite quantity purchased on each trading date.
+
+### `effective_date`
+
+Return inclusive first contract date.
+
+### `expiry_date`
+
+Return final contract date; expiry is at midnight UTC.
+
+### `knock_out_level`
+
+Return positive inclusive knock-out threshold.
+
 ### `replace`
 
 ```python
@@ -73,33 +97,9 @@ Return a validated replacement without changing this value.
 
 - `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
 
-### `expiry_date`
-
-Return final contract date; expiry is at midnight UTC.
-
-### `daily_quantity`
-
-Return nonnegative finite quantity purchased on each trading date.
-
-### `effective_date`
-
-Return inclusive first contract date.
-
 ### `strike`
 
 Return the exercise or purchase price in underlying price units.
-
-### `acceleration_factor`
-
-Return nonnegative quantity multiplier applied strictly below strike.
-
-### `accumulated_quantity`
-
-Return caller-asserted outstanding quantity strictly before valuation.
-
-### `knock_out_level`
-
-Return positive inclusive knock-out threshold.
 
 ## `AmericanOption`
 
@@ -118,6 +118,18 @@ Vanilla option exercisable throughout its inclusive contract life.
 #### Raises
 
 - `InvalidInputError` — If strike is nonpositive or non-finite, or expiry precedes effective_date.
+
+### `effective_date`
+
+Return inclusive first contract date.
+
+### `expiry_date`
+
+Return final contract date; expiry is at midnight UTC.
+
+### `option_type`
+
+Return call or put payoff direction.
 
 ### `replace`
 
@@ -144,18 +156,6 @@ Return a validated replacement without changing this value.
 
 Return the exercise or purchase price in underlying price units.
 
-### `expiry_date`
-
-Return final contract date; expiry is at midnight UTC.
-
-### `option_type`
-
-Return call or put payoff direction.
-
-### `effective_date`
-
-Return inclusive first contract date.
-
 ## `ArithmeticAveragePriceOption`
 
 ```python
@@ -176,6 +176,26 @@ Continuous average-price option with explicit history.
 
 - `InvalidInputError` — If strike, realized_average, life dates or the averaging window are invalid.
 
+### `averaging_start_date`
+
+Return first averaging date, within the contract life.
+
+### `effective_date`
+
+Return inclusive first contract date.
+
+### `expiry_date`
+
+Return final contract date; expiry is at midnight UTC.
+
+### `option_type`
+
+Return call or put payoff direction.
+
+### `realized_average`
+
+Return the supplied historical average; zero denotes no history.
+
 ### `replace`
 
 ```python
@@ -194,29 +214,9 @@ Return a validated replacement without changing this value.
 
 - `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
 
-### `option_type`
-
-Return call or put payoff direction.
-
 ### `strike`
 
 Return the exercise or purchase price in underlying price units.
-
-### `effective_date`
-
-Return inclusive first contract date.
-
-### `realized_average`
-
-Return the supplied historical average; zero denotes no history.
-
-### `expiry_date`
-
-Return final contract date; expiry is at midnight UTC.
-
-### `averaging_start_date`
-
-Return first averaging date, within the contract life.
 
 ## `AssetOrNothingOption`
 
@@ -235,6 +235,18 @@ European digital paying the asset strictly in the money.
 #### Raises
 
 - `InvalidInputError` — If strike is nonpositive/non-finite, or expiry precedes effective_date.
+
+### `effective_date`
+
+Return inclusive first contract date.
+
+### `expiry_date`
+
+Return final contract date; expiry is at midnight UTC.
+
+### `option_type`
+
+Return call or put payoff direction.
 
 ### `replace`
 
@@ -258,21 +270,9 @@ Return a validated replacement without changing this value.
 
 - `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
 
-### `option_type`
-
-Return call or put payoff direction.
-
 ### `strike`
 
 Return the exercise or purchase price in underlying price units.
-
-### `expiry_date`
-
-Return final contract date; expiry is at midnight UTC.
-
-### `effective_date`
-
-Return inclusive first contract date.
 
 ## `AutocallableObservation`
 
@@ -297,6 +297,10 @@ validates contractual levels and coupons.
 
 Return the supplied Phoenix coupon threshold; note construction validates it.
 
+### `coupon_rate`
+
+Return the supplied annual coupon in decimal units; note construction validates it.
+
 ### `date`
 
 Return observation date at midnight UTC.
@@ -304,10 +308,6 @@ Return observation date at midnight UTC.
 ### `knock_out_level`
 
 Return the supplied knock-out threshold; the note constructor validates it.
-
-### `coupon_rate`
-
-Return the supplied annual coupon in decimal units; note construction validates it.
 
 ## `BarrierOption`
 
@@ -334,6 +334,50 @@ Single-barrier vanilla option with inclusive barrier touches.
 
 - `InvalidInputError` — If levels, rebate, life dates, monitoring schedule or rebate timing are invalid. Trading-day and valuation-history checks occur at pricing.
 
+### `barrier_level`
+
+Return positive finite trigger level; equality counts as a touch.
+
+### `barrier_type`
+
+Return trigger direction and knock-in or knock-out behavior.
+
+### `effective_date`
+
+Return inclusive first contract date.
+
+### `expiry_date`
+
+Return final contract date; expiry is at midnight UTC.
+
+### `mean_observation_year_fraction`
+
+Return mean fixing spacing in Actual/365 Fixed years.
+
+### `observation_dates`
+
+Return a copy of the contractual observation dates.
+
+### `observation_mode`
+
+Return continuous monitoring or observations on the supplied dates.
+
+### `observation_schedule`
+
+Return an owned copy of the monitoring schedule.
+
+### `option_type`
+
+Return call or put payoff direction.
+
+### `rebate`
+
+Return nonnegative finite cash rebate; defaults to zero.
+
+### `rebate_timing`
+
+Return payment timing; at-hit rebates are valid only for knock-outs.
+
 ### `replace`
 
 ```python
@@ -352,63 +396,15 @@ Return a validated replacement without changing this value.
 
 - `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
 
-### `barrier_level`
-
-Return positive finite trigger level; equality counts as a touch.
-
-### `effective_date`
-
-Return inclusive first contract date.
-
-### `observation_mode`
-
-Return continuous monitoring or observations on the supplied dates.
-
-### `option_type`
-
-Return call or put payoff direction.
-
 ### `strike`
 
 Return the exercise or purchase price in underlying price units.
-
-### `rebate`
-
-Return nonnegative finite cash rebate; defaults to zero.
-
-### `mean_observation_year_fraction`
-
-Return mean fixing spacing in Actual/365 Fixed years.
 
 ### `touch_state`
 
 Return strictly prior touch history, or None if unknown.
 
-### `observation_schedule`
-
-Return an owned copy of the monitoring schedule.
-
-### `expiry_date`
-
-Return final contract date; expiry is at midnight UTC.
-
-### `barrier_type`
-
-Return trigger direction and knock-in or knock-out behavior.
-
-### `rebate_timing`
-
-Return payment timing; at-hit rebates are valid only for knock-outs.
-
-### `observation_dates`
-
-Return a copy of the contractual observation dates.
-
 ## `BinaryBarrierOption`
-
-```python
-BinaryBarrierOption()
-```
 
 Cash or asset digital with barrier monitoring and strict exercise.
 
@@ -417,6 +413,50 @@ Cash or asset digital with barrier monitoring and strict exercise.
 Construct with cash_binary_barrier_option or asset_binary_barrier_option.
 Barrier equality touches; terminal strike equality pays zero.
 
+### `barrier_level`
+
+Return positive finite trigger level; equality counts as a touch.
+
+### `barrier_type`
+
+Return trigger direction and knock-in or knock-out behavior.
+
+### `effective_date`
+
+Return inclusive first contract date.
+
+### `expiry_date`
+
+Return final contract date; expiry is at midnight UTC.
+
+### `mean_observation_year_fraction`
+
+Return mean fixing spacing in Actual/365 Fixed years.
+
+### `observation_dates`
+
+Return a copy of the contractual observation dates.
+
+### `observation_mode`
+
+Return continuous monitoring or observations on the supplied dates.
+
+### `observation_schedule`
+
+Return an owned copy of the monitoring schedule.
+
+### `option_type`
+
+Return call or put payoff direction.
+
+### `payoff_type`
+
+Return cash or asset settlement as a choice string.
+
+### `payout`
+
+Return the cash payout, or None for asset settlement.
+
 ### `replace`
 
 ```python
@@ -435,57 +475,13 @@ Return a validated replacement without changing this value.
 
 - `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
 
-### `observation_dates`
+### `strike`
 
-Return a copy of the contractual observation dates.
-
-### `mean_observation_year_fraction`
-
-Return mean fixing spacing in Actual/365 Fixed years.
-
-### `observation_mode`
-
-Return continuous monitoring or observations on the supplied dates.
+Return the exercise or purchase price in underlying price units.
 
 ### `touch_state`
 
 Return strictly prior touch history, or None if unknown.
-
-### `observation_schedule`
-
-Return an owned copy of the monitoring schedule.
-
-### `payout`
-
-Return the cash payout, or None for asset settlement.
-
-### `barrier_type`
-
-Return trigger direction and knock-in or knock-out behavior.
-
-### `option_type`
-
-Return call or put payoff direction.
-
-### `barrier_level`
-
-Return positive finite trigger level; equality counts as a touch.
-
-### `effective_date`
-
-Return inclusive first contract date.
-
-### `expiry_date`
-
-Return final contract date; expiry is at midnight UTC.
-
-### `payoff_type`
-
-Return cash or asset settlement as a choice string.
-
-### `strike`
-
-Return the exercise or purchase price in underlying price units.
 
 ## `BinarySnowballOption`
 
@@ -507,6 +503,42 @@ Snowball with knock-out coupons and no knock-in or downside loss.
 
 - `InvalidInputError` — If coupons, principal, dates or observations are invalid, or barrier_state is knocked_in; this contract has no knock-in barrier.
 
+### `barrier_state`
+
+Return strictly prior autocallable history, or None if unknown.
+
+### `effective_date`
+
+Return inclusive first contract date.
+
+### `expiry_date`
+
+Return final contract date; expiry is at midnight UTC.
+
+### `knock_out_coupon_rates`
+
+Return copied annual knock-out coupons in observation order.
+
+### `knock_out_levels`
+
+Return copied knock-out thresholds in observation order.
+
+### `maturity_coupon_rate`
+
+Return finite annual maturity coupon rate in decimal units.
+
+### `observation_dates`
+
+Return a copy of the contractual observation dates.
+
+### `observations`
+
+Return owned copies of the contractual observations.
+
+### `principal_ratio`
+
+Return nonnegative normalized principal, independent of coupons and losses.
+
 ### `replace`
 
 ```python
@@ -524,42 +556,6 @@ Return a validated replacement without changing this value.
 #### Raises
 
 - `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
-
-### `effective_date`
-
-Return inclusive first contract date.
-
-### `observation_dates`
-
-Return a copy of the contractual observation dates.
-
-### `maturity_coupon_rate`
-
-Return finite annual maturity coupon rate in decimal units.
-
-### `principal_ratio`
-
-Return nonnegative normalized principal, independent of coupons and losses.
-
-### `knock_out_coupon_rates`
-
-Return copied annual knock-out coupons in observation order.
-
-### `knock_out_levels`
-
-Return copied knock-out thresholds in observation order.
-
-### `expiry_date`
-
-Return final contract date; expiry is at midnight UTC.
-
-### `barrier_state`
-
-Return strictly prior autocallable history, or None if unknown.
-
-### `observations`
-
-Return owned copies of the contractual observations.
 
 ## `CashOrNothingOption`
 
@@ -579,6 +575,22 @@ European digital paying cash strictly in the money.
 #### Raises
 
 - `InvalidInputError` — If payout or strike is nonpositive/non-finite, or expiry precedes effective_date.
+
+### `effective_date`
+
+Return inclusive first contract date.
+
+### `expiry_date`
+
+Return final contract date; expiry is at midnight UTC.
+
+### `option_type`
+
+Return call or put payoff direction.
+
+### `payout`
+
+Return the fixed cash payout.
 
 ### `replace`
 
@@ -602,25 +614,9 @@ Return a validated replacement without changing this value.
 
 - `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
 
-### `effective_date`
-
-Return inclusive first contract date.
-
-### `payout`
-
-Return the fixed cash payout.
-
-### `option_type`
-
-Return call or put payoff direction.
-
 ### `strike`
 
 Return the exercise or purchase price in underlying price units.
-
-### `expiry_date`
-
-Return final contract date; expiry is at midnight UTC.
 
 ## `DoubleBarrierOption`
 
@@ -648,47 +644,37 @@ Vanilla option activated or terminated by either inclusive boundary.
 
 - `InvalidInputError` — If boundaries, strike, rebate, life dates, monitoring schedule or rebate timing are invalid. Calendar and history checks occur at pricing.
 
-### `replace`
+### `barrier_type`
 
-```python
-replace(self, /, **fields)
-```
-
-Return a validated replacement without changing this value.
-
-#### Parameters
-
-- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — Strictly prior history. None means unknown; untouched means known no hit.
-#### Returns
-
-- `object` — New instance of the same class; omitted fields retain their values.
-#### Raises
-
-- `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
-
-### `option_type`
-
-Return call or put payoff direction.
+Return trigger direction and knock-in or knock-out behavior.
 
 ### `effective_date`
 
 Return inclusive first contract date.
 
-### `upper_barrier`
+### `expiry_date`
 
-Return finite upper trigger, strictly above the lower trigger.
+Return final contract date; expiry is at midnight UTC.
 
 ### `lower_barrier`
 
 Return positive finite lower trigger; equality counts as a touch.
 
-### `strike`
+### `observation_dates`
 
-Return the exercise or purchase price in underlying price units.
+Return a copy of the contractual observation dates.
 
-### `barrier_type`
+### `observation_mode`
 
-Return trigger direction and knock-in or knock-out behavior.
+Return continuous monitoring or observations on the supplied dates.
+
+### `observation_schedule`
+
+Return an owned copy of the monitoring schedule.
+
+### `option_type`
+
+Return call or put payoff direction.
 
 ### `rebate`
 
@@ -698,6 +684,65 @@ Return nonnegative finite cash rebate; defaults to zero.
 
 Return payment timing; at-hit rebates are valid only for knock-outs.
 
+### `replace`
+
+```python
+replace(self, /, **fields)
+```
+
+Return a validated replacement without changing this value.
+
+#### Parameters
+
+- **`touch_state`** (`{'untouched', 'touched'} or None, optional`) — Strictly prior history. None means unknown; untouched means known no hit.
+#### Returns
+
+- `object` — New instance of the same class; omitted fields retain their values.
+#### Raises
+
+- `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
+
+### `strike`
+
+Return the exercise or purchase price in underlying price units.
+
+### `touch_state`
+
+Return strictly prior touch history, or None if unknown.
+
+### `upper_barrier`
+
+Return finite upper trigger, strictly above the lower trigger.
+
+## `DoubleTouchOption`
+
+Cash one-touch or no-touch contract with two inclusive boundaries.
+
+#### Notes
+
+Construct with cash_double_touch or cash_double_no_touch. Prior at-hit
+payments have no remaining value.
+
+### `effective_date`
+
+Return inclusive first contract date.
+
+### `expiry_date`
+
+Return final contract date; expiry is at midnight UTC.
+
+### `is_one_touch`
+
+Return whether touching activates payment.
+
+### `lower_barrier`
+
+Return positive finite lower trigger; equality counts as a touch.
+
+### `observation_dates`
+
+Return a copy of the contractual observation dates.
+
 ### `observation_mode`
 
 Return continuous monitoring or observations on the supplied dates.
@@ -706,30 +751,9 @@ Return continuous monitoring or observations on the supplied dates.
 
 Return an owned copy of the monitoring schedule.
 
-### `observation_dates`
+### `payout`
 
-Return a copy of the contractual observation dates.
-
-### `touch_state`
-
-Return strictly prior touch history, or None if unknown.
-
-### `expiry_date`
-
-Return final contract date; expiry is at midnight UTC.
-
-## `DoubleTouchOption`
-
-```python
-DoubleTouchOption()
-```
-
-Cash one-touch or no-touch contract with two inclusive boundaries.
-
-#### Notes
-
-Construct with cash_double_touch or cash_double_no_touch. Prior at-hit
-payments have no remaining value.
+Return the nonnegative finite cash payout.
 
 ### `replace`
 
@@ -749,49 +773,17 @@ Return a validated replacement without changing this value.
 
 - `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
 
-### `lower_barrier`
-
-Return positive finite lower trigger; equality counts as a touch.
-
 ### `settlement_timing`
 
 Return at-hit or expiry payment; no-touch contracts settle only at expiry.
 
-### `expiry_date`
+### `touch_state`
 
-Return final contract date; expiry is at midnight UTC.
-
-### `observation_mode`
-
-Return continuous monitoring or observations on the supplied dates.
-
-### `effective_date`
-
-Return inclusive first contract date.
-
-### `is_one_touch`
-
-Return whether touching activates payment.
+Return strictly prior touch history, or None if unknown.
 
 ### `upper_barrier`
 
 Return finite upper trigger, strictly above the lower trigger.
-
-### `payout`
-
-Return the nonnegative finite cash payout.
-
-### `observation_dates`
-
-Return a copy of the contractual observation dates.
-
-### `observation_schedule`
-
-Return an owned copy of the monitoring schedule.
-
-### `touch_state`
-
-Return strictly prior touch history, or None if unknown.
 
 ## `EuropeanOption`
 
@@ -811,6 +803,14 @@ European vanilla option with a positive strike.
 
 - `InvalidInputError` — If strike is nonpositive or non-finite, or expiry precedes effective_date.
 
+### `effective_date`
+
+Return inclusive first contract date.
+
+### `expiry_date`
+
+Return final contract date; expiry is at midnight UTC.
+
 ### `option_type`
 
 Return call or put payoff direction.
@@ -818,14 +818,6 @@ Return call or put payoff direction.
 ### `strike`
 
 Return the exercise or purchase price in underlying price units.
-
-### `expiry_date`
-
-Return final contract date; expiry is at midnight UTC.
-
-### `effective_date`
-
-Return inclusive first contract date.
 
 ## `GeometricAveragePriceOption`
 
@@ -847,6 +839,26 @@ Continuous average-price option with explicit history.
 
 - `InvalidInputError` — If strike, realized_average, life dates or the averaging window are invalid.
 
+### `averaging_start_date`
+
+Return first averaging date, within the contract life.
+
+### `effective_date`
+
+Return inclusive first contract date.
+
+### `expiry_date`
+
+Return final contract date; expiry is at midnight UTC.
+
+### `option_type`
+
+Return call or put payoff direction.
+
+### `realized_average`
+
+Return the supplied historical average; zero denotes no history.
+
 ### `replace`
 
 ```python
@@ -865,29 +877,9 @@ Return a validated replacement without changing this value.
 
 - `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
 
-### `expiry_date`
-
-Return final contract date; expiry is at midnight UTC.
-
-### `option_type`
-
-Return call or put payoff direction.
-
 ### `strike`
 
 Return the exercise or purchase price in underlying price units.
-
-### `realized_average`
-
-Return the supplied historical average; zero denotes no history.
-
-### `averaging_start_date`
-
-Return first averaging date, within the contract life.
-
-### `effective_date`
-
-Return inclusive first contract date.
 
 ## `OptionType`
 
@@ -925,6 +917,58 @@ Coupons accrue over contractual observation periods on Actual/365 Fixed.
 Coupon and knock-out barriers are inclusive; knock-in is strict. Past
 coupons are settled. There is no coupon memory or maturity coupon.
 
+### `barrier_state`
+
+Return strictly prior autocallable history, or None if unknown.
+
+### `coupon_barrier_levels`
+
+Return copied Phoenix coupon thresholds in observation order.
+
+### `coupon_rate`
+
+Return finite annual coupon rate in decimal units.
+
+### `effective_date`
+
+Return inclusive first contract date.
+
+### `expiry_date`
+
+Return final contract date; expiry is at midnight UTC.
+
+### `initial_spot`
+
+Return positive reference spot used to normalize downside losses.
+
+### `knock_in_level`
+
+Return positive strict downside threshold.
+
+### `knock_in_observation_mode`
+
+Return the knock-in monitoring choice string.
+
+### `knock_out_levels`
+
+Return copied knock-out thresholds in observation order.
+
+### `lower_strike`
+
+Return nonnegative lower terminal strike, at most the upper strike.
+
+### `observation_dates`
+
+Return a copy of the contractual observation dates.
+
+### `observations`
+
+Return owned copies of the contractual observations.
+
+### `principal_ratio`
+
+Return nonnegative normalized principal, independent of coupons and losses.
+
 ### `replace`
 
 ```python
@@ -943,61 +987,9 @@ Return a validated replacement without changing this value.
 
 - `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
 
-### `observations`
-
-Return owned copies of the contractual observations.
-
-### `knock_in_level`
-
-Return positive strict downside threshold.
-
 ### `upper_strike`
 
 Return positive upper terminal settlement strike.
-
-### `expiry_date`
-
-Return final contract date; expiry is at midnight UTC.
-
-### `observation_dates`
-
-Return a copy of the contractual observation dates.
-
-### `knock_out_levels`
-
-Return copied knock-out thresholds in observation order.
-
-### `coupon_barrier_levels`
-
-Return copied Phoenix coupon thresholds in observation order.
-
-### `lower_strike`
-
-Return nonnegative lower terminal strike, at most the upper strike.
-
-### `coupon_rate`
-
-Return finite annual coupon rate in decimal units.
-
-### `knock_in_observation_mode`
-
-Return the knock-in monitoring choice string.
-
-### `initial_spot`
-
-Return positive reference spot used to normalize downside losses.
-
-### `principal_ratio`
-
-Return nonnegative normalized principal, independent of coupons and losses.
-
-### `effective_date`
-
-Return inclusive first contract date.
-
-### `barrier_state`
-
-Return strictly prior autocallable history, or None if unknown.
 
 ## `RangeAccrualOption`
 
@@ -1025,6 +1017,30 @@ Observe trading dates in (effective_date, expiry_date]. Bounds are
 inclusive. Payment is notional times annual coupon times Actual/365 Fixed
 life times the fraction of observations inside the range.
 
+### `annual_coupon_rate`
+
+Return nonnegative finite annual coupon rate in decimal units.
+
+### `effective_date`
+
+Return inclusive first contract date.
+
+### `expiry_date`
+
+Return final contract date; expiry is at midnight UTC.
+
+### `lower_bound`
+
+Return inclusive nonnegative lower spot boundary.
+
+### `notional`
+
+Return positive finite coupon notional, without principal repayment.
+
+### `realized_hit_count`
+
+Return hits strictly before valuation, or None for unknown history.
+
 ### `replace`
 
 ```python
@@ -1046,30 +1062,6 @@ Return a validated replacement without changing this value.
 ### `upper_bound`
 
 Return inclusive finite upper spot boundary, above the lower boundary.
-
-### `lower_bound`
-
-Return inclusive nonnegative lower spot boundary.
-
-### `realized_hit_count`
-
-Return hits strictly before valuation, or None for unknown history.
-
-### `effective_date`
-
-Return inclusive first contract date.
-
-### `expiry_date`
-
-Return final contract date; expiry is at midnight UTC.
-
-### `notional`
-
-Return positive finite coupon notional, without principal repayment.
-
-### `annual_coupon_rate`
-
-Return nonnegative finite annual coupon rate in decimal units.
 
 ## `SnowballOption`
 
@@ -1096,6 +1088,58 @@ Snowball with knock-out coupons and capped knock-in downside loss.
 
 - `InvalidInputError` — If amounts, strikes, life dates or observation terms are invalid. Pricing checks the calendar and prior barrier history.
 
+### `barrier_state`
+
+Return strictly prior autocallable history, or None if unknown.
+
+### `effective_date`
+
+Return inclusive first contract date.
+
+### `expiry_date`
+
+Return final contract date; expiry is at midnight UTC.
+
+### `initial_spot`
+
+Return positive reference spot used to normalize downside losses.
+
+### `knock_in_level`
+
+Return positive strict downside threshold.
+
+### `knock_in_observation_mode`
+
+Return the knock-in monitoring choice string.
+
+### `knock_out_coupon_rates`
+
+Return copied annual knock-out coupons in observation order.
+
+### `knock_out_levels`
+
+Return copied knock-out thresholds in observation order.
+
+### `lower_strike`
+
+Return nonnegative lower terminal strike, at most the upper strike.
+
+### `maturity_coupon_rate`
+
+Return finite annual maturity coupon rate in decimal units.
+
+### `observation_dates`
+
+Return a copy of the contractual observation dates.
+
+### `observations`
+
+Return owned copies of the contractual observations.
+
+### `principal_ratio`
+
+Return nonnegative normalized principal, independent of coupons and losses.
+
 ### `replace`
 
 ```python
@@ -1114,61 +1158,9 @@ Return a validated replacement without changing this value.
 
 - `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
 
-### `knock_out_levels`
-
-Return copied knock-out thresholds in observation order.
-
-### `observation_dates`
-
-Return a copy of the contractual observation dates.
-
-### `lower_strike`
-
-Return nonnegative lower terminal strike, at most the upper strike.
-
-### `principal_ratio`
-
-Return nonnegative normalized principal, independent of coupons and losses.
-
-### `knock_in_observation_mode`
-
-Return the knock-in monitoring choice string.
-
-### `barrier_state`
-
-Return strictly prior autocallable history, or None if unknown.
-
-### `knock_in_level`
-
-Return positive strict downside threshold.
-
-### `knock_out_coupon_rates`
-
-Return copied annual knock-out coupons in observation order.
-
-### `observations`
-
-Return owned copies of the contractual observations.
-
-### `initial_spot`
-
-Return positive reference spot used to normalize downside losses.
-
-### `effective_date`
-
-Return inclusive first contract date.
-
 ### `upper_strike`
 
 Return positive upper terminal settlement strike.
-
-### `expiry_date`
-
-Return final contract date; expiry is at midnight UTC.
-
-### `maturity_coupon_rate`
-
-Return finite annual maturity coupon rate in decimal units.
 
 ## `TernarySnowballOption`
 
@@ -1193,6 +1185,54 @@ Snowball with distinct intact and knocked-in maturity coupons.
 
 - `InvalidInputError` — If coupons, principal, barriers, dates or observations are invalid. minimum_coupon_rate must not exceed maturity_coupon_rate.
 
+### `barrier_state`
+
+Return strictly prior autocallable history, or None if unknown.
+
+### `effective_date`
+
+Return inclusive first contract date.
+
+### `expiry_date`
+
+Return final contract date; expiry is at midnight UTC.
+
+### `knock_in_level`
+
+Return positive strict downside threshold.
+
+### `knock_in_observation_mode`
+
+Return the knock-in monitoring choice string.
+
+### `knock_out_coupon_rates`
+
+Return copied annual knock-out coupons in observation order.
+
+### `knock_out_levels`
+
+Return copied knock-out thresholds in observation order.
+
+### `maturity_coupon_rate`
+
+Return finite annual maturity coupon rate in decimal units.
+
+### `minimum_coupon_rate`
+
+Return the annual knocked-in maturity coupon.
+
+### `observation_dates`
+
+Return a copy of the contractual observation dates.
+
+### `observations`
+
+Return owned copies of the contractual observations.
+
+### `principal_ratio`
+
+Return nonnegative normalized principal, independent of coupons and losses.
+
 ### `replace`
 
 ```python
@@ -1211,59 +1251,7 @@ Return a validated replacement without changing this value.
 
 - `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
 
-### `observations`
-
-Return owned copies of the contractual observations.
-
-### `principal_ratio`
-
-Return nonnegative normalized principal, independent of coupons and losses.
-
-### `knock_in_observation_mode`
-
-Return the knock-in monitoring choice string.
-
-### `barrier_state`
-
-Return strictly prior autocallable history, or None if unknown.
-
-### `expiry_date`
-
-Return final contract date; expiry is at midnight UTC.
-
-### `effective_date`
-
-Return inclusive first contract date.
-
-### `maturity_coupon_rate`
-
-Return finite annual maturity coupon rate in decimal units.
-
-### `minimum_coupon_rate`
-
-Return the annual knocked-in maturity coupon.
-
-### `knock_in_level`
-
-Return positive strict downside threshold.
-
-### `observation_dates`
-
-Return a copy of the contractual observation dates.
-
-### `knock_out_coupon_rates`
-
-Return copied annual knock-out coupons in observation order.
-
-### `knock_out_levels`
-
-Return copied knock-out thresholds in observation order.
-
 ## `TouchOption`
-
-```python
-TouchOption()
-```
 
 Strike-free cash or asset one-touch or no-touch contract.
 
@@ -1271,6 +1259,54 @@ Strike-free cash or asset one-touch or no-touch contract.
 
 Use a directional factory such as cash_one_touch_up or asset_no_touch_down.
 Prior at-hit payments are settled.
+
+### `barrier_level`
+
+Return positive finite trigger level; equality counts as a touch.
+
+### `barrier_type`
+
+Return trigger direction and knock-in or knock-out behavior.
+
+### `effective_date`
+
+Return inclusive first contract date.
+
+### `expiry_date`
+
+Return final contract date; expiry is at midnight UTC.
+
+### `is_one_touch`
+
+Return whether touching activates payment.
+
+### `is_up`
+
+Return whether the barrier triggers upward.
+
+### `mean_observation_year_fraction`
+
+Return mean fixing spacing in Actual/365 Fixed years.
+
+### `observation_dates`
+
+Return a copy of the contractual observation dates.
+
+### `observation_mode`
+
+Return continuous monitoring or observations on the supplied dates.
+
+### `observation_schedule`
+
+Return an owned copy of the monitoring schedule.
+
+### `payoff_type`
+
+Return cash or asset settlement as a choice string.
+
+### `payout`
+
+Return the cash payout, or None for asset settlement.
 
 ### `replace`
 
@@ -1290,61 +1326,13 @@ Return a validated replacement without changing this value.
 
 - `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
 
-### `touch_state`
-
-Return strictly prior touch history, or None if unknown.
-
-### `effective_date`
-
-Return inclusive first contract date.
-
-### `barrier_type`
-
-Return trigger direction and knock-in or knock-out behavior.
-
-### `payoff_type`
-
-Return cash or asset settlement as a choice string.
-
-### `observation_schedule`
-
-Return an owned copy of the monitoring schedule.
-
-### `expiry_date`
-
-Return final contract date; expiry is at midnight UTC.
-
-### `is_up`
-
-Return whether the barrier triggers upward.
-
 ### `settlement_timing`
 
 Return at-hit or expiry payment; no-touch contracts settle only at expiry.
 
-### `barrier_level`
+### `touch_state`
 
-Return positive finite trigger level; equality counts as a touch.
-
-### `is_one_touch`
-
-Return whether touching activates payment.
-
-### `payout`
-
-Return the cash payout, or None for asset settlement.
-
-### `observation_dates`
-
-Return a copy of the contractual observation dates.
-
-### `mean_observation_year_fraction`
-
-Return mean fixing spacing in Actual/365 Fixed years.
-
-### `observation_mode`
-
-Return continuous monitoring or observations on the supplied dates.
+Return strictly prior touch history, or None if unknown.
 
 ## `asset_binary_barrier_option`
 
