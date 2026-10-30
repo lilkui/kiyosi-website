@@ -5,13 +5,13 @@
       "source": "Leonxlnx/taste-skill",
       "sourceType": "github",
       "skillPath": "skills/taste-skill/SKILL.md",
-      "computedHash": "41463de84d80d8839b1e9fc8ddfd140578443d095b53710d1f331dbab3079712"
+      "computedHash": "6ac8ba6089dcbc303744a507a4587113c5d845ca2f658b3ce2b0b5eab108fb0d"
     },
     "vitepress": {
       "source": "antfu/skills",
       "sourceType": "github",
       "skillPath": "skills/vitepress/SKILL.md",
-      "computedHash": "4fa65b441c03a570dbd472649d144d82fd67bdb6169048d6abad02a5cddb26dd"
+      "computedHash": "b7fd97083e6b963b478b430552861cf1514f39b8e3e7fdf0a348e86d76ecf418"
     }
   }
 }
