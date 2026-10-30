@@ -49,6 +49,48 @@ class PreparationTests(unittest.TestCase):
         self.assertFalse((self.cache / "venv").exists())
         self.assertEqual(self.git("rev-parse", "HEAD").strip(), self.revision)
 
+    def test_publishes_complete_rustdoc_and_return_redirect(self):
+        destination = self.root / "docs/public/api/rust"
+        destination.mkdir(parents=True)
+        (destination / "old.html").write_text("previous docs", encoding="utf-8")
+        files = {
+            "kiyosi_core/index.html": "<h1>Rust API</h1>",
+            "static.files/main.js": "// rustdoc asset\n",
+            "src/kiyosi_core/lib.rs.html": "<pre>pub struct Example;</pre>",
+        }
+
+        def fake_run(*command, **kwargs):
+            if command[:2] == ("cargo", "doc"):
+                for name, content in files.items():
+                    file = self.cache / "target/doc" / name
+                    file.parent.mkdir(parents=True, exist_ok=True)
+                    file.write_text(content, encoding="utf-8")
+
+        with patch("prepare_api_docs.venv.EnvBuilder"), patch(
+            "prepare_api_docs.run", side_effect=fake_run
+        ) as commands:
+            prepare_api_docs.main()
+
+        commands.assert_any_call(
+            self.cache / "venv" / (
+                "Scripts/python.exe" if prepare_api_docs.os.name == "nt" else "bin/python"
+            ),
+            self.root / "tools/generate_api_docs.py", "--version", "0.14.0",
+            "--revision", self.revision, "--output", self.root / "docs/api",
+        )
+        self.assertEqual(
+            {file.relative_to(destination).as_posix() for file in destination.rglob("*") if file.is_file()},
+            {*files, "index.html"},
+        )
+        for name, content in files.items():
+            self.assertEqual((destination / name).read_text(encoding="utf-8"), content)
+        redirect = (destination / "index.html").read_text(encoding="utf-8")
+        self.assertIn(
+            'location.replace("kiyosi_core/index.html" + location.search + location.hash)',
+            redirect,
+        )
+        self.assertIn('content="0;url=kiyosi_core/index.html"', redirect)
+
 
 if __name__ == "__main__":
     unittest.main()
