@@ -57,14 +57,14 @@ class GeneratorTests(unittest.TestCase):
     def test_honors_all_and_rejects_missing_exports(self):
         module = ModuleType("kiyosi")
         module.__all__ = ["__version__"]
-        module.__version__ = "0.10.0"
+        module.__version__ = "0.14.0"
         module.other = "not exported"
         with TemporaryDirectory() as directory, patch(
             "generate_api_docs.PYTHON_MODULES", (module.__name__,)
         ), patch("generate_api_docs.importlib.import_module", return_value=module):
             generate_python(Path(directory))
             rendered = (Path(directory) / "python/kiyosi.md").read_text(encoding="utf-8")
-            self.assertIn("__version__ = '0.10.0'", rendered)
+            self.assertIn("__version__ = '0.14.0'", rendered)
             self.assertNotIn("not exported", rendered)
             module.__all__.append("missing")
             with self.assertRaisesRegex(RuntimeError, "kiyosi exports missing names: missing"):

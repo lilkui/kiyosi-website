@@ -63,7 +63,7 @@ $env:DOCS_BASE = '/kiyosi-website/'
 npm run docs:build
 ```
 
-rustdoc 内部使用相对路径，随整个目录发布即可。原有 `/zh/` 的首页、指南和 Python 概览仍生成跳转，保留查询参数和锚点。
+rustdoc 内部使用相对路径，随整个目录发布即可。原有 `/zh/` 的首页、指南和 Python 概览仍生成跳转；`/cpp/building.html` 与 `/zh/cpp/building.html` 跳转至 Rust 构建指南。跳转保留查询参数和锚点。
 
 ## 更新文档版本
 
@@ -79,4 +79,4 @@ npm run docs:generate
 
 生成器按 `__all__` 收集导出；没有 `__all__` 时收集公开名称，保留 `typing.Literal` 类型别名。PyO3 构造签名、原生属性及交互示例均纳入参考。生成失败或版本不匹配时，保留原有 Python 参考；非空目录必须带 `.kiyosi-api-generated` 标记才允许替换，勿在生成目录中编写手工页面。
 
-清理构建缓存时可以删除 `.cache/` 与 `docs/public/api/rust/`；下次生成会重新下载和构建。架构取舍记录在 [ADR](./docs/adr/0001-rust-documentation-build.md)。
+清理构建缓存时可以删除 `.cache/` 与 `docs/public/api/rust/`；下次生成会重新下载和构建。

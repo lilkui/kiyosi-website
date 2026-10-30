@@ -10,18 +10,20 @@ export default defineConfig({
   srcExclude: ['public/**'],
   async buildEnd({ outDir }) {
     const legacyPages = [
-      'index',
-      'guide/introduction',
-      'guide/installation',
-      'guide/first-price',
-      'guide/engines',
-      'reference/python',
+      ['zh/index', 'index'],
+      ['zh/guide/introduction', 'guide/introduction'],
+      ['zh/guide/installation', 'guide/installation'],
+      ['zh/guide/first-price', 'guide/first-price'],
+      ['zh/guide/engines', 'guide/engines'],
+      ['zh/reference/python', 'reference/python'],
+      ['cpp/building', 'rust/building'],
+      ['zh/cpp/building', 'rust/building'],
     ]
-    for (const page of legacyPages) {
-      const file = `${page}.html`
+    for (const [page, destination] of legacyPages) {
+      const file = `${destination}.html`
       await access(join(outDir, file))
-      const target = posix.relative(posix.dirname(`zh/${file}`), file)
-      const output = join(outDir, 'zh', file)
+      const target = posix.relative(posix.dirname(`${page}.html`), file)
+      const output = join(outDir, `${page}.html`)
       await mkdir(dirname(output), { recursive: true })
       await writeFile(output, `<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><title>页面已迁移</title>
