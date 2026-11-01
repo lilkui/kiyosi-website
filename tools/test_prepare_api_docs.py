@@ -77,7 +77,6 @@ class PreparationTests(unittest.TestCase):
                  "RUSTDOCFLAGS": "-D warnings"},
         )
         commands.assert_any_call(
-            "uv", "run", "--python",
             self.cache / "venv" / (
                 "Scripts/python.exe" if prepare_api_docs.os.name == "nt" else "bin/python"
             ),
