@@ -50,8 +50,8 @@ npm run docs:build
 
 1. 修改 `upstream.json` 的版本和完整提交，确保二者一致。
 2. 同步更新首页、指南和 Rust 示例中的版本、接口及源码链接。
-3. 执行 `npm run docs:build` 和 `npm run docs:test`，审查生成的 Python API 差异，并运行指南示例。
+3. 执行 `npm run docs:build` 和 `npm run docs:test`，检查生成的 Python API，并运行指南示例。
 
 单独生成 API：`npm run docs:generate`。
 
-`docs/api/` 由工具生成，请勿手工编辑；生成的 Python API Markdown 需提交到仓库，rustdoc HTML 和构建缓存不提交。
+`docs/api/` 由工具生成，请勿手工编辑；生成的 Python API Markdown、rustdoc HTML 和构建缓存均不提交到仓库。

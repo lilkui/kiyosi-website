@@ -6,4 +6,5 @@ docs/.vitepress/.temp/
 *.local
 __pycache__/
 .cache/
+docs/api/
 docs/public/api/rust/
