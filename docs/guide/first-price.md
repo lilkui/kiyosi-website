@@ -67,11 +67,11 @@ result = engine.price_with_greeks(option, context, greeks=["delta", "gamma", "ve
 print(result.price, result.delta, result.gamma, result.vega)
 ```
 
-该方法返回只读的 `PricingResult`。也可用 `all_greeks=True` 请求全部十项指标，此时不要同时传入 `greeks`。未请求、无定义或不支持的指标为 `None`，不能当作零处理。
+该方法返回只读的 `PricingResult`。`greeks` 是必填参数，可传单个名称（如 `"delta"`）、名称序列，或 `"all"` 请求全部十二项指标。未请求、无定义或不支持的指标为 `None`，不能当作零处理。
 
-引擎优先使用原生 Greeks，其余可计算指标使用数值差分。需要调整差分扰动量时，直接向 `price_with_greeks()` 传入 `spot_shift` 等关键字参数，详见[Python API 概览](../reference/python#kiyosi-pricing)。
+引擎优先使用原生 Greeks，其余可计算指标使用数值差分。仅使用原生 Greeks 的引擎（包括本例的 `AnalyticEuropeanEngine`）不接受差分扰动参数；使用数值差分的引擎按其签名提供 `spot_shift` 等关键字参数，详见[Python API 概览](../reference/python#kiyosi-pricing)。
 
-Vega 按波动率变动 1 个百分点计量，theta 按估值时点向前移动 1 个自然日计量。完整的单位说明见 [`PricingResult`](/api/python/kiyosi#pricingresult)。
+Vega 按波动率变动 1 个百分点计量，volga 为波动率二阶导数除以 10000；`dividend_rho` 按股息率曲线平行移动 1 个百分点计量。Theta 按估值时点向前移动 1 个自然日计量。完整的单位说明见 [`PricingResult`](/api/python/kiyosi#pricingresult)。
 
 ## 更换定价引擎 {#change-the-engine}
 
@@ -86,4 +86,4 @@ print(estimate)
 
 蒙特卡洛方法通过数值模拟估算价格，结果可能与解析解不同。`seed` 固定随机种子，`thread_count` 限制单次 CPU 调用的并发数。各类产品的引擎支持范围与采样设置见[定价引擎](./engines)。
 
-本示例改编自 [kiyosi Python 定价模块示例](https://github.com/lilkui/kiyosi/blob/748942203c99ffb5f011dbdcd06312d6b5f4a06c/python/kiyosi/pricing.py)。
+本示例改编自 [kiyosi Python 定价模块示例](https://github.com/lilkui/kiyosi/blob/2ec75ab8462bcef8f32bd32aba4468f78e7ee6a9/python/src/kiyosi/pricing.py)。

@@ -7,14 +7,69 @@ outline: [2, 4]
 
 Price contracts, compute sensitivities, and solve implied parameters.
 
-``FiniteDifferenceScheme`` selects ``"explicit_euler"``, ``"implicit_euler"``
-or ``"crank_nicolson"`` (with initial damping). ``MonteCarloSampling`` selects
+Finite-difference engines support local volatility for European and American
+vanilla options, digitals, single and double barriers, binary barriers, touch
+and no-touch options, autocallable notes and accumulators. They provide price,
+delta and gamma, holding the absolute surface fixed. Other Greeks (including
+"all"), non-FD engines and inverse solves raise UnsupportedOperationError for
+this model. Digital FD requires explicitly flat risk-free and dividend rates.
+Delta/gamma are absent at expiry and unavailable event-crossing stencils.
+Surface coverage follows remaining stochastic evolution; rates must cover
+required discounting. Automatic domains use the maximum interpolated local
+volatility over the remaining stochastic horizon. Check time, space and boundary
+convergence for local-volatility domains, including automatically selected domains.
+
+``FiniteDifferenceScheme`` selects ``"explicit_euler"``, ``"implicit_euler"``,
+``"crank_nicolson"`` (without time-step damping), or ``"rannacher"`` (the default).
+Rannacher replaces each of the first two time intervals with two implicit Euler
+half-steps and restarts after scheduled barrier, accumulator and autocallable
+observations. Payoff averaging and spatial discretization apply independently
+of the time scheme. ``MonteCarloSampling`` selects
 ``"pseudo_random"`` or scrambled ``"sobol"``; a fixed seed reproduces draws
 across thread counts in the same build. Sobol estimates omit sampling error.
+Autocallable and accumulator ``price`` calls return the sample mean;
+``price_with_statistics`` also computes and validates sampling uncertainty.
+
+Pricing raises ``ComputationFailureError`` for materially negative option
+prices; only rounding-sized negative results may be clipped to zero.
+Coarse numerical grids may require refinement before pricing succeeds.
+American Monte Carlo also rejects non-finite continuation regressions;
+finite fits with insufficient independent samples use a lower polynomial degree.
+
+``AnalyticEuropeanEngine``, ``CoxRossRubinsteinDigitalEngine``,
+``CoxRossRubinsteinBarrierEngine``, ``MonteCarloDigitalEngine`` and
+``MonteCarloAsianEngine`` compute native Greeks without numerical bumps;
+their ``price_with_greeks`` methods accept only ``greeks`` as a request
+control. Engines that use numerical differences also accept bump
+settings.
+``volatility_shift`` controls the volatility bump for vega and volga;
+``rate_shift`` controls parallel bumps of both the risk-free and dividend-yield
+curves for rho and dividend_rho. Numerical volga requires a strictly positive
+lower volatility leg. Monte Carlo volga can amplify sampling and exercise noise;
+check convergence across bump sizes and simulation settings.
+
+``MonteCarloBarrierEngine`` and ``MonteCarloDoubleBarrierEngine`` return only
+delta and gamma. Their only bump control is ``spot_shift``, used for barrier
+availability checks and numerical derivatives of continuous at-hit rebates.
+
+Pass ``greeks="all"`` to request every measure, a Greek name for one measure,
+or an iterable of names for a selection. The ``greeks`` argument is required;
+unavailable measures remain None.
+
+Pricing controls are explicit keyword-only parameters, available through
+``inspect.signature``. Instrument conversion and supported-family checks
+precede Greek-name parsing. Monte Carlo vanilla spot bumps default by product:
+0.01 for European options and 8% of spot for American options. Explicit
+``None`` selects the automatic bump for either product.
 
 ``CouponQuoteConvention`` controls whether a snowball's maturity coupon
 shifts with observation coupons (``"shift_maturity_coupon"``) or stays fixed
-(``"preserve_maturity_coupon"``). Phoenix coupon solves omit this choice.
+(``"preserve_maturity_coupon"``). Phoenix coupon solves omit this choice;
+the displayed default ``...`` (``Ellipsis``) also means omitted.
+Unsupported coupon-solver instruments are rejected before checking this choice.
+Phoenix solves preserve the contract's coupon units: annual rate for annual
+coupons, fixed per-period proportion for FCN/DCN. Bounds, parameter tolerance
+and the returned value use the same units.
 
 ## Examples
 
@@ -42,6 +97,15 @@ Price a European call and request its delta and vega:
 9.227006
 >>> result.require("delta") > 0
 True
+>>> sensitivities = AnalyticEuropeanEngine().price_with_greeks(
+...     option, context, greeks="all",
+... )
+>>> sensitivities.require("gamma") > 0
+True
+>>> round(sensitivities.require("volga"), 8)
+0.00023688
+>>> round(sensitivities.require("dividend_rho"), 6)
+-0.586851
 ```
 
 
@@ -74,7 +138,7 @@ BarrierOption : Supported contract.
 price(self, /, instrument, context)
 ```
 
-Return the price without changing the instrument or context.
+Returns the price without changing the instrument or context.
 
 #### Parameters
 
@@ -90,17 +154,16 @@ Return the price without changing the instrument or context.
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks, *, spot_shift=Ellipsis, volatility_shift=Ellipsis, rate_shift=Ellipsis, time_shift_days=Ellipsis)
 ```
 
-Return the price and selected sensitivities.
+Returns the price and selected sensitivities.
 
 #### Parameters
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 - **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
 - **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
 - **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
@@ -147,17 +210,16 @@ Return the price without changing the instrument or context.
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks, *, spot_shift=Ellipsis, volatility_shift=Ellipsis, rate_shift=Ellipsis, time_shift_days=Ellipsis)
 ```
 
-Return the price and selected sensitivities.
+Returns the price and selected sensitivities.
 
 #### Parameters
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 - **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
 - **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
 - **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
@@ -204,17 +266,16 @@ Return the price without changing the instrument or context.
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks, *, spot_shift=Ellipsis, volatility_shift=Ellipsis, rate_shift=Ellipsis, time_shift_days=Ellipsis)
 ```
 
-Return the price and selected sensitivities.
+Returns the price and selected sensitivities.
 
 #### Parameters
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 - **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
 - **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
 - **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
@@ -244,7 +305,7 @@ DoubleBarrierOption : Supported contract.
 price(self, /, instrument, context)
 ```
 
-Return the price without changing the instrument or context.
+Returns the price without changing the instrument or context.
 
 #### Parameters
 
@@ -260,17 +321,82 @@ Return the price without changing the instrument or context.
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks, *, spot_shift=Ellipsis, volatility_shift=Ellipsis, rate_shift=Ellipsis, time_shift_days=Ellipsis)
 ```
 
-Return the price and selected sensitivities.
+Returns the price and selected sensitivities.
 
 #### Parameters
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
+- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
+- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
+- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
+- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
+#### Returns
+
+- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
+#### Raises
+
+- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
+
+## `AnalyticDoubleTouchEngine`
+
+```python
+AnalyticDoubleTouchEngine()
+```
+
+Prices continuous cash double-touch and double-no-touch contracts with flat rates.
+
+Either inclusive barrier triggers a touch. Supports expiry payments and
+double-touch at-hit payments; past at-hit payments have zero remaining value.
+Uses image/spectral series and adaptive first-exit integration for at-hit payments.
+Node curves are always rejected; unresolved scheduled monitoring is unsupported.
+Resolved scheduled cashflows are priced after calendar and history validation.
+Greeks use numerical differences; expiry and current barrier equality without
+a prior touch omit Greeks. Stencils crossing a barrier omit affected measures.
+
+#### See Also
+
+DoubleTouchOption : Supported cash contract.
+cash_double_touch : Double one-touch constructor.
+cash_double_no_touch : Double no-touch constructor.
+FiniteDifferenceDoubleTouchEngine : Supports schedules and node curves.
+
+### `price`
+
+```python
+price(self, /, instrument, context)
+```
+
+Returns the price without changing the instrument or context.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+#### Returns
+
+- `float` — Present value of remaining contractual payments.
+#### Raises
+
+- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
+
+### `price_with_greeks`
+
+```python
+price_with_greeks(self, /, instrument, context, greeks, *, spot_shift=Ellipsis, volatility_shift=Ellipsis, rate_shift=Ellipsis, time_shift_days=Ellipsis)
+```
+
+Returns the price and selected sensitivities.
+
+#### Parameters
+
+- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
+- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 - **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
 - **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
 - **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
@@ -316,7 +442,7 @@ Return the price without changing the instrument or context.
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks)
 ```
 
 Return the price and selected sensitivities.
@@ -325,18 +451,13 @@ Return the price and selected sensitivities.
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
-- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
-- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
-- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
-- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 #### Returns
 
 - `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
 #### Raises
 
-- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
+- `KiyosiError` — If requests, pricing or requested derivatives fail.
 
 ## `AnalyticGeometricAveragePriceEngine`
 
@@ -344,14 +465,11 @@ Return the price and selected sensitivities.
 AnalyticGeometricAveragePriceEngine()
 ```
 
-Analytic continuous average-price pricing.
+Prices geometric continuous-average contracts with deterministic rate curves.
 
-#### Notes
+#### See Also
 
-AnalyticGeometricAveragePriceEngine accepts geometric averages and
-deterministic curves. TurnbullWakemanArithmeticAveragePriceEngine uses
-a Levy-compatible moment approximation and requires flat rates before
-expiry. It accepts arithmetic averages.
+GeometricAveragePriceOption : Supported contract.
 
 ### `price`
 
@@ -359,7 +477,7 @@ expiry. It accepts arithmetic averages.
 price(self, /, instrument, context)
 ```
 
-Return the price without changing the instrument or context.
+Returns the price without changing the instrument or context.
 
 #### Parameters
 
@@ -375,17 +493,16 @@ Return the price without changing the instrument or context.
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks, *, spot_shift=Ellipsis, volatility_shift=Ellipsis, rate_shift=Ellipsis, time_shift_days=Ellipsis)
 ```
 
-Return the price and selected sensitivities.
+Returns the price and selected sensitivities.
 
 #### Parameters
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 - **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
 - **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
 - **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
@@ -415,7 +532,7 @@ RangeAccrualOption : Supported contract.
 price(self, /, instrument, context)
 ```
 
-Return the price without changing the instrument or context.
+Returns the price without changing the instrument or context.
 
 #### Parameters
 
@@ -431,17 +548,16 @@ Return the price without changing the instrument or context.
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks, *, spot_shift=Ellipsis, volatility_shift=Ellipsis, rate_shift=Ellipsis, time_shift_days=Ellipsis)
 ```
 
-Return the price and selected sensitivities.
+Returns the price and selected sensitivities.
 
 #### Parameters
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 - **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
 - **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
 - **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
@@ -487,17 +603,16 @@ Return the price without changing the instrument or context.
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks, *, spot_shift=Ellipsis, volatility_shift=Ellipsis, rate_shift=Ellipsis, time_shift_days=Ellipsis)
 ```
 
-Return the price and selected sensitivities.
+Returns the price and selected sensitivities.
 
 #### Parameters
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 - **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
 - **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
 - **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
@@ -518,7 +633,7 @@ CouponQuoteConvention = typing.Literal['shift_maturity_coupon', 'preserve_maturi
 ## `CoxRossRubinsteinBarrierEngine`
 
 ```python
-CoxRossRubinsteinBarrierEngine(**fields)
+CoxRossRubinsteinBarrierEngine(*, step_count=Ellipsis)
 ```
 
 Flat-rate Cox-Ross-Rubinstein tree pricing.
@@ -529,6 +644,10 @@ Flat-rate Cox-Ross-Rubinstein tree pricing.
 #### Raises
 
 - `InvalidInputError` — If step_count is outside 1 through 1,000,000.
+#### Notes
+
+Provides node delta/gamma for its product family; other Greeks are absent.
+
 #### See Also
 
 BarrierOption : Supported contract.
@@ -555,7 +674,7 @@ Return the price without changing the instrument or context.
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks)
 ```
 
 Return the price and selected sensitivities.
@@ -564,18 +683,13 @@ Return the price and selected sensitivities.
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
-- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
-- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
-- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
-- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 #### Returns
 
 - `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
 #### Raises
 
-- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
+- `KiyosiError` — If request validation or pricing fails.
 
 ### `step_count`
 
@@ -584,7 +698,7 @@ Return the configured grid size.
 ## `CoxRossRubinsteinDigitalEngine`
 
 ```python
-CoxRossRubinsteinDigitalEngine(**fields)
+CoxRossRubinsteinDigitalEngine(*, step_count=Ellipsis)
 ```
 
 Flat-rate Cox-Ross-Rubinstein tree pricing.
@@ -597,8 +711,12 @@ Flat-rate Cox-Ross-Rubinstein tree pricing.
 - `InvalidInputError` — If step_count is outside 1 through 1,000,000.
 #### Notes
 
-The vanilla engine accepts EuropeanOption and AmericanOption; the
-digital engine accepts CashOrNothingOption and AssetOrNothingOption.
+Provides node delta/gamma for its product family; other Greeks are absent.
+
+#### See Also
+
+CashOrNothingOption : Supported contract.
+AssetOrNothingOption : Supported contract.
 
 ### `price`
 
@@ -622,7 +740,7 @@ Return the price without changing the instrument or context.
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks)
 ```
 
 Return the price and selected sensitivities.
@@ -631,18 +749,13 @@ Return the price and selected sensitivities.
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
-- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
-- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
-- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
-- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 #### Returns
 
 - `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
 #### Raises
 
-- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
+- `KiyosiError` — If request validation or pricing fails.
 
 ### `step_count`
 
@@ -651,7 +764,7 @@ Return the configured grid size.
 ## `CoxRossRubinsteinVanillaEngine`
 
 ```python
-CoxRossRubinsteinVanillaEngine(**fields)
+CoxRossRubinsteinVanillaEngine(*, step_count=Ellipsis)
 ```
 
 Flat-rate Cox-Ross-Rubinstein tree pricing.
@@ -664,8 +777,7 @@ Flat-rate Cox-Ross-Rubinstein tree pricing.
 - `InvalidInputError` — If step_count is outside 1 through 1,000,000.
 #### Notes
 
-The vanilla engine accepts EuropeanOption and AmericanOption; the
-digital engine accepts CashOrNothingOption and AssetOrNothingOption.
+Accepts EuropeanOption and AmericanOption.
 
 ### `price`
 
@@ -689,17 +801,16 @@ Return the price without changing the instrument or context.
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks, *, spot_shift=Ellipsis, volatility_shift=Ellipsis, rate_shift=Ellipsis, time_shift_days=Ellipsis)
 ```
 
-Return the price and selected sensitivities.
+Returns the price and selected sensitivities.
 
 #### Parameters
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 - **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
 - **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
 - **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
@@ -718,7 +829,7 @@ Return the configured grid size.
 ## `FiniteDifferenceAccumulatorEngine`
 
 ```python
-FiniteDifferenceAccumulatorEngine(**fields)
+FiniteDifferenceAccumulatorEngine(*, asset_step_count=Ellipsis, time_step_count=Ellipsis, scheme=Ellipsis, asset_upper_boundary=None)
 ```
 
 Finite-difference pricing with immutable grid settings.
@@ -726,8 +837,8 @@ Finite-difference pricing with immutable grid settings.
 #### Parameters
 
 - **`asset_step_count`** (`int, optional`) — Number of spatial steps, at least 3; defaults to 800.
-- **`time_step_count`** (`int, optional`) — Positive time-step budget, default 200; event dates and curve knots are added.
-- **`scheme`** (`FiniteDifferenceScheme, optional`) — Time-marching scheme; defaults to damped Crank-Nicolson.
+- **`time_step_count`** (`int, optional`) — Positive time-step budget; event dates and curve knots are added. Read `FiniteDifferenceAccumulatorEngine().time_step_count` for the engine's default.
+- **`scheme`** (`FiniteDifferenceScheme, optional`) — Time-marching scheme; defaults to "rannacher" (damped Crank-Nicolson). "crank_nicolson" uses standard Crank-Nicolson without time-step damping.
 - **`asset_upper_boundary`** (`float or None, optional`) — Finite positive upper spot boundary, or None (default) for the automatic domain. Must exceed spot, strike and barriers at pricing.
 #### Raises
 
@@ -740,7 +851,13 @@ CashOrNothingOption and AssetOrNothingOption. The binary-barrier engine
 also accepts TouchOption. The autocallable engine accepts all snowball
 variants and PhoenixOption. Other engines accept their named product.
 Digital pricing requires explicitly flat rates; other families accept
-deterministic rate curves.
+deterministic rate curves. All FD product families support local-volatility
+price, delta and gamma, including American exercise. Other Greeks (including
+"all") and inverse solves raise UnsupportedOperationError. Sigma uses
+fixed absolute surface coordinates; Greeks are absent at expiry or where
+their stencils cross product events. Surface coverage follows remaining
+stochastic evolution; rate coverage follows required future discounting.
+Automatic local-volatility domains require convergence checks.
 
 ### `asset_step_count`
 
@@ -772,17 +889,16 @@ Return the price without changing the instrument or context.
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks, *, spot_shift=Ellipsis, volatility_shift=Ellipsis, rate_shift=Ellipsis, time_shift_days=Ellipsis)
 ```
 
-Return the price and selected sensitivities.
+Returns the price and selected sensitivities.
 
 #### Parameters
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 - **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
 - **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
 - **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
@@ -805,7 +921,7 @@ Return the configured time-step budget before event insertion.
 ## `FiniteDifferenceAutocallableEngine`
 
 ```python
-FiniteDifferenceAutocallableEngine(**fields)
+FiniteDifferenceAutocallableEngine(*, asset_step_count=Ellipsis, time_step_count=Ellipsis, scheme=Ellipsis, asset_upper_boundary=None)
 ```
 
 Finite-difference pricing with immutable grid settings.
@@ -813,8 +929,8 @@ Finite-difference pricing with immutable grid settings.
 #### Parameters
 
 - **`asset_step_count`** (`int, optional`) — Number of spatial steps, at least 3; defaults to 800.
-- **`time_step_count`** (`int, optional`) — Positive time-step budget, default 200; event dates and curve knots are added.
-- **`scheme`** (`FiniteDifferenceScheme, optional`) — Time-marching scheme; defaults to damped Crank-Nicolson.
+- **`time_step_count`** (`int, optional`) — Positive time-step budget; event dates and curve knots are added. Read `FiniteDifferenceAutocallableEngine().time_step_count` for the engine's default.
+- **`scheme`** (`FiniteDifferenceScheme, optional`) — Time-marching scheme; defaults to "rannacher" (damped Crank-Nicolson). "crank_nicolson" uses standard Crank-Nicolson without time-step damping.
 - **`asset_upper_boundary`** (`float or None, optional`) — Finite positive upper spot boundary, or None (default) for the automatic domain. Must exceed spot, strike and barriers at pricing.
 #### Raises
 
@@ -827,7 +943,13 @@ CashOrNothingOption and AssetOrNothingOption. The binary-barrier engine
 also accepts TouchOption. The autocallable engine accepts all snowball
 variants and PhoenixOption. Other engines accept their named product.
 Digital pricing requires explicitly flat rates; other families accept
-deterministic rate curves.
+deterministic rate curves. All FD product families support local-volatility
+price, delta and gamma, including American exercise. Other Greeks (including
+"all") and inverse solves raise UnsupportedOperationError. Sigma uses
+fixed absolute surface coordinates; Greeks are absent at expiry or where
+their stencils cross product events. Surface coverage follows remaining
+stochastic evolution; rate coverage follows required future discounting.
+Automatic local-volatility domains require convergence checks.
 
 ### `asset_step_count`
 
@@ -859,17 +981,16 @@ Return the price without changing the instrument or context.
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks, *, spot_shift=Ellipsis, volatility_shift=Ellipsis, rate_shift=Ellipsis, time_shift_days=Ellipsis)
 ```
 
-Return the price and selected sensitivities.
+Returns the price and selected sensitivities.
 
 #### Parameters
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 - **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
 - **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
 - **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
@@ -892,7 +1013,7 @@ Return the configured time-step budget before event insertion.
 ## `FiniteDifferenceBarrierEngine`
 
 ```python
-FiniteDifferenceBarrierEngine(**fields)
+FiniteDifferenceBarrierEngine(*, asset_step_count=Ellipsis, time_step_count=Ellipsis, scheme=Ellipsis, asset_upper_boundary=None)
 ```
 
 Finite-difference pricing with immutable grid settings.
@@ -900,8 +1021,8 @@ Finite-difference pricing with immutable grid settings.
 #### Parameters
 
 - **`asset_step_count`** (`int, optional`) — Number of spatial steps, at least 3; defaults to 800.
-- **`time_step_count`** (`int, optional`) — Positive time-step budget, default 200; event dates and curve knots are added.
-- **`scheme`** (`FiniteDifferenceScheme, optional`) — Time-marching scheme; defaults to damped Crank-Nicolson.
+- **`time_step_count`** (`int, optional`) — Positive time-step budget; event dates and curve knots are added. Read `FiniteDifferenceBarrierEngine().time_step_count` for the engine's default.
+- **`scheme`** (`FiniteDifferenceScheme, optional`) — Time-marching scheme; defaults to "rannacher" (damped Crank-Nicolson). "crank_nicolson" uses standard Crank-Nicolson without time-step damping.
 - **`asset_upper_boundary`** (`float or None, optional`) — Finite positive upper spot boundary, or None (default) for the automatic domain. Must exceed spot, strike and barriers at pricing.
 #### Raises
 
@@ -914,7 +1035,13 @@ CashOrNothingOption and AssetOrNothingOption. The binary-barrier engine
 also accepts TouchOption. The autocallable engine accepts all snowball
 variants and PhoenixOption. Other engines accept their named product.
 Digital pricing requires explicitly flat rates; other families accept
-deterministic rate curves.
+deterministic rate curves. All FD product families support local-volatility
+price, delta and gamma, including American exercise. Other Greeks (including
+"all") and inverse solves raise UnsupportedOperationError. Sigma uses
+fixed absolute surface coordinates; Greeks are absent at expiry or where
+their stencils cross product events. Surface coverage follows remaining
+stochastic evolution; rate coverage follows required future discounting.
+Automatic local-volatility domains require convergence checks.
 
 ### `asset_step_count`
 
@@ -946,17 +1073,16 @@ Return the price without changing the instrument or context.
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks, *, spot_shift=Ellipsis, volatility_shift=Ellipsis, rate_shift=Ellipsis, time_shift_days=Ellipsis)
 ```
 
-Return the price and selected sensitivities.
+Returns the price and selected sensitivities.
 
 #### Parameters
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 - **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
 - **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
 - **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
@@ -979,7 +1105,7 @@ Return the configured time-step budget before event insertion.
 ## `FiniteDifferenceBinaryBarrierEngine`
 
 ```python
-FiniteDifferenceBinaryBarrierEngine(**fields)
+FiniteDifferenceBinaryBarrierEngine(*, asset_step_count=Ellipsis, time_step_count=Ellipsis, scheme=Ellipsis, asset_upper_boundary=None)
 ```
 
 Finite-difference pricing with immutable grid settings.
@@ -987,8 +1113,8 @@ Finite-difference pricing with immutable grid settings.
 #### Parameters
 
 - **`asset_step_count`** (`int, optional`) — Number of spatial steps, at least 3; defaults to 800.
-- **`time_step_count`** (`int, optional`) — Positive time-step budget, default 200; event dates and curve knots are added.
-- **`scheme`** (`FiniteDifferenceScheme, optional`) — Time-marching scheme; defaults to damped Crank-Nicolson.
+- **`time_step_count`** (`int, optional`) — Positive time-step budget; event dates and curve knots are added. Read `FiniteDifferenceBinaryBarrierEngine().time_step_count` for the engine's default.
+- **`scheme`** (`FiniteDifferenceScheme, optional`) — Time-marching scheme; defaults to "rannacher" (damped Crank-Nicolson). "crank_nicolson" uses standard Crank-Nicolson without time-step damping.
 - **`asset_upper_boundary`** (`float or None, optional`) — Finite positive upper spot boundary, or None (default) for the automatic domain. Must exceed spot, strike and barriers at pricing.
 #### Raises
 
@@ -1001,7 +1127,13 @@ CashOrNothingOption and AssetOrNothingOption. The binary-barrier engine
 also accepts TouchOption. The autocallable engine accepts all snowball
 variants and PhoenixOption. Other engines accept their named product.
 Digital pricing requires explicitly flat rates; other families accept
-deterministic rate curves.
+deterministic rate curves. All FD product families support local-volatility
+price, delta and gamma, including American exercise. Other Greeks (including
+"all") and inverse solves raise UnsupportedOperationError. Sigma uses
+fixed absolute surface coordinates; Greeks are absent at expiry or where
+their stencils cross product events. Surface coverage follows remaining
+stochastic evolution; rate coverage follows required future discounting.
+Automatic local-volatility domains require convergence checks.
 
 ### `asset_step_count`
 
@@ -1033,17 +1165,16 @@ Return the price without changing the instrument or context.
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks, *, spot_shift=Ellipsis, volatility_shift=Ellipsis, rate_shift=Ellipsis, time_shift_days=Ellipsis)
 ```
 
-Return the price and selected sensitivities.
+Returns the price and selected sensitivities.
 
 #### Parameters
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 - **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
 - **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
 - **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
@@ -1066,7 +1197,7 @@ Return the configured time-step budget before event insertion.
 ## `FiniteDifferenceDigitalEngine`
 
 ```python
-FiniteDifferenceDigitalEngine(**fields)
+FiniteDifferenceDigitalEngine(*, asset_step_count=Ellipsis, time_step_count=Ellipsis, scheme=Ellipsis, asset_upper_boundary=None)
 ```
 
 Finite-difference pricing with immutable grid settings.
@@ -1074,8 +1205,8 @@ Finite-difference pricing with immutable grid settings.
 #### Parameters
 
 - **`asset_step_count`** (`int, optional`) — Number of spatial steps, at least 3; defaults to 800.
-- **`time_step_count`** (`int, optional`) — Positive time-step budget, default 200; event dates and curve knots are added.
-- **`scheme`** (`FiniteDifferenceScheme, optional`) — Time-marching scheme; defaults to damped Crank-Nicolson.
+- **`time_step_count`** (`int, optional`) — Positive time-step budget; event dates and curve knots are added. Read `FiniteDifferenceDigitalEngine().time_step_count` for the engine's default.
+- **`scheme`** (`FiniteDifferenceScheme, optional`) — Time-marching scheme; defaults to "rannacher" (damped Crank-Nicolson). "crank_nicolson" uses standard Crank-Nicolson without time-step damping.
 - **`asset_upper_boundary`** (`float or None, optional`) — Finite positive upper spot boundary, or None (default) for the automatic domain. Must exceed spot, strike and barriers at pricing.
 #### Raises
 
@@ -1088,7 +1219,13 @@ CashOrNothingOption and AssetOrNothingOption. The binary-barrier engine
 also accepts TouchOption. The autocallable engine accepts all snowball
 variants and PhoenixOption. Other engines accept their named product.
 Digital pricing requires explicitly flat rates; other families accept
-deterministic rate curves.
+deterministic rate curves. All FD product families support local-volatility
+price, delta and gamma, including American exercise. Other Greeks (including
+"all") and inverse solves raise UnsupportedOperationError. Sigma uses
+fixed absolute surface coordinates; Greeks are absent at expiry or where
+their stencils cross product events. Surface coverage follows remaining
+stochastic evolution; rate coverage follows required future discounting.
+Automatic local-volatility domains require convergence checks.
 
 ### `asset_step_count`
 
@@ -1120,17 +1257,16 @@ Return the price without changing the instrument or context.
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks, *, spot_shift=Ellipsis, volatility_shift=Ellipsis, rate_shift=Ellipsis, time_shift_days=Ellipsis)
 ```
 
-Return the price and selected sensitivities.
+Returns the price and selected sensitivities.
 
 #### Parameters
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 - **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
 - **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
 - **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
@@ -1153,7 +1289,7 @@ Return the configured time-step budget before event insertion.
 ## `FiniteDifferenceDoubleBarrierEngine`
 
 ```python
-FiniteDifferenceDoubleBarrierEngine(**fields)
+FiniteDifferenceDoubleBarrierEngine(*, asset_step_count=Ellipsis, time_step_count=Ellipsis, scheme=Ellipsis, asset_upper_boundary=None)
 ```
 
 Finite-difference pricing with immutable grid settings.
@@ -1161,8 +1297,8 @@ Finite-difference pricing with immutable grid settings.
 #### Parameters
 
 - **`asset_step_count`** (`int, optional`) — Number of spatial steps, at least 3; defaults to 800.
-- **`time_step_count`** (`int, optional`) — Positive time-step budget, default 200; event dates and curve knots are added.
-- **`scheme`** (`FiniteDifferenceScheme, optional`) — Time-marching scheme; defaults to damped Crank-Nicolson.
+- **`time_step_count`** (`int, optional`) — Positive time-step budget; event dates and curve knots are added. Read `FiniteDifferenceDoubleBarrierEngine().time_step_count` for the engine's default.
+- **`scheme`** (`FiniteDifferenceScheme, optional`) — Time-marching scheme; defaults to "rannacher" (damped Crank-Nicolson). "crank_nicolson" uses standard Crank-Nicolson without time-step damping.
 - **`asset_upper_boundary`** (`float or None, optional`) — Finite positive upper spot boundary, or None (default) for the automatic domain. Must exceed spot, strike and barriers at pricing.
 #### Raises
 
@@ -1175,7 +1311,13 @@ CashOrNothingOption and AssetOrNothingOption. The binary-barrier engine
 also accepts TouchOption. The autocallable engine accepts all snowball
 variants and PhoenixOption. Other engines accept their named product.
 Digital pricing requires explicitly flat rates; other families accept
-deterministic rate curves.
+deterministic rate curves. All FD product families support local-volatility
+price, delta and gamma, including American exercise. Other Greeks (including
+"all") and inverse solves raise UnsupportedOperationError. Sigma uses
+fixed absolute surface coordinates; Greeks are absent at expiry or where
+their stencils cross product events. Surface coverage follows remaining
+stochastic evolution; rate coverage follows required future discounting.
+Automatic local-volatility domains require convergence checks.
 
 ### `asset_step_count`
 
@@ -1207,17 +1349,16 @@ Return the price without changing the instrument or context.
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks, *, spot_shift=Ellipsis, volatility_shift=Ellipsis, rate_shift=Ellipsis, time_shift_days=Ellipsis)
 ```
 
-Return the price and selected sensitivities.
+Returns the price and selected sensitivities.
 
 #### Parameters
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 - **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
 - **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
 - **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
@@ -1240,7 +1381,7 @@ Return the configured time-step budget before event insertion.
 ## `FiniteDifferenceDoubleTouchEngine`
 
 ```python
-FiniteDifferenceDoubleTouchEngine(**fields)
+FiniteDifferenceDoubleTouchEngine(*, asset_step_count=Ellipsis, time_step_count=Ellipsis, scheme=Ellipsis, asset_upper_boundary=None)
 ```
 
 Finite-difference pricing with immutable grid settings.
@@ -1248,8 +1389,8 @@ Finite-difference pricing with immutable grid settings.
 #### Parameters
 
 - **`asset_step_count`** (`int, optional`) — Number of spatial steps, at least 3; defaults to 800.
-- **`time_step_count`** (`int, optional`) — Positive time-step budget, default 200; event dates and curve knots are added.
-- **`scheme`** (`FiniteDifferenceScheme, optional`) — Time-marching scheme; defaults to damped Crank-Nicolson.
+- **`time_step_count`** (`int, optional`) — Positive time-step budget; event dates and curve knots are added. Read `FiniteDifferenceDoubleTouchEngine().time_step_count` for the engine's default.
+- **`scheme`** (`FiniteDifferenceScheme, optional`) — Time-marching scheme; defaults to "rannacher" (damped Crank-Nicolson). "crank_nicolson" uses standard Crank-Nicolson without time-step damping.
 - **`asset_upper_boundary`** (`float or None, optional`) — Finite positive upper spot boundary, or None (default) for the automatic domain. Must exceed spot, strike and barriers at pricing.
 #### Raises
 
@@ -1262,7 +1403,13 @@ CashOrNothingOption and AssetOrNothingOption. The binary-barrier engine
 also accepts TouchOption. The autocallable engine accepts all snowball
 variants and PhoenixOption. Other engines accept their named product.
 Digital pricing requires explicitly flat rates; other families accept
-deterministic rate curves.
+deterministic rate curves. All FD product families support local-volatility
+price, delta and gamma, including American exercise. Other Greeks (including
+"all") and inverse solves raise UnsupportedOperationError. Sigma uses
+fixed absolute surface coordinates; Greeks are absent at expiry or where
+their stencils cross product events. Surface coverage follows remaining
+stochastic evolution; rate coverage follows required future discounting.
+Automatic local-volatility domains require convergence checks.
 
 ### `asset_step_count`
 
@@ -1294,17 +1441,16 @@ Return the price without changing the instrument or context.
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks, *, spot_shift=Ellipsis, volatility_shift=Ellipsis, rate_shift=Ellipsis, time_shift_days=Ellipsis)
 ```
 
-Return the price and selected sensitivities.
+Returns the price and selected sensitivities.
 
 #### Parameters
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 - **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
 - **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
 - **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
@@ -1327,13 +1473,13 @@ Return the configured time-step budget before event insertion.
 ## `FiniteDifferenceScheme`
 
 ```python
-FiniteDifferenceScheme = typing.Literal['explicit_euler', 'implicit_euler', 'crank_nicolson']
+FiniteDifferenceScheme = typing.Literal['explicit_euler', 'implicit_euler', 'crank_nicolson', 'rannacher']
 ```
 
 ## `FiniteDifferenceVanillaEngine`
 
 ```python
-FiniteDifferenceVanillaEngine(**fields)
+FiniteDifferenceVanillaEngine(*, asset_step_count=Ellipsis, time_step_count=Ellipsis, scheme=Ellipsis, asset_upper_boundary=None)
 ```
 
 Finite-difference pricing with immutable grid settings.
@@ -1341,8 +1487,8 @@ Finite-difference pricing with immutable grid settings.
 #### Parameters
 
 - **`asset_step_count`** (`int, optional`) — Number of spatial steps, at least 3; defaults to 800.
-- **`time_step_count`** (`int, optional`) — Positive time-step budget, default 200; event dates and curve knots are added.
-- **`scheme`** (`FiniteDifferenceScheme, optional`) — Time-marching scheme; defaults to damped Crank-Nicolson.
+- **`time_step_count`** (`int, optional`) — Positive time-step budget; event dates and curve knots are added. Read `FiniteDifferenceVanillaEngine().time_step_count` for the engine's default.
+- **`scheme`** (`FiniteDifferenceScheme, optional`) — Time-marching scheme; defaults to "rannacher" (damped Crank-Nicolson). "crank_nicolson" uses standard Crank-Nicolson without time-step damping.
 - **`asset_upper_boundary`** (`float or None, optional`) — Finite positive upper spot boundary, or None (default) for the automatic domain. Must exceed spot, strike and barriers at pricing.
 #### Raises
 
@@ -1355,7 +1501,13 @@ CashOrNothingOption and AssetOrNothingOption. The binary-barrier engine
 also accepts TouchOption. The autocallable engine accepts all snowball
 variants and PhoenixOption. Other engines accept their named product.
 Digital pricing requires explicitly flat rates; other families accept
-deterministic rate curves.
+deterministic rate curves. All FD product families support local-volatility
+price, delta and gamma, including American exercise. Other Greeks (including
+"all") and inverse solves raise UnsupportedOperationError. Sigma uses
+fixed absolute surface coordinates; Greeks are absent at expiry or where
+their stencils cross product events. Surface coverage follows remaining
+stochastic evolution; rate coverage follows required future discounting.
+Automatic local-volatility domains require convergence checks.
 
 ### `asset_step_count`
 
@@ -1387,17 +1539,16 @@ Return the price without changing the instrument or context.
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks, *, spot_shift=Ellipsis, volatility_shift=Ellipsis, rate_shift=Ellipsis, time_shift_days=Ellipsis)
 ```
 
-Return the price and selected sensitivities.
+Returns the price and selected sensitivities.
 
 #### Parameters
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 - **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
 - **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
 - **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
@@ -1420,7 +1571,7 @@ Return the configured time-step budget before event insertion.
 ## `MonteCarloAccumulatorEngine`
 
 ```python
-MonteCarloAccumulatorEngine(**fields)
+MonteCarloAccumulatorEngine(*, path_count=Ellipsis, seed=None, thread_count=Ellipsis, sampling=Ellipsis, antithetic=Ellipsis)
 ```
 
 Flat-rate CPU Monte Carlo pricing for accumulators.
@@ -1428,14 +1579,13 @@ Flat-rate CPU Monte Carlo pricing for accumulators.
 #### Parameters
 
 - **`path_count`** (`int, optional`) — Exact path count, 1 through 10,000,000; defaults to 100,000. Sobol sampling requires a power of two.
-- **`step_count`** (`int, optional`) — Grid size, 2 through 10,000; defaults to 50. Validated even when unused; see Notes for product-specific use.
 - **`seed`** (`int or None, optional`) — Unsigned 64-bit seed, or None (default) to use system entropy.
 - **`thread_count`** (`int, optional`) — Nonnegative worker cap per call: zero (default) is automatic, one is serial.
 - **`sampling`** (`MonteCarloSampling, optional`) — Sampling method; defaults to pseudo_random.
 - **`antithetic`** (`bool, optional`) — Pair opposite normal draws; defaults to False. An odd path count leaves one unpaired path.
 #### Raises
 
-- `InvalidInputError` — If paths are outside 1 through 10,000,000, steps outside 2 through 10,000, thread_count is negative, or Sobol paths are not a power of two.
+- `InvalidInputError` — If paths are outside 1 through 10,000,000, thread_count is negative, or Sobol paths are not a power of two.
 #### See Also
 
 Accumulator : Supported contract.
@@ -1443,10 +1593,11 @@ Accumulator : Supported contract.
 #### Notes
 
 Fixed seeds reproduce results across thread counts in the same build.
-Each call owns its workers and samples. Greeks and solves pin a seed per
+Calls own their samples and share a library-owned Rayon pool. A worker cap
+does not reserve workers. Greeks and solves pin a seed per
 request; solver tolerances do not measure sampling error.
-Simulation uses the future trading dates; step_count is validated but
-unused. A current knock-out settles before any purchase.
+Simulation uses the future trading dates. A current knock-out settles
+before any purchase.
 
 ### `antithetic`
 
@@ -1474,24 +1625,21 @@ Return the price without changing the instrument or context.
 #### Raises
 
 - `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
-#### Notes
-
-System entropy and worker-creation failures raise OSError.
+- `OSError` — If system entropy or worker creation fails.
 
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks, *, spot_shift=Ellipsis, volatility_shift=Ellipsis, rate_shift=Ellipsis, time_shift_days=Ellipsis)
 ```
 
-Return the price and selected sensitivities.
+Returns the price and selected sensitivities.
 
 #### Parameters
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 - **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
 - **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
 - **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
@@ -1502,9 +1650,7 @@ Return the price and selected sensitivities.
 #### Raises
 
 - `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
-#### Notes
-
-System entropy and worker-creation failures raise OSError.
+- `OSError` — If system entropy or worker creation fails.
 
 ### `price_with_statistics`
 
@@ -1534,10 +1680,6 @@ Return the sampling choice string: pseudo_random or sobol.
 
 Return the unsigned 64-bit seed, or None for system entropy.
 
-### `step_count`
-
-Return the configured grid size.
-
 ### `thread_count`
 
 Return the per-call worker cap; zero selects automatic sizing.
@@ -1545,7 +1687,7 @@ Return the per-call worker cap; zero selects automatic sizing.
 ## `MonteCarloAsianEngine`
 
 ```python
-MonteCarloAsianEngine(**fields)
+MonteCarloAsianEngine(*, path_count=Ellipsis, step_count=Ellipsis, seed=None, thread_count=Ellipsis, sampling=Ellipsis, antithetic=Ellipsis)
 ```
 
 Flat-rate CPU Monte Carlo pricing for continuous average-price options.
@@ -1569,7 +1711,8 @@ ArithmeticAveragePriceOption : Supported contract.
 #### Notes
 
 Fixed seeds reproduce results across thread counts in the same build.
-Each call owns its workers and samples. Greeks and solves pin a seed per
+Calls own their samples and share a library-owned Rayon pool. A worker cap
+does not reserve workers. Greeks and solves pin a seed per
 request; solver tolerances do not measure sampling error.
 Geometric averages and single fixings sample exact distributions.
 Arithmetic averages use step_count trapezoidal intervals with the first
@@ -1608,7 +1751,7 @@ System entropy and worker-creation failures raise OSError.
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks)
 ```
 
 Return the price and selected sensitivities.
@@ -1617,18 +1760,13 @@ Return the price and selected sensitivities.
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
-- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
-- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
-- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
-- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 #### Returns
 
 - `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
 #### Raises
 
-- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
+- `KiyosiError` — If requests, pricing or requested derivatives fail.
 #### Notes
 
 System entropy and worker-creation failures raise OSError.
@@ -1652,7 +1790,7 @@ Return the per-call worker cap; zero selects automatic sizing.
 ## `MonteCarloAutocallableEngine`
 
 ```python
-MonteCarloAutocallableEngine(**fields)
+MonteCarloAutocallableEngine(*, path_count=Ellipsis, seed=None, thread_count=Ellipsis, sampling=Ellipsis, antithetic=Ellipsis)
 ```
 
 Flat-rate CPU Monte Carlo pricing for snowball and Phoenix notes.
@@ -1660,14 +1798,13 @@ Flat-rate CPU Monte Carlo pricing for snowball and Phoenix notes.
 #### Parameters
 
 - **`path_count`** (`int, optional`) — Exact path count, 1 through 10,000,000; defaults to 100,000. Sobol sampling requires a power of two.
-- **`step_count`** (`int, optional`) — Grid size, 2 through 10,000; defaults to 50. Validated even when unused; see Notes for product-specific use.
 - **`seed`** (`int or None, optional`) — Unsigned 64-bit seed, or None (default) to use system entropy.
 - **`thread_count`** (`int, optional`) — Nonnegative worker cap per call: zero (default) is automatic, one is serial.
 - **`sampling`** (`MonteCarloSampling, optional`) — Sampling method; defaults to pseudo_random.
 - **`antithetic`** (`bool, optional`) — Pair opposite normal draws; defaults to False. An odd path count leaves one unpaired path.
 #### Raises
 
-- `InvalidInputError` — If paths are outside 1 through 10,000,000, steps outside 2 through 10,000, thread_count is negative, or Sobol paths are not a power of two.
+- `InvalidInputError` — If paths are outside 1 through 10,000,000, thread_count is negative, or Sobol paths are not a power of two.
 #### See Also
 
 SnowballOption : Supported contract.
@@ -1678,10 +1815,11 @@ PhoenixOption : Supported contract.
 #### Notes
 
 Fixed seeds reproduce results across thread counts in the same build.
-Each call owns its workers and samples. Greeks and solves pin a seed per
+Calls own their samples and share a library-owned Rayon pool. A worker cap
+does not reserve workers. Greeks and solves pin a seed per
 request; solver tolerances do not measure sampling error.
 Simulation uses trading days when knock-in matters, or observation
-dates and expiry otherwise. step_count is validated but unused.
+dates and expiry otherwise.
 
 ### `antithetic`
 
@@ -1709,24 +1847,21 @@ Return the price without changing the instrument or context.
 #### Raises
 
 - `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
-#### Notes
-
-System entropy and worker-creation failures raise OSError.
+- `OSError` — If system entropy or worker creation fails.
 
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks, *, spot_shift=Ellipsis, volatility_shift=Ellipsis, rate_shift=Ellipsis, time_shift_days=Ellipsis)
 ```
 
-Return the price and selected sensitivities.
+Returns the price and selected sensitivities.
 
 #### Parameters
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 - **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
 - **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
 - **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
@@ -1737,9 +1872,7 @@ Return the price and selected sensitivities.
 #### Raises
 
 - `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
-#### Notes
-
-System entropy and worker-creation failures raise OSError.
+- `OSError` — If system entropy or worker creation fails.
 
 ### `price_with_statistics`
 
@@ -1769,10 +1902,6 @@ Return the sampling choice string: pseudo_random or sobol.
 
 Return the unsigned 64-bit seed, or None for system entropy.
 
-### `step_count`
-
-Return the configured grid size.
-
 ### `thread_count`
 
 Return the per-call worker cap; zero selects automatic sizing.
@@ -1780,7 +1909,7 @@ Return the per-call worker cap; zero selects automatic sizing.
 ## `MonteCarloBarrierEngine`
 
 ```python
-MonteCarloBarrierEngine(**fields)
+MonteCarloBarrierEngine(*, path_count=Ellipsis, seed=None, thread_count=Ellipsis, sampling=Ellipsis, antithetic=Ellipsis)
 ```
 
 Flat-rate CPU Monte Carlo pricing for single-barrier vanilla options.
@@ -1788,14 +1917,13 @@ Flat-rate CPU Monte Carlo pricing for single-barrier vanilla options.
 #### Parameters
 
 - **`path_count`** (`int, optional`) — Exact path count, 1 through 10,000,000; defaults to 100,000. Sobol sampling requires a power of two.
-- **`step_count`** (`int, optional`) — Grid size, 2 through 10,000; defaults to 50. Validated even when unused; see Notes for product-specific use.
 - **`seed`** (`int or None, optional`) — Unsigned 64-bit seed, or None (default) to use system entropy.
 - **`thread_count`** (`int, optional`) — Nonnegative worker cap per call: zero (default) is automatic, one is serial.
 - **`sampling`** (`MonteCarloSampling, optional`) — Sampling method; defaults to pseudo_random.
 - **`antithetic`** (`bool, optional`) — Pair opposite normal draws; defaults to False. An odd path count leaves one unpaired path.
 #### Raises
 
-- `InvalidInputError` — If paths are outside 1 through 10,000,000, steps outside 2 through 10,000, thread_count is negative, or Sobol paths are not a power of two.
+- `InvalidInputError` — If paths are outside 1 through 10,000,000, thread_count is negative, or Sobol paths are not a power of two.
 #### See Also
 
 BarrierOption : Supported contract.
@@ -1803,10 +1931,11 @@ BarrierOption : Supported contract.
 #### Notes
 
 Fixed seeds reproduce results across thread counts in the same build.
-Each call owns its workers and samples. Greeks and solves pin a seed per
+Calls own their samples and share a library-owned Rayon pool. A worker cap
+does not reserve workers. Greeks and solves pin a seed per
 request; solver tolerances do not measure sampling error.
-Monitoring uses continuous survival or the original fixing dates;
-step_count is validated but unused. Only delta and gamma are returned.
+Monitoring uses continuous survival or the original fixing dates.
+Only delta and gamma are returned.
 
 ### `antithetic`
 
@@ -1834,14 +1963,12 @@ Return the price without changing the instrument or context.
 #### Raises
 
 - `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
-#### Notes
-
-System entropy and worker-creation failures raise OSError.
+- `OSError` — If system entropy or worker creation fails.
 
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks, *, spot_shift=Ellipsis)
 ```
 
 Return the price and selected sensitivities.
@@ -1850,21 +1977,15 @@ Return the price and selected sensitivities.
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 - **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
-- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
-- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
-- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
 #### Returns
 
 - `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
 #### Raises
 
 - `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
-#### Notes
-
-System entropy and worker-creation failures raise OSError.
+- `OSError` — If system entropy or worker creation fails.
 
 ### `sampling`
 
@@ -1873,10 +1994,6 @@ Return the sampling choice string: pseudo_random or sobol.
 ### `seed`
 
 Return the unsigned 64-bit seed, or None for system entropy.
-
-### `step_count`
-
-Return the configured grid size.
 
 ### `thread_count`
 
@@ -1885,7 +2002,7 @@ Return the per-call worker cap; zero selects automatic sizing.
 ## `MonteCarloDigitalEngine`
 
 ```python
-MonteCarloDigitalEngine(**fields)
+MonteCarloDigitalEngine(*, path_count=Ellipsis, seed=None, thread_count=Ellipsis, sampling=Ellipsis, antithetic=Ellipsis)
 ```
 
 Flat-rate CPU Monte Carlo pricing for European digitals.
@@ -1893,14 +2010,13 @@ Flat-rate CPU Monte Carlo pricing for European digitals.
 #### Parameters
 
 - **`path_count`** (`int, optional`) — Exact path count, 1 through 10,000,000; defaults to 100,000. Sobol sampling requires a power of two.
-- **`step_count`** (`int, optional`) — Grid size, 2 through 10,000; defaults to 50. Validated even when unused; see Notes for product-specific use.
 - **`seed`** (`int or None, optional`) — Unsigned 64-bit seed, or None (default) to use system entropy.
 - **`thread_count`** (`int, optional`) — Nonnegative worker cap per call: zero (default) is automatic, one is serial.
 - **`sampling`** (`MonteCarloSampling, optional`) — Sampling method; defaults to pseudo_random.
 - **`antithetic`** (`bool, optional`) — Pair opposite normal draws; defaults to False. An odd path count leaves one unpaired path.
 #### Raises
 
-- `InvalidInputError` — If paths are outside 1 through 10,000,000, steps outside 2 through 10,000, thread_count is negative, or Sobol paths are not a power of two.
+- `InvalidInputError` — If paths are outside 1 through 10,000,000, thread_count is negative, or Sobol paths are not a power of two.
 #### See Also
 
 CashOrNothingOption : Supported contract.
@@ -1909,10 +2025,10 @@ AssetOrNothingOption : Supported contract.
 #### Notes
 
 Fixed seeds reproduce results across thread counts in the same build.
-Each call owns its workers and samples. Greeks and solves pin a seed per
+Calls own their samples and share a library-owned Rayon pool. A worker cap
+does not reserve workers. Greeks and solves pin a seed per
 request; solver tolerances do not measure sampling error.
-Terminal sampling ignores step_count. Only native delta and gamma are
-returned; other requested Greeks remain absent.
+Only native delta and gamma are returned; other requested Greeks remain absent.
 
 ### `antithetic`
 
@@ -1947,7 +2063,7 @@ System entropy and worker-creation failures raise OSError.
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks)
 ```
 
 Return the price and selected sensitivities.
@@ -1956,18 +2072,13 @@ Return the price and selected sensitivities.
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
-- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
-- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
-- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
-- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 #### Returns
 
 - `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
 #### Raises
 
-- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
+- `KiyosiError` — If requests, pricing or requested derivatives fail.
 #### Notes
 
 System entropy and worker-creation failures raise OSError.
@@ -1979,10 +2090,6 @@ Return the sampling choice string: pseudo_random or sobol.
 ### `seed`
 
 Return the unsigned 64-bit seed, or None for system entropy.
-
-### `step_count`
-
-Return the configured grid size.
 
 ### `thread_count`
 
@@ -1991,7 +2098,7 @@ Return the per-call worker cap; zero selects automatic sizing.
 ## `MonteCarloDoubleBarrierEngine`
 
 ```python
-MonteCarloDoubleBarrierEngine(**fields)
+MonteCarloDoubleBarrierEngine(*, path_count=Ellipsis, seed=None, thread_count=Ellipsis, sampling=Ellipsis, antithetic=Ellipsis)
 ```
 
 Flat-rate CPU Monte Carlo pricing for double-barrier vanilla options.
@@ -1999,14 +2106,13 @@ Flat-rate CPU Monte Carlo pricing for double-barrier vanilla options.
 #### Parameters
 
 - **`path_count`** (`int, optional`) — Exact path count, 1 through 10,000,000; defaults to 100,000. Sobol sampling requires a power of two.
-- **`step_count`** (`int, optional`) — Grid size, 2 through 10,000; defaults to 50. Validated even when unused; see Notes for product-specific use.
 - **`seed`** (`int or None, optional`) — Unsigned 64-bit seed, or None (default) to use system entropy.
 - **`thread_count`** (`int, optional`) — Nonnegative worker cap per call: zero (default) is automatic, one is serial.
 - **`sampling`** (`MonteCarloSampling, optional`) — Sampling method; defaults to pseudo_random.
 - **`antithetic`** (`bool, optional`) — Pair opposite normal draws; defaults to False. An odd path count leaves one unpaired path.
 #### Raises
 
-- `InvalidInputError` — If paths are outside 1 through 10,000,000, steps outside 2 through 10,000, thread_count is negative, or Sobol paths are not a power of two.
+- `InvalidInputError` — If paths are outside 1 through 10,000,000, thread_count is negative, or Sobol paths are not a power of two.
 #### See Also
 
 DoubleBarrierOption : Supported contract.
@@ -2014,10 +2120,11 @@ DoubleBarrierOption : Supported contract.
 #### Notes
 
 Fixed seeds reproduce results across thread counts in the same build.
-Each call owns its workers and samples. Greeks and solves pin a seed per
+Calls own their samples and share a library-owned Rayon pool. A worker cap
+does not reserve workers. Greeks and solves pin a seed per
 request; solver tolerances do not measure sampling error.
-Monitoring uses continuous survival or the original fixing dates;
-step_count is validated but unused. Only delta and gamma are returned.
+Monitoring uses continuous survival or the original fixing dates.
+Only delta and gamma are returned.
 
 ### `antithetic`
 
@@ -2045,14 +2152,12 @@ Return the price without changing the instrument or context.
 #### Raises
 
 - `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
-#### Notes
-
-System entropy and worker-creation failures raise OSError.
+- `OSError` — If system entropy or worker creation fails.
 
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks, *, spot_shift=Ellipsis)
 ```
 
 Return the price and selected sensitivities.
@@ -2061,21 +2166,15 @@ Return the price and selected sensitivities.
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 - **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
-- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
-- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
-- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
 #### Returns
 
 - `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
 #### Raises
 
 - `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
-#### Notes
-
-System entropy and worker-creation failures raise OSError.
+- `OSError` — If system entropy or worker creation fails.
 
 ### `sampling`
 
@@ -2084,10 +2183,6 @@ Return the sampling choice string: pseudo_random or sobol.
 ### `seed`
 
 Return the unsigned 64-bit seed, or None for system entropy.
-
-### `step_count`
-
-Return the configured grid size.
 
 ### `thread_count`
 
@@ -2125,7 +2220,7 @@ MonteCarloSampling = typing.Literal['pseudo_random', 'sobol']
 ## `MonteCarloVanillaEngine`
 
 ```python
-MonteCarloVanillaEngine(**fields)
+MonteCarloVanillaEngine(*, path_count=Ellipsis, step_count=Ellipsis, seed=None, thread_count=Ellipsis, sampling=Ellipsis, antithetic=Ellipsis)
 ```
 
 Flat-rate CPU Monte Carlo pricing for European and American vanilla
@@ -2150,11 +2245,13 @@ AmericanOption : Supported contract.
 #### Notes
 
 Fixed seeds reproduce results across thread counts in the same build.
-Each call owns its workers and samples. Greeks and solves pin a seed per
+Calls own their samples and share a library-owned Rayon pool. A worker cap
+does not reserve workers. Greeks and solves pin a seed per
 request; solver tolerances do not measure sampling error.
 European pricing samples the exact terminal distribution and ignores
-step_count. American exercise grids use step_count points and require at
-least three before expiry.
+step_count. Near-strike payoffs preserve small movements even when the
+terminal spot rounds to the strike. American exercise grids use step_count
+points and require at least three before expiry.
 
 ### `antithetic`
 
@@ -2189,7 +2286,7 @@ System entropy and worker-creation failures raise OSError.
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks, *, spot_shift=None, volatility_shift=Ellipsis, rate_shift=Ellipsis, time_shift_days=Ellipsis)
 ```
 
 Return the price and selected sensitivities.
@@ -2198,9 +2295,8 @@ Return the price and selected sensitivities.
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
-- **`spot_shift`** (`float or None, optional`) — Positive finite absolute spot bump. European default: 0.01 spot units. American default: 8% of spot; None also selects this American default.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
+- **`spot_shift`** (`float or None, optional`) — Positive finite absolute spot bump. European default: 0.01 spot units. American default: 8% of spot. None selects the product's default.
 - **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
 - **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
 - **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
@@ -2213,8 +2309,8 @@ Return the price and selected sensitivities.
 #### Notes
 
 System entropy and worker-creation failures raise OSError.
-For American vanilla options, omitted or None `spot_shift` uses 8% of
-spot; other bumps use the shared core defaults.
+Omitted or None `spot_shift` uses the product's default; other bumps
+use the shared core defaults.
 
 ### `price_with_statistics`
 
@@ -2259,7 +2355,7 @@ Finite price and optional finite price sensitivities.
 #### Notes
 
 Unavailable or unrequested Greeks are None. Spot derivatives are per spot
-unit, volatility/rate derivatives per percentage point, and time
+unit, volatility/rate derivatives per percentage point (squared for volga), and time
 derivatives per calendar day of forward valuation time.
 
 ### `charm`
@@ -2273,6 +2369,10 @@ Return color, or None if unrequested or unavailable.
 ### `delta`
 
 Return delta, or None if unrequested or unavailable.
+
+### `dividend_rho`
+
+Return dividend rho per yield percentage point, or None if unavailable.
 
 ### `gamma`
 
@@ -2320,6 +2420,10 @@ Return vanna, or None if unrequested or unavailable.
 
 Return vega, or None if unrequested or unavailable.
 
+### `volga`
+
+Return volga per squared volatility percentage point, or None if unavailable.
+
 ### `zomma`
 
 Return zomma, or None if unrequested or unavailable.
@@ -2327,7 +2431,7 @@ Return zomma, or None if unrequested or unavailable.
 ## `QuadratureAccumulatorEngine`
 
 ```python
-QuadratureAccumulatorEngine(**fields)
+QuadratureAccumulatorEngine(*, asset_step_count=Ellipsis, integration_standard_deviations=Ellipsis)
 ```
 
 Flat-rate quadrature pricing with immutable integration settings.
@@ -2345,11 +2449,11 @@ Accumulator : Supported contract.
 
 ### `asset_step_count`
 
-Return the configured spatial grid budget.
+Returns the configured spatial grid budget.
 
 ### `integration_standard_deviations`
 
-Return the integration extent in standard deviations.
+Returns the integration extent in standard deviations.
 
 ### `price`
 
@@ -2357,7 +2461,7 @@ Return the integration extent in standard deviations.
 price(self, /, instrument, context)
 ```
 
-Return the price without changing the instrument or context.
+Returns the price without changing the instrument or context.
 
 #### Parameters
 
@@ -2373,17 +2477,16 @@ Return the price without changing the instrument or context.
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks, *, spot_shift=Ellipsis, volatility_shift=Ellipsis, rate_shift=Ellipsis, time_shift_days=Ellipsis)
 ```
 
-Return the price and selected sensitivities.
+Returns the price and selected sensitivities.
 
 #### Parameters
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 - **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
 - **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
 - **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
@@ -2398,7 +2501,7 @@ Return the price and selected sensitivities.
 ## `QuadratureAutocallableEngine`
 
 ```python
-QuadratureAutocallableEngine(**fields)
+QuadratureAutocallableEngine(*, asset_step_count=Ellipsis, integration_standard_deviations=Ellipsis)
 ```
 
 Flat-rate quadrature pricing with immutable integration settings.
@@ -2417,13 +2520,18 @@ BinarySnowballOption : Supported contract.
 TernarySnowballOption : Supported contract.
 PhoenixOption : Supported contract.
 
+#### Notes
+
+Preserves cash and asset payments below the spatial grid, including
+zero-lower-strike losses after large spot declines.
+
 ### `asset_step_count`
 
-Return the configured spatial grid budget.
+Returns the configured spatial grid budget.
 
 ### `integration_standard_deviations`
 
-Return the integration extent in standard deviations.
+Returns the integration extent in standard deviations.
 
 ### `price`
 
@@ -2431,7 +2539,7 @@ Return the integration extent in standard deviations.
 price(self, /, instrument, context)
 ```
 
-Return the price without changing the instrument or context.
+Returns the price without changing the instrument or context.
 
 #### Parameters
 
@@ -2447,17 +2555,16 @@ Return the price without changing the instrument or context.
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks, *, spot_shift=Ellipsis, volatility_shift=Ellipsis, rate_shift=Ellipsis, time_shift_days=Ellipsis)
 ```
 
-Return the price and selected sensitivities.
+Returns the price and selected sensitivities.
 
 #### Parameters
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 - **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
 - **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
 - **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
@@ -2472,7 +2579,7 @@ Return the price and selected sensitivities.
 ## `QuadratureBarrierEngine`
 
 ```python
-QuadratureBarrierEngine(**fields)
+QuadratureBarrierEngine(*, asset_step_count=Ellipsis, integration_standard_deviations=Ellipsis)
 ```
 
 Flat-rate quadrature pricing with immutable integration settings.
@@ -2490,11 +2597,11 @@ BarrierOption : Supported contract.
 
 ### `asset_step_count`
 
-Return the configured spatial grid budget.
+Returns the configured spatial grid budget.
 
 ### `integration_standard_deviations`
 
-Return the integration extent in standard deviations.
+Returns the integration extent in standard deviations.
 
 ### `price`
 
@@ -2502,7 +2609,7 @@ Return the integration extent in standard deviations.
 price(self, /, instrument, context)
 ```
 
-Return the price without changing the instrument or context.
+Returns the price without changing the instrument or context.
 
 #### Parameters
 
@@ -2518,131 +2625,16 @@ Return the price without changing the instrument or context.
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks, *, spot_shift=Ellipsis, volatility_shift=Ellipsis, rate_shift=Ellipsis, time_shift_days=Ellipsis)
 ```
 
-Return the price and selected sensitivities.
+Returns the price and selected sensitivities.
 
 #### Parameters
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
-- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
-- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
-- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
-- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
-#### Returns
-
-- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
-#### Raises
-
-- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
-
-## `QuadratureDigitalEngine`
-
-```python
-QuadratureDigitalEngine()
-```
-
-Flat-rate terminal quadrature with a fixed 2,048-panel Simpson rule.
-
-#### Notes
-
-The vanilla engine accepts EuropeanOption; the digital engine accepts
-CashOrNothingOption and AssetOrNothingOption.
-
-### `price`
-
-```python
-price(self, /, instrument, context)
-```
-
-Return the price without changing the instrument or context.
-
-#### Parameters
-
-- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
-- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-#### Returns
-
-- `float` — Present value of remaining contractual payments.
-#### Raises
-
-- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
-
-### `price_with_greeks`
-
-```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
-```
-
-Return the price and selected sensitivities.
-
-#### Parameters
-
-- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
-- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
-- **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
-- **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
-- **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
-- **`time_shift_days`** (`int, optional`) — Positive forward/backward time bump in calendar days; defaults to 1. All bumps are validated even when analytic Greeks are available.
-#### Returns
-
-- `PricingResult` — Price and requested Greeks. Unsupported or undefined Greeks are None, including every Greek at expiry. Units follow PricingResult.
-#### Raises
-
-- `KiyosiError` — If requests, shifts, pricing or a feasible bumped valuation fails.
-
-## `QuadratureVanillaEngine`
-
-```python
-QuadratureVanillaEngine()
-```
-
-Flat-rate terminal quadrature with a fixed 2,048-panel Simpson rule.
-
-#### Notes
-
-The vanilla engine accepts EuropeanOption; the digital engine accepts
-CashOrNothingOption and AssetOrNothingOption.
-
-### `price`
-
-```python
-price(self, /, instrument, context)
-```
-
-Return the price without changing the instrument or context.
-
-#### Parameters
-
-- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
-- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-#### Returns
-
-- `float` — Present value of remaining contractual payments.
-#### Raises
-
-- `KiyosiError` — If domain validation, engine applicability or numerical pricing fails.
-
-### `price_with_greeks`
-
-```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
-```
-
-Return the price and selected sensitivities.
-
-#### Parameters
-
-- **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
-- **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 - **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
 - **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
 - **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
@@ -2660,14 +2652,13 @@ Return the price and selected sensitivities.
 TurnbullWakemanArithmeticAveragePriceEngine()
 ```
 
-Analytic continuous average-price pricing.
+Approximates arithmetic continuous-average prices with flat rates before expiry.
 
-#### Notes
+Uses Levy-compatible moments.
 
-AnalyticGeometricAveragePriceEngine accepts geometric averages and
-deterministic curves. TurnbullWakemanArithmeticAveragePriceEngine uses
-a Levy-compatible moment approximation and requires flat rates before
-expiry. It accepts arithmetic averages.
+#### See Also
+
+ArithmeticAveragePriceOption : Supported contract.
 
 ### `price`
 
@@ -2675,7 +2666,7 @@ expiry. It accepts arithmetic averages.
 price(self, /, instrument, context)
 ```
 
-Return the price without changing the instrument or context.
+Returns the price without changing the instrument or context.
 
 #### Parameters
 
@@ -2691,17 +2682,16 @@ Return the price without changing the instrument or context.
 ### `price_with_greeks`
 
 ```python
-price_with_greeks(self, /, instrument, context, greeks=None, **settings)
+price_with_greeks(self, /, instrument, context, greeks, *, spot_shift=Ellipsis, volatility_shift=Ellipsis, rate_shift=Ellipsis, time_shift_days=Ellipsis)
 ```
 
-Return the price and selected sensitivities.
+Returns the price and selected sensitivities.
 
 #### Parameters
 
 - **`instrument`** (`object`) — Supported contract; see the engine class for accepted types.
 - **`context`** (`PricingContext`) — Market snapshot and valuation instant.
-- **`greeks`** (`str or iterable of str, optional`) — Greek names. Required unless `all_greeks=True`; duplicates are ignored.
-- **`all_greeks`** (`bool, optional`) — Request every measure; omit `greeks` when True. Defaults to False.
+- **`greeks`** (`str or iterable of str`) — Greek names or "all" to request every measure; duplicates are ignored.
 - **`spot_shift`** (`float, optional`) — Positive finite absolute spot bump; defaults to 0.01 spot units.
 - **`volatility_shift`** (`float, optional`) — Positive finite volatility bump in decimal units; defaults to 0.0001.
 - **`rate_shift`** (`float, optional`) — Positive finite parallel risk-free-rate bump in decimal units; defaults to 0.0001.
@@ -2716,10 +2706,10 @@ Return the price and selected sensitivities.
 ## `implied_coupon`
 
 ```python
-implied_coupon(engine, instrument, context, observed_price, **settings)
+implied_coupon(engine, instrument, context, observed_price, *, quote_convention=Ellipsis, lower_bound=Ellipsis, upper_bound=Ellipsis, price_tolerance=Ellipsis, parameter_tolerance=Ellipsis, max_iterations=Ellipsis)
 ```
 
-Solve the annual coupon that reproduces an observed price.
+Solve the coupon that reproduces an observed price in the contract's units.
 
 #### Parameters
 
@@ -2727,15 +2717,15 @@ Solve the annual coupon that reproduces an observed price.
 - **`instrument`** (`object`) — SnowballOption, BinarySnowballOption, TernarySnowballOption or PhoenixOption; the original is unchanged.
 - **`context`** (`PricingContext`) — Market snapshot; the original is unchanged.
 - **`observed_price`** (`float`) — Finite target price in the engine's payment units.
-- **`quote_convention`** (`CouponQuoteConvention`) — Required for snowballs: shift_maturity_coupon shifts the maturity coupon with observation coupons; preserve_maturity_coupon keeps it fixed. Omit this keyword for Phoenix.
-- **`lower_bound`** (`float, optional`) — Finite lower annual coupon in decimal units; defaults to 0. Signed bounds are accepted when the resulting contract terms are valid.
-- **`upper_bound`** (`float, optional`) — Finite upper annual coupon, above lower_bound; defaults to 2.
+- **`quote_convention`** (`CouponQuoteConvention`) — Required for snowballs: shift_maturity_coupon shifts the maturity coupon with observation coupons; preserve_maturity_coupon keeps it fixed. Omit this keyword for Phoenix, or pass Ellipsis (the displayed default).
+- **`lower_bound`** (`float, optional`) — Finite lower coupon in the contract's units; defaults to 0. Signed bounds are accepted when the resulting contract terms are valid.
+- **`upper_bound`** (`float, optional`) — Finite upper coupon in the same units, above lower_bound; defaults to 2.
 - **`price_tolerance`** (`float, optional`) — Positive finite absolute price residual tolerance; defaults to 1e-8.
-- **`parameter_tolerance`** (`float, optional`) — Positive finite bracket-width tolerance in decimal units; defaults to 1e-8. Either tolerance can stop iteration.
+- **`parameter_tolerance`** (`float, optional`) — Positive finite bracket-width tolerance in the contract's coupon units; defaults to 1e-8. Either tolerance can stop iteration.
 - **`max_iterations`** (`int, optional`) — Positive iteration budget; defaults to 100. Endpoint and affine-interpolation evaluations do not use this budget.
 #### Returns
 
-- `float` — Annual parameter in decimal units.
+- `float` — Annual coupon rate, or fixed per-period proportion for FCN/DCN and other per-period Phoenix contracts.
 #### Raises
 
 - `InvalidInputError` — If the quote, settings or repriced terms are invalid.
@@ -2750,12 +2740,13 @@ tolerances constrain the sampled price curve, not its sampling error.
 Snowballs shift all observation coupons relative to the first one,
 including past observations. The maturity convention controls the final
 coupon; the ternary minimum remains fixed. Phoenix replaces its
-conditional annual coupon. Trials use affine interpolation, then bisection.
+conditional coupon without changing its units. Bounds, parameter tolerance
+and result use the same units. Trials use affine interpolation, then bisection.
 
 ## `implied_volatility`
 
 ```python
-implied_volatility(engine, instrument, context, observed_price, **settings)
+implied_volatility(engine, instrument, context, observed_price, *, lower_bound=Ellipsis, upper_bound=Ellipsis, price_tolerance=Ellipsis, parameter_tolerance=Ellipsis, max_iterations=Ellipsis)
 ```
 
 Solve the annual volatility that reproduces an observed price.

@@ -54,9 +54,9 @@ class PreparationTests(unittest.TestCase):
         destination.mkdir(parents=True)
         (destination / "old.html").write_text("previous docs", encoding="utf-8")
         files = {
-            "kiyosi_core/index.html": "<h1>Rust API</h1>",
+            "kiyosi/index.html": "<h1>Rust API</h1>",
             "static.files/main.js": "// rustdoc asset\n",
-            "src/kiyosi_core/lib.rs.html": "<pre>pub struct Example;</pre>",
+            "src/kiyosi/lib.rs.html": "<pre>pub struct Example;</pre>",
         }
 
         def fake_run(*command, **kwargs):
@@ -72,6 +72,11 @@ class PreparationTests(unittest.TestCase):
             prepare_api_docs.main()
 
         commands.assert_any_call(
+            "cargo", "doc", "-p", "kiyosi", "--no-deps", "--locked", cwd=self.source,
+            env={**prepare_api_docs.os.environ, "CARGO_TARGET_DIR": str(self.cache / "target"),
+                 "RUSTDOCFLAGS": "-D warnings"},
+        )
+        commands.assert_any_call(
             self.cache / "venv" / (
                 "Scripts/python.exe" if prepare_api_docs.os.name == "nt" else "bin/python"
             ),
@@ -86,10 +91,10 @@ class PreparationTests(unittest.TestCase):
             self.assertEqual((destination / name).read_text(encoding="utf-8"), content)
         redirect = (destination / "index.html").read_text(encoding="utf-8")
         self.assertIn(
-            'location.replace("kiyosi_core/index.html" + location.search + location.hash)',
+            'location.replace("kiyosi/index.html" + location.search + location.hash)',
             redirect,
         )
-        self.assertIn('content="0;url=kiyosi_core/index.html"', redirect)
+        self.assertIn('content="0;url=kiyosi/index.html"', redirect)
 
 
 if __name__ == "__main__":

@@ -49,9 +49,9 @@ def main():
     rustdoc = CACHE / "target/doc"
     if rustdoc.exists():
         shutil.rmtree(rustdoc)
-    run("cargo", "doc", "-p", "kiyosi-core", "--no-deps", "--locked", cwd=source,
+    run("cargo", "doc", "-p", "kiyosi", "--no-deps", "--locked", cwd=source,
         env={**build_env, "RUSTDOCFLAGS": "-D warnings"})
-    if not (rustdoc / "kiyosi_core/index.html").is_file():
+    if not (rustdoc / "kiyosi/index.html").is_file():
         raise RuntimeError("Cargo did not produce the Rust API entry page")
     run(python, ROOT / "tools/generate_api_docs.py", "--version", pin["version"],
         "--revision", pin["revision"], "--output", ROOT / "docs/api")
@@ -62,10 +62,10 @@ def main():
     # rustdoc help/settings link back to a root index that Cargo does not emit.
     (destination / "index.html").write_text('''<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><title>kiyosi Rust API</title>
-<link rel="canonical" href="kiyosi_core/index.html">
-<script>location.replace("kiyosi_core/index.html" + location.search + location.hash)</script>
-<noscript><meta http-equiv="refresh" content="0;url=kiyosi_core/index.html"></noscript>
-</head><body><a href="kiyosi_core/index.html">Rust API</a></body></html>
+<link rel="canonical" href="kiyosi/index.html">
+<script>location.replace("kiyosi/index.html" + location.search + location.hash)</script>
+<noscript><meta http-equiv="refresh" content="0;url=kiyosi/index.html"></noscript>
+</head><body><a href="kiyosi/index.html">Rust API</a></body></html>
 ''', encoding="utf-8")
 
 

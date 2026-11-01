@@ -250,7 +250,7 @@ description: kiyosi Python API 与 Rust API 参考文档。
 kiyosi 版本：**{version}**；[源码提交 `{revision[:7]}`](https://github.com/lilkui/kiyosi/tree/{revision})。
 
 - [Python API](./python/)：公开导出对象、签名、成员和文档字符串。
-- <a href="./rust/kiyosi_core/index.html" target="_self">Rust API</a>：原生 rustdoc，提供类型、trait、实现、源码链接和独立搜索。
+- <a href="./rust/kiyosi/index.html" target="_self">Rust API</a>：原生 rustdoc，提供类型、trait、实现、源码链接和独立搜索。
 
 Rust API 使用 rustdoc 的界面与搜索；网站的本地搜索涵盖中文指南和 Python API。
 

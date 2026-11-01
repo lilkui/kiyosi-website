@@ -1,5 +1,3 @@
-import { access, mkdir, writeFile } from 'node:fs/promises'
-import { dirname, join, posix } from 'node:path'
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
@@ -8,31 +6,6 @@ export default defineConfig({
   lang: 'zh-CN',
   base: process.env.DOCS_BASE || '/',
   srcExclude: ['public/**'],
-  async buildEnd({ outDir }) {
-    const legacyPages = [
-      ['zh/index', 'index'],
-      ['zh/guide/introduction', 'guide/introduction'],
-      ['zh/guide/installation', 'guide/installation'],
-      ['zh/guide/first-price', 'guide/first-price'],
-      ['zh/guide/engines', 'guide/engines'],
-      ['zh/reference/python', 'reference/python'],
-      ['cpp/building', 'rust/building'],
-      ['zh/cpp/building', 'rust/building'],
-    ]
-    for (const [page, destination] of legacyPages) {
-      const file = `${destination}.html`
-      await access(join(outDir, file))
-      const target = posix.relative(posix.dirname(`${page}.html`), file)
-      const output = join(outDir, `${page}.html`)
-      await mkdir(dirname(output), { recursive: true })
-      await writeFile(output, `<!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><title>页面已迁移</title>
-<link rel="canonical" href="${target}">
-<script>location.replace(${JSON.stringify(target)} + location.search + location.hash)</script>
-<noscript><meta http-equiv="refresh" content="0;url=${target}"></noscript>
-</head><body><p>页面已迁移，请<a href="${target}">前往新页面</a>。</p></body></html>`, 'utf8')
-    }
-  },
   appearance: true,
   head: [['link', { rel: 'icon', href: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"%3E%3Crect width="32" height="32" rx="6" fill="%2308776b"/%3E%3Ctext x="8" y="25" fill="%23fcfdfc" font-family="sans-serif" font-weight="700" font-size="28"%3Ek%3C/text%3E%3C/svg%3E' }]],
   markdown: {
@@ -76,7 +49,7 @@ export default defineConfig({
         text: 'API 参考',
         items: [
           { text: '概览', link: '/api/' },
-          { text: 'Rust API', link: '/api/rust/kiyosi_core/index.html', target: '_self' },
+          { text: 'Rust API', link: '/api/rust/kiyosi/index.html', target: '_self' },
           { text: 'Python API', link: '/api/python/' },
         ],
       },

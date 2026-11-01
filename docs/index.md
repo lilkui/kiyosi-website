@@ -47,7 +47,7 @@ estimate = monte_carlo.price(option, context)
 </div>
 
 ```sh
-python -m pip install "kiyosi==0.14.0"
+python -m pip install "kiyosi==0.16.0"
 ```
 
 </section>
@@ -61,7 +61,7 @@ python -m pip install "kiyosi==0.14.0"
 </a>
 <a href="./guide/engines.html">
 <h3>数值离散与随机模拟 <span aria-hidden="true">↗</span></h3>
-<p>按产品选择 CRR 二叉树、有限差分、积分或蒙特卡洛方法。有限差分支持 Crank-Nicolson 格式；欧式普通期权的蒙特卡洛定价直接采样终值分布。比较结果时需区分近似误差与模拟误差。</p>
+<p>按产品选择 CRR 二叉树、有限差分、积分或蒙特卡洛方法。有限差分默认采用 Rannacher 平滑；欧式普通期权的蒙特卡洛定价直接采样终值分布。比较结果时需区分近似误差与模拟误差。</p>
 </a>
 <a href="./reference/python.html">
 <h3>风险敏感度与隐含参数求解 <span aria-hidden="true">↗</span></h3>
@@ -74,5 +74,5 @@ python -m pip install "kiyosi==0.14.0"
 </div>
 </section>
 
-<p class="home-note">定价测试以 QuantLib 独立生成的数值为基准，Rust 核心的构建与运行均不依赖 QuantLib。模型支持确定性利率和股息率曲线，波动率仍为常数，详见<a href="./guide/introduction.html#model-scope">模型适用范围</a>。本文档对应 Kiyosi 0.14.0；项目处于 Alpha 阶段，API 可能发生变化。</p>
+<p class="home-note">定价测试以 QuantLib 独立生成的数值为基准，Rust 核心的构建与运行均不依赖 QuantLib。模型支持确定性利率和股息率曲线；有限差分还支持局部波动率，详见<a href="./guide/introduction.html#model-scope">模型适用范围</a>。本文档对应 Kiyosi 0.16.0；项目处于 Alpha 阶段，API 可能发生变化。</p>
 </main>

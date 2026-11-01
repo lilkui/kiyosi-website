@@ -11,6 +11,15 @@ Rates and volatility use annual decimal units (0.05 means 5%). Rate curves
 use Actual/365 Fixed time; a calendar's trading-day basis applies only to
 trading-year fractions. ``BusinessDayConvention`` accepts ``"following"``
 or ``"preceding"``, including the supplied date when it is open.
+LocalVolatilitySurface owns a rectangular table (rows=time, columns=absolute
+spot), interpolating sigma bilinearly with flat price tails and no time
+extrapolation. Context changes keep these absolute nodes fixed. All FD engines
+support LocalVolatilityParameters for price, delta and gamma; Digital FD requires
+explicitly flat risk-free and dividend rates. Non-FD engines, other Greeks and
+inverse solves reject this model with UnsupportedOperationError.
+Model and context ``replace()`` methods expose named keyword-only fields.
+Omitted fields, or the displayed default ``...`` (``Ellipsis``), retain their
+values; explicit ``None`` is rejected.
 
 ## Examples
 
@@ -23,7 +32,7 @@ without moving the March anchor:
 ...     start=date(2025, 1, 31), end=date(2025, 3, 31),
 ...     first_observation_month=1, calendar=all_days_calendar(),
 ... )
->>> schedule.dates
+>>> list(schedule)
 [datetime.date(2025, 2, 28), datetime.date(2025, 3, 31)]
 ```
 
@@ -75,7 +84,7 @@ Return the scalar dividend yield or an owned node curve.
 ### `replace`
 
 ```python
-replace(self, /, **changes)
+replace(self, /, *, risk_free_rate=Ellipsis, dividend_yield=Ellipsis, volatility=Ellipsis)
 ```
 
 Return a validated replacement without changing this value.
@@ -87,7 +96,7 @@ Return a validated replacement without changing this value.
 - **`volatility`** (`float, optional`) — Positive finite annual volatility in decimal units.
 #### Returns
 
-- `object` — New instance of the same class; omitted fields retain their values.
+- `object` — New instance of the same class; omitted fields or Ellipsis retain their values.
 #### Raises
 
 - `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
@@ -109,6 +118,120 @@ Return positive finite annual volatility in decimal units.
 ```python
 BusinessDayConvention = typing.Literal['following', 'preceding']
 ```
+
+## `LocalVolatilityParameters`
+
+```python
+LocalVolatilityParameters(*, risk_free_rate, dividend_yield, surface)
+```
+
+Immutable local-volatility parameters with owned rate curves and surface.
+
+#### Parameters
+
+- **`risk_free_rate, dividend_yield`** (`float or RateTermStructure`) — Finite continuously compounded rates or validated rate curves.
+- **`surface`** (`LocalVolatilitySurface`) — Validated surface in absolute time and price coordinates.
+#### Raises
+
+- `InvalidInputError` — If a scalar rate is non-finite. Coverage is checked by the context and pricing over required remaining horizons. All FD product families support price, delta and gamma; Digital FD requires flat rates.
+
+### `dividend_curve`
+
+Return an owned copy of the dividend curve.
+
+### `dividend_yield`
+
+Return a scalar dividend yield or an owned node curve.
+
+### `replace`
+
+```python
+replace(self, /, *, risk_free_rate=Ellipsis, dividend_yield=Ellipsis, surface=Ellipsis)
+```
+
+Return a validated new model; omitted fields or Ellipsis retain their values.
+
+#### Parameters
+
+- **`risk_free_rate, dividend_yield`** (`float or RateTermStructure, optional`) — Replacement continuously compounded rates or curves.
+- **`surface`** (`LocalVolatilitySurface, optional`) — Replacement owned surface.
+#### Returns
+
+- `LocalVolatilityParameters` — Independent replacement; the original is unchanged on failure.
+#### Raises
+
+- `InvalidInputError` — If a replacement scalar rate is non-finite.
+
+### `risk_free_curve`
+
+Return an owned copy of the risk-free curve.
+
+### `risk_free_rate`
+
+Return a scalar risk-free rate or an owned node curve.
+
+### `surface`
+
+Return an owned copy of the fixed surface.
+
+## `LocalVolatilitySurface`
+
+```python
+LocalVolatilitySurface(*, times, spots, values)
+```
+
+Immutable local-volatility table, with rows=time and columns=absolute spot.
+
+#### Parameters
+
+- **`times`** (`iterable of datetime.date or datetime.datetime`) — At least two strictly increasing instants; the first is the reference.
+- **`spots`** (`iterable of float`) — At least two strictly increasing positive finite prices.
+- **`values`** (`iterable of iterable of float`) — Rectangular positive finite annual volatilities (20% is 0.2).
+#### Raises
+
+- `InvalidInputError` — If the table shape, nodes or values are invalid.
+#### Notes
+
+Sigma interpolates bilinearly on time and absolute price using Actual/365
+Fixed. Time extrapolation is rejected; price tails use endpoint volatility.
+Inputs are copied. Properties return owned copies; spot changes and time
+rolls never translate the surface. Native conversion errors reject booleans,
+naive datetimes and invalid iterable elements.
+
+### `maximum_volatility`
+
+Return the largest supplied annual volatility.
+
+### `spots`
+
+Return copied absolute price nodes.
+
+### `times`
+
+Return copied absolute time nodes as UTC datetimes.
+
+### `values`
+
+Return copied volatility rows, indexed by time then price.
+
+### `volatility`
+
+```python
+volatility(self, /, time, spot)
+```
+
+Interpolate sigma at an absolute time and positive spot.
+
+#### Parameters
+
+- **`time`** (`datetime.date or datetime.datetime`) — Covered query instant.
+- **`spot`** (`float`) — Positive finite underlying price; price tails are flat.
+#### Returns
+
+- `float` — Annual local volatility in decimal units.
+#### Raises
+
+- `InvalidInputError` — If time is outside coverage or spot is nonpositive/non-finite.
 
 ## `ObservationSchedule`
 
@@ -159,13 +282,13 @@ Immutable market snapshot for one valuation instant.
 
 #### Parameters
 
-- **`model_parameters`** (`BlackScholesMertonParameters`) — Validated BSM rates and volatility.
+- **`model_parameters`** (`BlackScholesMertonParameters or LocalVolatilityParameters`) — Validated rates and BSM volatility or a local-volatility surface.
 - **`spot_price`** (`float`) — Positive finite underlying spot price.
 - **`valuation_time`** (`datetime.date or datetime.datetime`) — Valuation instant. Dates mean midnight; aware datetimes convert to UTC.
 - **`calendar`** (`TradingCalendar, optional`) — Trading calendar. Defaults to weekdays with a 252-day basis.
 #### Raises
 
-- `InvalidInputError` — If spot_price is nonpositive/non-finite or valuation_time is outside either rate curve. Contract-life checks occur at pricing.
+- `InvalidInputError` — If spot_price is nonpositive/non-finite or valuation_time is outside either rate curve or the local-volatility surface. Contract-life and expiry coverage checks occur at pricing.
 
 ### `calendar`
 
@@ -178,20 +301,20 @@ Return an owned copy of the model parameters.
 ### `replace`
 
 ```python
-replace(self, /, **changes)
+replace(self, /, *, model_parameters=Ellipsis, spot_price=Ellipsis, valuation_time=Ellipsis, calendar=Ellipsis)
 ```
 
 Return a validated replacement without changing this value.
 
 #### Parameters
 
-- **`model_parameters`** (`BlackScholesMertonParameters, optional`) — Validated BSM rates and volatility.
+- **`model_parameters`** (`BlackScholesMertonParameters or LocalVolatilityParameters, optional`) — Validated rates and BSM volatility or a local-volatility surface.
 - **`spot_price`** (`float, optional`) — Positive finite underlying spot price.
 - **`valuation_time`** (`datetime.date or datetime.datetime, optional`) — Valuation instant. Dates mean midnight; aware datetimes convert to UTC.
 - **`calendar`** (`TradingCalendar, optional`) — Trading calendar. Defaults to weekdays with a 252-day basis.
 #### Returns
 
-- `object` — New instance of the same class; omitted fields retain their values.
+- `object` — New instance of the same class; omitted fields or Ellipsis retain their values.
 #### Raises
 
 - `KiyosiError` — If replacement terms fail domain validation. The original is unchanged.
@@ -439,7 +562,7 @@ Create a calendar with every date open and a 365-day basis.
 ## `custom_calendar`
 
 ```python
-custom_calendar(*, base, **overrides)
+custom_calendar(*, base, closed_dates=Ellipsis, open_dates=Ellipsis, trading_days_per_year=None)
 ```
 
 Create open and closed overrides without changing the base calendar.

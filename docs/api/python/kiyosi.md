@@ -24,14 +24,26 @@ reject booleans and unintended lossy conversions.
 
 Values own their data and expose read-only properties. Shared and distinct
 instances support concurrent reads and pricing. Replacement creates a new
-value. Long calculations release the GIL around owned Rust inputs; short
-analytic calls may retain it.
+value. Long calculations release the GIL while borrowing immutable Rust
+inputs for the duration of the call; short analytic calls may retain it.
+Parallel Monte Carlo calls share a library-owned Rayon worker pool and keep
+their own simulation buffers. The pool is sized from available CPUs on first
+use and retained until process exit; it ignores `RAYON_NUM_THREADS` and leaves
+the application's global Rayon pool unchanged. `thread_count` caps workers per
+call without reserving them; one runs on the calling thread and zero selects
+automatic sizing. Worker-creation failures raise `OSError` during pricing;
+failed initialization can be retried by a later call.
+For multiprocessing, use the `spawn` start method. Forking after the worker
+pool has initialized leaves it unusable in the child process.
 
-`Greek` accepts delta, gamma, speed, theta, charm, color, vega, vanna,
-zomma and rho. Spot derivatives use spot units, volatility and rate
-derivatives use percentage points, and time derivatives use calendar days
+`Greek` accepts delta, gamma, speed, theta, charm, color, vega, volga, vanna,
+zomma, rho and dividend_rho. Spot derivatives use spot units, volatility and rate
+derivatives use percentage points (squared for volga), and time derivatives use calendar days
 of forward valuation time. `PricingResult` leaves unavailable or
 unrequested sensitivities as None; `require` raises if one is absent.
+Volga is the second volatility derivative divided by 10000. Dividend rho is
+the sensitivity to a parallel shift of the continuous dividend-yield curve,
+divided by 100, holding other market inputs fixed.
 
 Calls are synchronous, without core cancellation or signal polling. Python
 signal handling, including `KeyboardInterrupt`, resumes when control
@@ -44,7 +56,7 @@ Non-finite numerical result or unavailable computation state.
 ## `Greek`
 
 ```python
-Greek = typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'vanna', 'zomma', 'rho']
+Greek = typing.Literal['delta', 'gamma', 'speed', 'theta', 'charm', 'color', 'vega', 'volga', 'vanna', 'zomma', 'rho', 'dividend_rho']
 ```
 
 ## `InvalidInputError`
@@ -66,7 +78,7 @@ Finite price and optional finite price sensitivities.
 #### Notes
 
 Unavailable or unrequested Greeks are None. Spot derivatives are per spot
-unit, volatility/rate derivatives per percentage point, and time
+unit, volatility/rate derivatives per percentage point (squared for volga), and time
 derivatives per calendar day of forward valuation time.
 
 ### `charm`
@@ -80,6 +92,10 @@ Return color, or None if unrequested or unavailable.
 ### `delta`
 
 Return delta, or None if unrequested or unavailable.
+
+### `dividend_rho`
+
+Return dividend rho per yield percentage point, or None if unavailable.
 
 ### `gamma`
 
@@ -127,6 +143,10 @@ Return vanna, or None if unrequested or unavailable.
 
 Return vega, or None if unrequested or unavailable.
 
+### `volga`
+
+Return volga per squared volatility percentage point, or None if unavailable.
+
 ### `zomma`
 
 Return zomma, or None if unrequested or unavailable.
@@ -142,5 +162,5 @@ Unsupported pricing combination or unavailable result measure.
 ## `__version__`
 
 ```python
-__version__ = '0.14.0'
+__version__ = '0.16.0'
 ```

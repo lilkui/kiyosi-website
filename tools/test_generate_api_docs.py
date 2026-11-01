@@ -185,7 +185,7 @@ class GeneratorTests(unittest.TestCase):
                 generate(output, "0.14.0", "a" * 40)
             self.assertEqual(old.read_text(encoding="utf-8"), "manual")
 
-    def test_replaces_old_cpp_pages_and_records_pin(self):
+    def test_replaces_generated_pages_and_records_pin(self):
         module = ModuleType("kiyosi")
         module.__version__ = "0.14.0"
         module.__all__ = ["__version__"]
@@ -195,14 +195,13 @@ class GeneratorTests(unittest.TestCase):
             output = Path(directory) / "api"
             output.mkdir()
             (output / GENERATED_MARKER).touch()
-            (output / "cpp").mkdir()
-            (output / "cpp/old.md").touch()
+            (output / "stale.md").touch()
             generate(output, "0.14.0", "a" * 40)
             overview = (output / "index.md").read_text(encoding="utf-8")
-            self.assertFalse((output / "cpp").exists())
+            self.assertFalse((output / "stale.md").exists())
             self.assertIn("0.14.0", overview)
             self.assertIn("a" * 40, overview)
-            self.assertIn('href="./rust/kiyosi_core/index.html" target="_self"', overview)
+            self.assertIn('href="./rust/kiyosi/index.html" target="_self"', overview)
             self.assertIn("__version__ = '0.14.0'", (output / "python/kiyosi.md").read_text(encoding="utf-8"))
 
 
