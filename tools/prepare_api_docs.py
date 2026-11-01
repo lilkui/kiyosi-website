@@ -53,7 +53,7 @@ def main():
         env={**build_env, "RUSTDOCFLAGS": "-D warnings"})
     if not (rustdoc / "kiyosi/index.html").is_file():
         raise RuntimeError("Cargo did not produce the Rust API entry page")
-    run(python, ROOT / "tools/generate_api_docs.py", "--version", pin["version"],
+    run("uv", "run", "--python", python, ROOT / "tools/generate_api_docs.py", "--version", pin["version"],
         "--revision", pin["revision"], "--output", ROOT / "docs/api")
     destination = ROOT / "docs/public/api/rust"
     if destination.exists():
