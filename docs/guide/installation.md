@@ -6,25 +6,25 @@ description: 安装 kiyosi Python 包，或使用 Rust 和 maturin 从固定源�
 
 ## Python 环境要求 {#python-requirements}
 
-需要 **Python 3.11+**。本网站对应 **kiyosi 0.16.0**。建议在虚拟环境中安装固定版本：
+需要 **Python 3.12+**。本网站对应 **kiyosi 0.17.0**。建议在虚拟环境中安装固定版本：
 
 ::: code-group
 
 ```sh [Linux / macOS]
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install "kiyosi==0.16.0"
+python -m pip install "kiyosi==0.17.0"
 ```
 
 ```powershell [Windows]
 py -m venv .venv
 .venv\Scripts\Activate.ps1
-python -m pip install "kiyosi==0.16.0"
+python -m pip install "kiyosi==0.17.0"
 ```
 
 :::
 
-有匹配平台的预编译 wheel 时，安装无需 Rust。上游 wheel 构建配置覆盖 Python 3.11–3.15；具体可用文件以该版本发布结果为准。
+有匹配平台的预编译 wheel 时，安装无需 Rust。Python 绑定使用 `abi3-py312` 稳定 ABI；上游 wheel 构建配置覆盖 Python 3.12–3.15，具体可用文件以该版本发布结果为准。
 
 安装后确认版本和入口：
 
@@ -43,9 +43,9 @@ python -c "import kiyosi; from kiyosi.pricing import AnalyticEuropeanEngine; pri
 ```sh
 git clone https://github.com/lilkui/kiyosi.git
 cd kiyosi
-git checkout 2ec75ab8462bcef8f32bd32aba4468f78e7ee6a9
+git checkout aa80d636ef804deff7daf0a4db355c7f70a781c0
 python -m pip install .
-python -c "import kiyosi; print(kiyosi.__version__)"  # 0.16.0
+python -c "import kiyosi; print(kiyosi.__version__)"  # 0.17.0
 ```
 
 pip 自动安装构建所需的 maturin，并由 Cargo 使用源码中的锁文件构建 Rust 扩展。首次构建需要联网下载依赖。若只使用 Rust，请参阅[构建 Rust 核心](../rust/building)。
@@ -57,6 +57,6 @@ pip 自动安装构建所需的 maturin，并由 Cargo 使用源码中的锁文�
 | `ModuleNotFoundError: No module named 'kiyosi'` | 确认安装包和运行脚本使用同一 Python 解释器，并激活虚拟环境。 |
 | pip 开始编译原生代码 | 当前平台可能没有匹配的 wheel；准备 Rust/Cargo 和本机链接工具。 |
 | 找不到 Cargo 或链接器 | 检查 `cargo --version`，确保本机编译工具可在终端调用。 |
-| 示例找不到引擎名 | 检查安装版本是否为 0.16.0，使用本版本参考页中的公开名称。 |
+| 示例找不到引擎名 | 检查安装版本是否为 0.17.0，使用本版本参考页中的公开名称。 |
 
-来源：[kiyosi 安装说明](https://github.com/lilkui/kiyosi/blob/2ec75ab8462bcef8f32bd32aba4468f78e7ee6a9/README.md#安装)、[构建配置](https://github.com/lilkui/kiyosi/blob/2ec75ab8462bcef8f32bd32aba4468f78e7ee6a9/pyproject.toml)。
+来源：[kiyosi 安装说明](https://github.com/lilkui/kiyosi/blob/aa80d636ef804deff7daf0a4db355c7f70a781c0/README.md#安装)、[构建配置](https://github.com/lilkui/kiyosi/blob/aa80d636ef804deff7daf0a4db355c7f70a781c0/pyproject.toml)。

@@ -4,7 +4,7 @@ description: 了解 kiyosi 的 instruments、market 和 pricing 模块，以及�
 
 # Python API 概览
 
-本页对应 **kiyosi 0.16.0**。所有公开导出对象、运行时签名、属性和文档字符串均可在[完整 Python API 参考](/api/python/)中查阅。参考文档保留英文，与源码注释一致。
+本页对应 **kiyosi 0.17.0**。所有公开导出对象、运行时签名、属性和文档字符串均可在[完整 Python API 参考](/api/python/)中查阅。参考文档保留英文，与源码注释一致。
 
 ## `kiyosi.instruments`
 
@@ -26,7 +26,7 @@ description: 了解 kiyosi 的 instruments、market 和 pricing 模块，以及�
 
 该模块提供市场输入、利率曲线、估值上下文、日历和观察日程。
 
-`BlackScholesMertonParameters` 接收无风险利率、股息率和恒定波动率；`LocalVolatilityParameters` 使用局部波动率曲面。两种模型的利率和股息率可以是连续复利标量，也可以是 `RateTermStructure`。`PricingContext` 将模型参数与 `spot_price`、`valuation_time` 组合。
+`BlackScholesMertonParameters` 接收无风险利率、股息率和恒定波动率；`LocalVolatilityParameters` 使用局部波动率曲面；`HestonParameters` 描述随机方差过程。三种模型的利率和股息率可以是连续复利标量，也可以是 `RateTermStructure`。`PricingContext` 将模型参数与 `spot_price`、`valuation_time` 组合。
 
 ### 利率期限结构 {#rate-curves}
 
@@ -87,9 +87,41 @@ local_result = FiniteDifferenceVanillaEngine().price_with_greeks(
 print(local_result.price, local_result.delta, local_result.gamma)
 ```
 
-所有有限差分产品族均支持该模型的价格与固定曲面 delta、gamma。到期时或差分模板跨越事件、无法计算时，delta／gamma 为 `None`。请求其他 Greeks（包括 `greeks="all"`）、使用非有限差分引擎或进行隐含参数求解，会抛出 `UnsupportedOperationError`；数字期权有限差分还要求利率和股息率显式为平坦曲线。
+一维有限差分的所有产品族均支持该模型的价格与固定曲面 delta、gamma。到期时或差分模板跨越事件、无法计算时，delta／gamma 为 `None`。请求其他 Greeks（包括 `greeks="all"`）、使用其他引擎族或进行隐含参数求解，会抛出 `UnsupportedOperationError`；数字期权有限差分还要求利率和股息率显式为平坦曲线。
 
 曲面须覆盖剩余随机演化时段，利率须覆盖所需折现时段。自动空间边界使用该演化时段内插值后的最大局部波动率；仍应检查时间、空间网格和边界的收敛性。
+
+### Heston 模型 {#heston}
+
+`HestonParameters` 保存风险中性下的恒定方差过程参数。`initial_variance` 是估值时点的方差，20% 初始波动率对应 `0.04`；`long_run_variance` 是长期方差，`mean_reversion_speed` 是按年计量的均值回复速度，`vol_of_vol` 是方差过程的波动系数，`correlation` 是标的与方差布朗运动的相关系数。
+
+四个方差过程参数须为非负有限值，相关系数须位于 `[-1, 1]`（包含端点），不要求满足 Feller 条件 `2 * mean_reversion_speed * long_run_variance >= vol_of_vol**2`。模型只读，可用 `replace()` 创建经过验证的新值。
+
+沿用[首次定价](../guide/first-price)的 `option` 和 `context`：
+
+```python
+from kiyosi.market import HestonParameters
+from kiyosi.pricing import (
+    AnalyticHestonEuropeanEngine,
+    FiniteDifferenceHestonVanillaEngine,
+)
+
+heston_context = context.replace(
+    model_parameters=HestonParameters(
+        risk_free_rate=0.05,
+        dividend_yield=0.02,
+        initial_variance=0.04,
+        long_run_variance=0.04,
+        mean_reversion_speed=1.5,
+        vol_of_vol=0.3,
+        correlation=-0.7,
+    ),
+)
+print(AnalyticHestonEuropeanEngine().price(option, heston_context))
+print(FiniteDifferenceHestonVanillaEngine().price(option, heston_context))
+```
+
+Fourier 积分引擎仅支持欧式普通期权；二维有限差分引擎还支持美式普通期权。两者均支持确定性利率曲线、零方差参数及相关系数端点，但不支持 Greeks 和隐含参数求解；其他引擎不接受该模型。积分容差、评估预算、网格与边界设置见 [Heston 定价](../guide/engines#heston-pricing)。
 
 ### 日历与观察日程 {#calendars-and-schedules}
 
@@ -112,7 +144,7 @@ schedule = monthly_schedule(
 )
 ```
 
-`first_observation_month=1` 表示从起始日后一个月开始观察。月末会按原始锚点处理，并按日历调整。日程边界和日历的详细约定见[市场 API](/api/python/kiyosi-market)。
+`first_observation_month=1` 表示从起始日后一个月开始观察。月末会按原始锚点处理，并按日历调整。`ObservationSchedule` 支持迭代、长度查询及整数索引（含负数），不支持切片；布尔索引抛出 `TypeError`，越界索引抛出 `IndexError`。日程边界和日历的详细约定见[市场 API](/api/python/kiyosi-market)。
 
 ## `kiyosi.pricing`
 
@@ -123,6 +155,10 @@ schedule = monthly_schedule(
 共有十二项 Greeks：delta、gamma、speed、theta、charm、color、vega、volga、vanna、zomma、rho、dividend_rho。未请求、无定义或不受支持的指标为 `None`；`result.require("delta")` 在指标不可用时抛出 `UnsupportedOperationError`。Vega、vanna、zomma 按波动率变动一个百分点计量，volga 为波动率二阶导数除以 10000；rho 和 dividend_rho 分别按无风险利率、股息率曲线平行移动一个百分点计量。Theta、charm、color 按估值时点向前移动一个自然日计量。
 
 数值差分引擎按各自签名提供 `spot_shift`、`volatility_shift`、`rate_shift` 和 `time_shift_days`。`volatility_shift` 用于 vega 与 volga，数值 volga 的较低波动率扰动值必须严格为正；`rate_shift` 用于 rho 与 dividend_rho。仅使用原生 Greeks 的引擎不接受这些扰动参数；`MonteCarloBarrierEngine` 和 `MonteCarloDoubleBarrierEngine` 仅支持 delta、gamma，扰动参数只有 `spot_shift`。
+
+对单／双障碍蒙特卡洛的连续监控、触碰时支付返还金，若数值差分模板不可用，整个合约的 delta、gamma 均为 `None`。现价扰动应在估值现价两侧产生不同且为正的现价。
+
+`QuadratureVanillaEngine` 和 `QuadratureDigitalEngine` 使用平坦利率 BSM，提供价格与数值 Greeks；Heston 专用引擎仅提供价格。配置与收敛检查见[定价引擎](../guide/engines)。
 
 `implied_volatility()`、`implied_coupon()` 分别求解隐含波动率和票息。雪球票息求解须指定 `quote_convention`，控制是否同步平移到期票息；凤凰省略该参数。FCN／DCN 的求解边界、容差和返回值沿用合约的每期票息单位。签名、单位和限制见[定价 API](/api/python/kiyosi-pricing)。
 
@@ -148,4 +184,4 @@ schedule = monthly_schedule(
 
 - [首次定价](../guide/first-price)：完整 Python 脚本与 Greeks。
 - [采样与误差估计](../guide/engines#sampling-and-error)：蒙特卡洛统计接口。
-- [上游 Python 测试](https://github.com/lilkui/kiyosi/tree/2ec75ab8462bcef8f32bd32aba4468f78e7ee6a9/python/tests)：更多产品用法。
+- [上游 Python 测试](https://github.com/lilkui/kiyosi/tree/aa80d636ef804deff7daf0a4db355c7f70a781c0/python/tests)：更多产品用法。

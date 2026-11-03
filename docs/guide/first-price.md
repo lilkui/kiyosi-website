@@ -86,4 +86,4 @@ print(estimate)
 
 蒙特卡洛方法通过数值模拟估算价格，结果可能与解析解不同。`seed` 固定随机种子，`thread_count` 限制单次 CPU 调用的并发数。各类产品的引擎支持范围与采样设置见[定价引擎](./engines)。
 
-本示例改编自 [kiyosi Python 定价模块示例](https://github.com/lilkui/kiyosi/blob/2ec75ab8462bcef8f32bd32aba4468f78e7ee6a9/python/src/kiyosi/pricing.py)。
+本示例改编自 [kiyosi Python 定价模块示例](https://github.com/lilkui/kiyosi/blob/aa80d636ef804deff7daf0a4db355c7f70a781c0/python/src/kiyosi/pricing.py)。

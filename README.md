@@ -7,7 +7,7 @@
 ## 构建要求
 
 - Node.js 22+、npm、Git。
-- Python 3.11+，含 `venv` 和 pip；Linux 命令为 `python3`，Windows 需要 `py -3` 启动器。
+- Python 3.12+，含 `venv` 和 pip；Linux 命令为 `python3`，Windows 需要 `py -3` 启动器。
 - Rust 1.85+、Cargo 和本机编译／链接工具；Windows 使用 MSVC 工具链及 Visual Studio Build Tools。
 
 首次构建需要联网下载源码和依赖。Debian / Ubuntu 若缺少 `ensurepip`，需安装与解释器匹配的 `python3-venv`。
