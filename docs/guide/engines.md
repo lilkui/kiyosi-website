@@ -4,7 +4,7 @@ description: 按产品选择 kiyosi 定价算法，配置数值方法和 CPU 蒙
 
 # 定价引擎
 
-请按金融工具类型选择引擎。虽然各引擎都使用 `price(instrument, context)` 接口，但支持的产品和模型条件不同。本页对应 kiyosi **0.17.0**。
+请按金融工具类型选择引擎。虽然各引擎都使用 `price(instrument, context)` 接口，但支持的产品和模型条件不同。本页对应 kiyosi **0.18.0**。
 
 ## 支持的产品与方法 {#instrument-coverage}
 
@@ -29,7 +29,7 @@ description: 按产品选择 kiyosi 定价算法，配置数值方法和 CPU 蒙
 
 ## 引擎配置与验证 {#engine-settings}
 
-数值引擎在构造时验证配置，合约与市场条件在定价时验证。引擎配置只读；调整网格或采样时，创建新引擎。
+数值引擎在构造时验证配置，合约与市场条件在定价时验证。引擎配置只读；调整网格或采样时，使用 `engine.replace(...)` 创建经过验证的新引擎，或重新构造引擎。
 
 有限差分默认使用 `"rannacher"`：前两个时间区间分别用两个隐式 Euler 半步替代，并在日程中的障碍、累购或自动赎回观察后重新平滑。`"crank_nicolson"` 表示不进行时间步平滑的标准 Crank–Nicolson 格式；另可选 `"explicit_euler"` 和 `"implicit_euler"`。
 
@@ -51,7 +51,7 @@ engine = FiniteDifferenceVanillaEngine(
 
 ## 普通与数字期权积分 {#quadrature-pricing}
 
-`QuadratureVanillaEngine` 支持欧式和美式普通期权，`QuadratureDigitalEngine` 支持欧式现金或无、资产或无数字期权；两者均要求 BSM 参数中的无风险利率和股息率显式为平坦曲线。
+`QuadratureVanillaEngine` 支持欧式和美式普通期权，`QuadratureDigitalEngine` 支持欧式现金或无、资产或无数字期权；两者均要求 BSM 参数中的无风险利率和股息率为恒定曲线。需要精确恒定且有覆盖边界的曲线时，可用 `RateTermStructure.bounded_flat()`。
 
 沿用[首次定价](./first-price)中的 `option` 和 `context`：
 
@@ -74,7 +74,7 @@ print(engine.price(option, context))
 
 ## Heston 定价 {#heston-pricing}
 
-使用 [Heston 市场上下文](../reference/python#heston)时，欧式普通期权可选 `AnalyticHestonEuropeanEngine`，欧式和美式普通期权均可选 `FiniteDifferenceHestonVanillaEngine`。这两个引擎只计算价格；Greeks 与隐含参数求解会抛出 `UnsupportedOperationError`，其他引擎不接受 Heston 模型。
+使用 [Heston 市场上下文](../reference/python#heston)时，欧式普通期权可选 `AnalyticHestonEuropeanEngine`，欧式和美式普通期权均可选 `FiniteDifferenceHestonVanillaEngine`。这两个引擎只计算价格；`price_with_greeks()` 返回价格并将请求的 Greeks 标记为 `unsupported`。`numerical_greeks()` 与隐含参数求解抛出 `UnsupportedOperationError`，其他引擎不接受 Heston 模型。
 
 Fourier 积分引擎采用自适应积分和确定性方差控制变量，默认 `absolute_tolerance=1e-8`、`relative_tolerance=1e-8`、`max_evaluations=10000`。绝对容差按价格单位计量，两种容差均须为非负有限值且至少一个为正；评估预算须为正整数，覆盖一次请求中的特征函数、控制变量与尾部检查。预算或数值分辨率不足会抛出 `NonConvergenceError`。到期与确定性方差分支不消耗积分预算；误差估计不保证所有参数下的精度，尾部价格尤其需要收敛检查。
 
@@ -84,35 +84,41 @@ Heston 二维有限差分的设置独立于一维引擎，不接受 `scheme` 参
 
 ## CPU 并发与复现 {#cpu-concurrency}
 
-蒙特卡洛在 CPU 上运行。并行调用共用库持有的 Rayon 线程池，首次使用时按可用 CPU 数量初始化，并保留到进程退出。`thread_count=0` 自动选择参与计算的线程数，`1` 在调用线程上串行执行，正整数限制单次调用使用的工作线程数；它不限制整个进程的线程数，也不预留工作线程。线程池忽略 `RAYON_NUM_THREADS`，不修改应用的全局 Rayon 池。沿用[首次定价](./first-price)中的对象：
+蒙特卡洛在 CPU 上运行。并行调用共用库持有的 Rayon 线程池，首次并行使用时初始化，并保留到进程退出。`max_active_workers=0` 自动选择活跃工作线程数，`1` 在调用线程上串行执行，正整数限制单次调用的活跃工作线程数；它不限制线程创建数量，也不预留工作线程。
+
+如需限制进程内该池创建的工作线程数，在首次并行请求前调用 `configure_monte_carlo_pool(max_workers=...)`，实际数量还受可用 CPU 数限制；未配置时按可用 CPU 数量选择。线程池忽略 `RAYON_NUM_THREADS`，不修改应用的全局 Rayon 池。例如，在新进程中沿用[首次定价](./first-price)的合约与上下文：
 
 ```python
-from kiyosi.pricing import MonteCarloVanillaEngine
+from kiyosi.pricing import MonteCarloVanillaEngine, configure_monte_carlo_pool
 
-engine = MonteCarloVanillaEngine(seed=42, thread_count=4)
+configure_monte_carlo_pool(max_workers=4)
+engine = MonteCarloVanillaEngine(seed=42, max_active_workers=4)
 estimate = engine.price(option, context)
 print(estimate)
 ```
 
-固定种子时，同一构建中的随机抽样不随线程数改变；不保证跨版本或构建完全一致。每次调用同步完成自己的计算，可并发共享只读引擎。
+固定种子时，同一构建中的随机抽样不随线程数改变；不保证跨版本或构建完全一致。`engine.with_resolved_seed()` 返回带具体种子的独立引擎，保留其余设置；`price_with_seed()` 返回 `(price, seed)`，也可通过统计结果和 Greeks 结果的 `seed` 查询实际抽样种子。无需抽样时种子为 `None`。每次调用同步完成自己的计算，可并发共享只读引擎。
 
 使用 Python 多进程时选择 `spawn` 启动方式；线程池初始化后再 `fork`，子进程中的该池将无法使用。
 
 ## 采样与误差估计 {#sampling-and-error}
 
-可选 `sampling="pseudo_random"` 或经过扰乱的 `"sobol"`。Sobol 要求路径数为二的幂；`antithetic=True` 将相反的正态随机数配对。欧式普通期权可使用统计接口：
+可选 `sampling="pseudo_random"` 或经过扰乱的 `"sobol"`。Sobol 要求路径数为二的幂；`antithetic=True` 将相反的正态随机数配对。各蒙特卡洛产品引擎提供统计接口，普通期权引擎的统计接口仅支持欧式产品：
 
 ```python
 engine = MonteCarloVanillaEngine(path_count=100_000, seed=42)
 result = engine.price_with_statistics(option, context)
 print(result.price, result.standard_error, result.confidence_interval)
+print(result.seed, result.uncertainty_status)
 ```
 
-Sobol 采样不报告采样标准误差和置信区间，相应字段为 `None`。欧式普通期权直接采样终值，`step_count` 不影响其价格；美式期权使用离散行权网格。详细约束见 [MonteCarloVanillaEngine](/api/python/kiyosi-pricing#montecarlovanillaengine)。
+伪随机独立样本或完整对偶样本对可提供标准误差和渐近 95% 正态置信区间。Sobol、独立样本不足或奇数路径的对偶采样不报告不确定度，相应字段为 `None`；`uncertainty_status` 分别报告 `unsupported_sampling`、`insufficient_observations` 或 `incomplete_antithetic_pair`，可用时为 `available`。
+
+欧式普通期权直接采样终值，`step_count` 不影响其价格；美式期权使用最小二乘蒙特卡洛，`step_count` 表示行权时间区间数，到期前至少为 2。详细约束见 [MonteCarloVanillaEngine](/api/python/kiyosi-pricing#montecarlovanillaengine)。
 
 `step_count` 仅由 `MonteCarloVanillaEngine` 和 `MonteCarloAsianEngine` 接受；其他蒙特卡洛引擎按各自的观察或监控日程计算。
 
-美式蒙特卡洛行权网格每次调用最多保留 1 GiB 路径数据，大小为 `8 * path_count * (step_count - 1)` 字节；对偶采样的奇数路径数按下一偶数预留，其他缓冲区另计。超限时在抽样前抛出 `InvalidInputError`，需减少路径数或时间步数。到期定价，以及股息率非正且利率非负、仅需终值采样的美式看涨期权，不分配该网格，也不受此限额约束。
+美式蒙特卡洛行权网格每次调用最多保留 1 GiB 路径数据，大小为 `8 * path_count * step_count` 字节；对偶采样的奇数路径数按下一偶数预留，其他缓冲区另计。超限时在抽样前抛出 `InvalidInputError`，需减少路径数或时间区间数。到期、确定性定价，以及股息率非正且利率非负、仅需终值采样的美式看涨期权，不分配该网格，也不受此限额约束。
 
 未来的障碍、敲入、敲出、票息和加速观察使用模拟的对数价格变化进行判定，即使还原后的现价因浮点舍入恰好等于阈值；单／双障碍期权的到期收益也保留此精度。估值时点的观察仍使用传入的现价。
 
@@ -120,4 +126,4 @@ Sobol 采样不报告采样标准误差和置信区间，相应字段为 `None`�
 
 使用相同的合约条款、估值时点与市场输入。数值方法引入离散或模拟误差，需要分别检查网格收敛与采样误差。隐含参数求解器的容差不能衡量蒙特卡洛误差。
 
-模型范围见[简介](./introduction#model-scope)。产品与算法表依据[上游 README](https://github.com/lilkui/kiyosi/blob/aa80d636ef804deff7daf0a4db355c7f70a781c0/README.md#支持的产品与算法)整理，更多用例见[Python 测试](https://github.com/lilkui/kiyosi/tree/aa80d636ef804deff7daf0a4db355c7f70a781c0/python/tests)。
+模型范围见[简介](./introduction#model-scope)。产品与算法表依据[上游 README](https://github.com/lilkui/kiyosi/blob/a125eb5b6512606881d3e809ae861bac96f90880/README.md#支持产品与算法)整理，更多用例见[Python 示例](https://github.com/lilkui/kiyosi/tree/a125eb5b6512606881d3e809ae861bac96f90880/examples/python)与[测试](https://github.com/lilkui/kiyosi/tree/a125eb5b6512606881d3e809ae861bac96f90880/python/tests)。

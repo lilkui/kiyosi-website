@@ -9,18 +9,18 @@ description: 使用 kiyosi 的 Python 接口和 Black-Scholes 解析引擎为欧
 ## 完整示例 {#a-complete-example}
 
 ```python
-from datetime import date
+from datetime import datetime
 
 from kiyosi.instruments import EuropeanOption
 from kiyosi.market import BlackScholesMertonParameters, PricingContext
 from kiyosi.pricing import AnalyticEuropeanEngine
 
-valuation = date(2025, 1, 1)
+valuation = datetime(2025, 1, 1)
 option = EuropeanOption(
     option_type="call",
     strike=100.0,
-    effective_date=valuation,
-    expiry_date=date(2026, 1, 1),
+    effective_time=valuation,
+    expiry_time=datetime(2026, 1, 1),
 )
 context = PricingContext(
     model_parameters=BlackScholesMertonParameters(
@@ -42,7 +42,7 @@ print(f"Price: {price:.6f}")  # 9.227006
 python first_price.py
 ```
 
-脚本会输出期权价格。示例中的历史日期是固定的，计算以 `valuation_time` 为估值时点，与脚本运行当天的日期无关。
+脚本会输出期权价格。示例中的时间是固定的，计算以 `valuation_time` 为估值时点，与脚本运行当天的日期无关。时间参数使用无时区的 `datetime`，所有输入须采用调用方选定的同一时间基准。
 
 ## 理解输入参数 {#understand-the-inputs}
 
@@ -55,7 +55,7 @@ python first_price.py
 | `dividend_yield` | `0.02` | 恒定的年化股息率，以小数表示 |
 | `volatility` | `0.20` | 年化波动率，以小数表示 |
 
-`effective_date` 和 `expiry_date` 分别是合约的生效日和到期日；`valuation_time` 是估值时点，属于市场上下文。利率和股息率采用连续复利。`price()` 只计算价格，直接返回 `float`。
+`effective_time` 和 `expiry_time` 分别是合约的生效时刻和到期时刻；`valuation_time` 是估值时点，属于市场上下文。利率和股息率采用连续复利。`price()` 只计算价格，直接返回 `float`。
 
 ## 计算 Greeks {#calculate-greeks}
 
@@ -67,11 +67,11 @@ result = engine.price_with_greeks(option, context, greeks=["delta", "gamma", "ve
 print(result.price, result.delta, result.gamma, result.vega)
 ```
 
-该方法返回只读的 `PricingResult`。`greeks` 是必填参数，可传单个名称（如 `"delta"`）、名称序列，或 `"all"` 请求全部十二项指标。未请求、无定义或不支持的指标为 `None`，不能当作零处理。
+该方法返回只读的 `PricingResult`。`greeks` 是必填参数，可传单个名称（如 `"delta"`）、名称序列，或 `"all"` 请求全部十二项指标；空序列仅请求价格。不可用的指标为 `None`，不能当作零处理；使用 `result.status("delta")` 查看状态，`result.require("delta")` 在指标不可用时抛出 `GreekUnavailableError`。
 
-引擎优先使用原生 Greeks，其余可计算指标使用数值差分。仅使用原生 Greeks 的引擎（包括本例的 `AnalyticEuropeanEngine`）不接受差分扰动参数；使用数值差分的引擎按其签名提供 `spot_shift` 等关键字参数，详见[Python API 概览](../reference/python#kiyosi-pricing)。
+`price_with_greeks()` 使用引擎自身的估计方法。各引擎统一接受 `spot_shift`、`volatility_shift`、`rate_shift` 和 `time_shift`，用于数值回退与可用性检查，原生估计方法保持不变。需要显式使用 BSM 标量数值差分时，调用 `numerical_greeks()`，详见[Python API 概览](../reference/python#kiyosi-pricing)。
 
-Vega 按波动率变动 1 个百分点计量，volga 为波动率二阶导数除以 10000；`dividend_rho` 按股息率曲线平行移动 1 个百分点计量。Theta 按估值时点向前移动 1 个自然日计量。完整的单位说明见 [`PricingResult`](/api/python/kiyosi#pricingresult)。
+所有 Greeks 均为未缩放偏导：波动率和利率以小数为单位，时间以年（Actual/365 Fixed）为单位。例如，波动率上升 1 个百分点的近似价格变化为 `result.vega * 0.01`；估值时点前进一天的近似价格变化为 `theta / 365`。完整定义见 [`PricingResult`](/api/python/kiyosi#pricingresult)。
 
 ## 更换定价引擎 {#change-the-engine}
 
@@ -80,10 +80,10 @@ Vega 按波动率变动 1 个百分点计量，volga 为波动率二阶导数除
 ```python
 from kiyosi.pricing import MonteCarloVanillaEngine
 
-estimate = MonteCarloVanillaEngine(seed=42, thread_count=4).price(option, context)
+estimate = MonteCarloVanillaEngine(seed=42, max_active_workers=4).price(option, context)
 print(estimate)
 ```
 
-蒙特卡洛方法通过数值模拟估算价格，结果可能与解析解不同。`seed` 固定随机种子，`thread_count` 限制单次 CPU 调用的并发数。各类产品的引擎支持范围与采样设置见[定价引擎](./engines)。
+蒙特卡洛方法通过数值模拟估算价格，结果可能与解析解不同。`seed` 固定随机种子，`max_active_workers` 限制单次 CPU 调用的活跃工作线程数。各类产品的引擎支持范围与采样设置见[定价引擎](./engines)。
 
-本示例改编自 [kiyosi Python 定价模块示例](https://github.com/lilkui/kiyosi/blob/aa80d636ef804deff7daf0a4db355c7f70a781c0/python/src/kiyosi/pricing.py)。
+本示例改编自 [kiyosi Python 定价模块示例](https://github.com/lilkui/kiyosi/blob/a125eb5b6512606881d3e809ae861bac96f90880/python/src/kiyosi/pricing.py)。

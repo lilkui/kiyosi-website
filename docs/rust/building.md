@@ -13,7 +13,7 @@ description: 使用 Cargo 构建 kiyosi Rust 核心、生成 rustdoc，并接入
 ```sh
 git clone https://github.com/lilkui/kiyosi.git
 cd kiyosi
-git checkout aa80d636ef804deff7daf0a4db355c7f70a781c0
+git checkout a125eb5b6512606881d3e809ae861bac96f90880
 cargo build -p kiyosi --release --locked
 cargo test -p kiyosi --locked
 ```
@@ -26,7 +26,7 @@ Cargo 首次构建需要下载锁文件指定的依赖。核心构建无需 Pyth
 
 ```toml
 [dependencies]
-kiyosi = { git = "https://github.com/lilkui/kiyosi.git", rev = "aa80d636ef804deff7daf0a4db355c7f70a781c0" }
+kiyosi = { git = "https://github.com/lilkui/kiyosi.git", rev = "a125eb5b6512606881d3e809ae861bac96f90880" }
 ```
 
 以下代码与 [Python 首次定价](../guide/first-price)使用相同的参数：
@@ -38,18 +38,20 @@ use kiyosi::{
 };
 
 fn main() -> kiyosi::Result<()> {
-    let start = Date::new(2025, 1, 1)?;
-    let expiry = Date::new(2026, 1, 1)?;
+    let start = Date::new(2025, 1, 1)?.start_of_day();
+    let expiry = Date::new(2026, 1, 1)?.start_of_day();
     let option = EuropeanOption::new(OptionType::Call, 100.0, start, expiry)?;
     let model = BlackScholesMertonParameters::new(0.05, 0.02, 0.2)?;
-    let context = PricingContext::new(model, 100.0, start.into())?;
+    let context = PricingContext::new(model, 100.0, start)?;
     let price = AnalyticEuropeanEngine.price(&option, &context)?;
     println!("Price: {price:.6}"); // 9.227006
     Ok(())
 }
 ```
 
-领域错误通过 `kiyosi::Result` 返回。公开内置类型拥有自己的数据，并支持并发读取和定价；修改值需要独占访问。完整约定见 <a href="../api/rust/kiyosi/index.html" target="_self">Rust API</a>。
+合约边界和估值时点使用 `Timestamp`，按调用方选定的同一时间基准解释；`Date::start_of_day()` 构造当天零点，`Date::at_time(TimeOfDay)` 可指定日内时刻。
+
+领域错误通过 `kiyosi::Result` 返回。公开内置类型拥有自己的数据，并支持并发读取和定价；修改值需要独占访问。`replace()` 使用对应的 `*Changes` 类型创建经过验证的新值。完整约定见 <a href="../api/rust/kiyosi/index.html" target="_self">Rust API</a>。
 
 ## 生成原生 API 文档
 
