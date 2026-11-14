@@ -19,24 +19,18 @@ description: kiyosi 是以 Rust 为核心、提供 Python 接口的开源衍生�
 
 <section id="features" class="home-features" aria-label="核心特性">
 <article>
-<h2>多种定价方法</h2>
-<p>支持解析法、二叉树、有限差分、积分与蒙特卡洛，可按产品与模型条件选择引擎。</p>
-
-[了解定价引擎](./guide/engines)
+<h2>广泛的产品覆盖</h2>
+<p>支持普通期权、数字期权、亚式期权和障碍期权，也支持国内市场常见的雪球、凤凰、累购和累沽等奇异期权结构。</p>
 
 </article>
 <article>
-<h2>价格与风险敏感度</h2>
-<p>按需计算 Greeks 与数值敏感度，求解隐含波动率和隐含票息。</p>
-
-[查阅 Python API](./reference/python)
+<h2>多种定价方法</h2>
+<p>提供解析法、二叉树、积分、有限差分和蒙特卡洛方法，可根据产品条款和模型条件选择合适的定价引擎。</p>
 
 </article>
 <article>
 <h2>Rust 核心，Python 接口</h2>
-<p>通过 Python 定义合约、提供市场输入，由 Rust 执行计算。原生核心也可独立接入 Rust 应用。</p>
-
-[构建 Rust 核心](./rust/building)
+<p>通过 Python 构建合约、配置市场输入，由 Rust 核心完成定价。核心库也可直接接入 Rust 应用。</p>
 
 </article>
 </section>
