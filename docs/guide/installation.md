@@ -6,7 +6,7 @@ description: 安装 kiyosi Python 包，或使用 Rust 和 maturin 从固定源�
 
 ## Python 环境要求 {#python-requirements}
 
-需要 **Python 3.12+**。本网站对应 **kiyosi 0.19.0**。建议在虚拟环境中安装固定版本：
+使用 **Python 3.12+**，在虚拟环境中安装本文档对应的 **kiyosi 0.19.0**：
 
 ::: code-group
 
@@ -24,7 +24,7 @@ python -m pip install "kiyosi==0.19.0"
 
 :::
 
-有匹配平台的预编译 wheel 时，安装无需 Rust。Python 绑定使用 `abi3-py312` 稳定 ABI；上游 wheel 构建配置覆盖 Python 3.12–3.15，具体可用文件以该版本发布结果为准。
+pip 会选择匹配当前 Python 与平台的预编译 wheel；使用 wheel 安装时无需 Rust。Python 绑定使用 `abi3-py312` 稳定 ABI，wheel 构建配置覆盖 Python 3.12–3.15。pip 转为源码构建时，按下节准备编译环境。
 
 安装后确认版本和入口：
 
@@ -36,9 +36,9 @@ python -c "import kiyosi; from kiyosi.pricing import AnalyticEuropeanEngine; pri
 
 ## 从源码构建 {#building-from-source}
 
-没有匹配的 wheel 时，需要 **Rust 1.85+**、Cargo，以及本机编译和链接工具。Linux 通常使用系统编译工具；Windows 使用 Visual Studio 的 C++ Build Tools 与 MSVC Rust 工具链。Python 包通过 maturin 构建，绑定由 PyO3 提供。
+源码构建需要 **Rust 1.85+**、Cargo，以及本机编译和链接工具。Linux 通常使用系统编译工具；Windows 使用 Visual Studio 的 C++ Build Tools 与 MSVC Rust 工具链。Python 包通过 maturin 构建，绑定由 PyO3 提供。
 
-如需安装与本文档完全对应的源码：
+检出本文档对应的提交并安装：
 
 ```sh
 git clone https://github.com/lilkui/kiyosi.git
@@ -55,8 +55,8 @@ pip 自动安装构建所需的 maturin，并由 Cargo 使用源码中的锁文�
 | 问题 | 排查方法 |
 | --- | --- |
 | `ModuleNotFoundError: No module named 'kiyosi'` | 确认安装包和运行脚本使用同一 Python 解释器，并激活虚拟环境。 |
-| pip 开始编译原生代码 | 当前平台可能没有匹配的 wheel；准备 Rust/Cargo 和本机链接工具。 |
+| pip 开始编译原生代码 | pip 正在从源码安装；准备 Rust/Cargo 和本机编译、链接工具。 |
 | 找不到 Cargo 或链接器 | 检查 `cargo --version`，确保本机编译工具可在终端调用。 |
-| 示例找不到引擎名 | 检查安装版本是否为 0.19.0，使用本版本参考页中的公开名称。 |
+| 示例找不到引擎名 | 用 `python -c "import kiyosi; print(kiyosi.__version__)"` 检查版本，并核对[定价 API](/api/python/kiyosi-pricing)中的名称与导入路径。 |
 
 来源：[kiyosi 安装说明](https://github.com/lilkui/kiyosi/blob/fb6ea0f626e81b4e62beff9d9c8027855e94b015/README.md#安装)、[构建配置](https://github.com/lilkui/kiyosi/blob/fb6ea0f626e81b4e62beff9d9c8027855e94b015/pyproject.toml)。

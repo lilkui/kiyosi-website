@@ -1,14 +1,12 @@
 ---
-description: 了解 kiyosi 的功能、定价流程和当前模型的适用范围。
+description: 了解 kiyosi 的定价流程、模型、产品与验证方式。
 ---
 
 # 简介
 
-Kiyosi 是一个开源衍生品定价库，支持普通期权、奇异期权和结构化产品。核心功能用 Rust 实现，主要通过 Python API 使用。
+kiyosi 是一个开源衍生品定价库，支持普通期权、奇异期权和结构化产品。核心功能用 Rust 实现，主要通过 Python API 使用。
 
-::: warning 早期开发阶段
-本文档对应 **kiyosi 0.19.0**，源码提交为 `fb6ea0f`。项目处于 Alpha 阶段，API 可能发生变化，不保证向后兼容。
-:::
+本文档对应 **kiyosi 0.19.0**，源码提交为 `fb6ea0f`，项目处于 Alpha 开发阶段。
 
 ## 定价流程 {#how-pricing-fits-together}
 
@@ -22,19 +20,19 @@ Python 的 `price()` 直接返回价格数值。需要计算希腊字母风险�
 
 不同金融工具支持的定价方法不同，详见[定价引擎](./engines)。
 
-## 模型适用范围 {#model-scope}
+## 模型与产品 {#model-scope}
 
 `BlackScholesMertonParameters` 使用非负恒定波动率；零波动率对应确定性定价。无风险利率和股息率可使用常数，也可使用 `RateTermStructure` 表示确定性的期限结构。
 
-`LocalVolatilitySurface` 和 `LocalVolatilityParameters` 用时间与绝对标的价格上的网格描述局部波动率。一维有限差分引擎支持该模型的价格、固定曲面 delta 和 gamma；其他 Greeks 标记为 `unsupported`。自动赎回有限差分还支持隐含票息求解；隐含波动率求解和其他引擎族不支持该模型。数字期权有限差分要求无风险利率和股息率为恒定曲线。用法见[局部波动率](../reference/python#local-volatility)。
+`LocalVolatilitySurface` 和 `LocalVolatilityParameters` 用时间与绝对标的价格上的网格描述局部波动率。一维有限差分引擎支持该模型的价格、固定曲面 delta 和 gamma，自动赎回有限差分还支持隐含票息求解。模型条件与用法见[局部波动率](../reference/python#local-volatility)。
 
-`HestonParameters` 描述风险中性下的随机波动率模型，支持确定性的利率与股息率曲线。`AnalyticHestonEuropeanEngine` 通过 Fourier 积分为欧式普通期权定价，`FiniteDifferenceHestonVanillaEngine` 通过二维有限差分为欧式与美式普通期权定价。该模型仅支持价格，请求的 Greeks 标记为 `unsupported`，不支持隐含参数求解。用法见 [Heston 模型](../reference/python#heston)。
+`HestonParameters` 描述风险中性下的随机波动率模型，支持确定性的利率与股息率曲线。`AnalyticHestonEuropeanEngine` 通过 Fourier 积分计算欧式普通期权价格，`FiniteDifferenceHestonVanillaEngine` 通过二维有限差分计算欧式与美式普通期权价格。用法见 [Heston 模型](../reference/python#heston)。
 
 库中还提供交易日历和观察日程构建工具，包含上交所节假日安排。支持的产品包括欧式期权、美式期权、累购／累沽、凤凰、固定票息票据（FCN）、数字票息票据（DCN）及多种雪球结构。
 
 ## 结果验证 {#validation}
 
-Kiyosi 的定价测试以 QuantLib 独立生成的数值为基准。QuantLib 用于生成参考值和维护日历；Rust 核心库的构建和运行均不依赖 QuantLib。
+kiyosi 的定价测试以 QuantLib 独立生成的数值为基准。QuantLib 用于生成参考值和维护日历；Rust 核心库可独立构建和运行。
 
 ## 从哪里开始 {#where-to-begin}
 
@@ -42,4 +40,4 @@ Kiyosi 的定价测试以 QuantLib 独立生成的数值为基准。QuantLib 用
 - [完成首次定价](./first-price)，运行一个完整示例。
 - [构建 Rust 核心](../rust/building)，直接使用原生 API。
 
-来源：[kiyosi README](https://github.com/lilkui/kiyosi/blob/fb6ea0f626e81b4e62beff9d9c8027855e94b015/README.md)。Kiyosi 采用 [MIT 许可证](https://github.com/lilkui/kiyosi/blob/fb6ea0f626e81b4e62beff9d9c8027855e94b015/LICENSE.txt)。
+来源：[kiyosi README](https://github.com/lilkui/kiyosi/blob/fb6ea0f626e81b4e62beff9d9c8027855e94b015/README.md)。kiyosi 采用 [MIT 许可证](https://github.com/lilkui/kiyosi/blob/fb6ea0f626e81b4e62beff9d9c8027855e94b015/LICENSE.txt)。

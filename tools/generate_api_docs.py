@@ -184,7 +184,7 @@ def generate_python(output: Path) -> int:
         "",
         "# Python API 参考",
         "",
-        "以下页面根据各公开模块的导出对象、运行时签名和文档字符串自动生成，也包含 PyO3 原生绑定对象。导出对象以 `__all__` 为准；未声明 `__all__` 时，使用模块中的公开名称。",
+        "按模块查阅公开对象、调用签名、属性与方法。页面由 Python 文档字符串自动生成，包含 PyO3 原生绑定对象，内容保留源码中的英文说明。",
         "",
     ]
     for module_name in PYTHON_MODULES:
@@ -252,11 +252,7 @@ kiyosi 版本：**{version}**；[源码提交 `{revision[:7]}`](https://github.c
 - [Python API](./python/)：公开导出对象、签名、成员和文档字符串。
 - <a href="./rust/kiyosi/index.html" target="_self">Rust API</a>：原生 rustdoc，提供类型、trait、实现、源码链接和独立搜索。
 
-Rust API 使用 rustdoc 的界面与搜索；网站的本地搜索涵盖中文指南和 Python API。
-
-::: warning 早期开发阶段
-Kiyosi 当前不保证 API 向后兼容。更新库后，请重新生成这些参考页面。
-:::
+Rust API 使用 rustdoc 的界面与搜索；网站的本地搜索涵盖中文指南和 Python API。按使用任务阅读[Python API 概览](../reference/python)或[构建 Rust 核心](../rust/building)。
 """,
         encoding="utf-8",
     )

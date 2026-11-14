@@ -4,21 +4,23 @@ description: 了解 kiyosi 的 instruments、market 和 pricing 模块，以及�
 
 # Python API 概览
 
-本页对应 **kiyosi 0.19.0**。所有公开导出对象、运行时签名、属性和文档字符串均可在[完整 Python API 参考](/api/python/)中查阅。参考文档保留英文，与源码注释一致。
+本页对应 **kiyosi 0.19.0**，按合约、市场输入和定价结果组织常用接口。完整签名、属性和方法见 [Python API 参考](/api/python/)，其中的英文说明来自源码文档字符串。
 
 ## `kiyosi.instruments`
 
 该模块定义金融工具、结构化产品预设与观察记录。`OptionType` 等选择类型为 `typing.Literal` 类型别名，调用时直接传入小写字符串。
 
-产品包括欧式与美式普通期权、数字期权、亚式期权、单／双障碍期权、触碰期权、雪球、凤凰、累购及区间累计。选择方法前，确认[引擎支持范围](../guide/engines#instrument-coverage)。
+产品包括欧式与美式普通期权、数字期权、亚式期权、单／双障碍期权、触碰期权、雪球、凤凰、累购及区间累计。产品与算法的对应关系见[引擎支持范围](../guide/engines#instrument-coverage)。
 
-`standard_phoenix()` 和 `step_down_phoenix()` 提供标准与降敲凤凰，使用每个合格观察时点支付的 `coupon_per_period`，不按时间年化。`lockout_periods` 禁止前若干期敲出，票息与敲入观察仍然有效，且至少须保留一次可敲出观察。降敲障碍从首次允许敲出的观察开始递减。
+### 结构化产品与观察记录
+
+`standard_phoenix()` 和 `step_down_phoenix()` 提供标准与降敲凤凰，`coupon_per_period` 表示每个合格观察时点支付的每期绝对票息率。`lockout_periods` 设置前若干期的敲出锁定，期间票息与敲入观察有效，锁定期后至少保留一次可敲出观察。降敲障碍从首次允许敲出的观察开始递减。
 
 `fixed_coupon_note()`（FCN）和 `digital_coupon_note()`（DCN）返回 `PhoenixOption`，使用每期票息 `coupon_per_period`，仅在到期时观察敲入。`early_profit_snowball()` 和 `butterfly_snowball()` 分别提供两段和三段年化票息；阶段截止时刻包含在前一阶段内，敲出票息将所选阶段利率用于整个持有期，到期使用最后阶段利率。
 
 雪球和凤凰的价格为单位原始名义本金下尚未结算现金流的现值，包含条款规定的本金、票息及损失。`principal_redemption_ratio` 是归一化本金偿还比例；持仓名义本金在外部同时缩放完整价格和 Greeks。
 
-`Accumulator` 默认 `option_type="call"` 表示累购，`"put"` 表示累沽。`knock_out_observation_times=None` 表示每个交易日按显式的 `observation_clock_time` 观察敲出，空序列表示不提前敲出；显式时间须严格递增且位于合约期限内。观察时先判定敲出，不再增加数量。
+`Accumulator` 默认 `option_type="call"` 表示累购，`"put"` 表示累沽。`knock_out_observation_times=None` 表示每个交易日按显式的 `observation_clock_time` 观察敲出，空序列表示不提前敲出；显式时间须严格递增且位于合约期限内。每次观察先判定敲出，触发敲出时结束累计。
 
 `AutocallableObservation.snowball()` 和 `.phoenix()` 构造产品专用的敲出与票息观察记录；`autocallable_observations()` 可从等长数组构建。合约的 `autocall_observations`、`autocall_times` 分别返回记录与时间戳。敲入独立使用 `KnockInObservation.every_trading_day(time(...))` 或 `.at_expiry()`；每日敲入的预设工厂要求显式传入 `knock_in_observation_clock_time`。直接构造自动赎回合约时必须显式提供 `calendar`，预设工厂可以继承日程的日历。
 
@@ -52,13 +54,23 @@ print(AnalyticDoubleTouchEngine().price(no_touch, context))
 
 ### 历史与替换 {#history-and-replacement}
 
-产品的 `replace()` 返回经过验证的新对象，原对象不变。省略字段或传入 `...`（`Ellipsis`）保留原值；`None` 将可空字段清为未知，必填字段不接受 `None`。条款与历史一起验证，省略的历史字段分别保留；修改条款不会自动重建历史。可替换字段见[金融工具 API](/api/python/kiyosi-instruments)。
+产品的 `replace()` 返回经过验证的新对象，原对象不变。省略字段或传入 `...`（`Ellipsis`）保留原值；`None` 将可空字段清为未知，必填字段要求具体值。条款与历史一起验证，省略的历史字段分别保留。修改条款时，按新条款核对并更新历史字段。可替换字段见[金融工具 API](/api/python/kiyosi-instruments)。
 
-历史描述估值时点**严格之前**的事件；恰好在估值时点的观察使用当前现价处理一次。缺失历史表示未知，不能当作零或未触碰。障碍产品使用 `touch_state`，自动赎回使用 `barrier_state`；亚式使用已实现平均价 `realized_average`，区间累计使用 `realized_hit_count`，累购使用 `accumulated_quantity` 与 `knock_out_settled`。`barrier_state="knocked_out"` 和 `knock_out_settled=True` 表示此前已敲出并结算。
+历史描述估值时点**严格之前**的事件；恰好在估值时点的观察使用当前现价处理一次。缺失历史表示未知；已知的零、未触碰或未敲出状态需显式传入。
+
+| 产品 | 历史字段 |
+| --- | --- |
+| 障碍与触碰产品 | `touch_state` |
+| 自动赎回产品 | `barrier_state` |
+| 亚式期权 | 已实现平均价 `realized_average` |
+| 区间累计 | 已实现命中次数 `realized_hit_count` |
+| 累购／累沽 | `accumulated_quantity`、`knock_out_settled` |
+
+`barrier_state="knocked_out"` 和 `knock_out_settled=True` 表示此前已敲出并结算。
 
 `RangeAccrualOption` 在构造和 `replace()` 时检查 `realized_hit_count` 不超过到期时点严格之前的观察次数；定价时还检查其不超过估值时点严格之前的观察次数。到期时刻本身的观察不计入历史。
 
-调用方负责历史与估值时点、合约条款及结算进度的一致性，并防止使用过期或未来状态。库不会检查历史年龄或重放历史路径，缺少必需历史时抛出 `MissingHistoryError`。数值时间敏感度保持所提供的历史不变。
+定价前，按估值时点整理与合约条款、结算进度一致的历史快照，并随合约传入。定价使用该快照，缺少必需历史时抛出 `MissingHistoryError`。数值时间敏感度计算期间固定使用所提供的历史。
 
 ## `kiyosi.market`
 
@@ -86,11 +98,13 @@ model = BlackScholesMertonParameters(
 )
 ```
 
-`RateTermStructure.flat()` 构造无上界的恒定曲线；需要精确恒定利率及双端覆盖范围时，使用 `RateTermStructure.bounded_flat(rate, reference_time=..., max_time=...)`。恒定性按实际远期利率判断，舍入后的节点因子不保证精确恒定。转交模型利率时使用 `risk_free_curve` 和 `dividend_curve` 保留覆盖范围；`flat_risk_free_rate`、`flat_dividend_yield` 只返回恒定曲线的标量，非恒定曲线会抛出异常。
+`RateTermStructure.flat()` 构造无上界的恒定曲线；同时需要精确恒定利率和双端覆盖范围时，使用 `RateTermStructure.bounded_flat(rate, reference_time=..., max_time=...)`。恒定性按实际远期利率判断，节点因子舍入会影响计算出的远期利率。
+
+转交模型利率时，使用 `risk_free_curve` 和 `dividend_curve` 保留覆盖范围。`flat_risk_free_rate`、`flat_dividend_yield` 返回恒定曲线的标量，非恒定曲线会抛出异常。
 
 ### 更新市场输入 {#replace-market-inputs}
 
-模型参数和上下文只读。`replace()` 创建经过验证的新对象，省略字段或传入 `...` 保持原值，显式 `None` 会被拒绝。沿用[首次定价](../guide/first-price)的 `context`：
+模型参数和上下文只读。`replace()` 创建经过验证的新对象，省略字段或传入 `...` 保持原值，更新字段需提供具体值。沿用[首次定价](../guide/first-price)的 `context`：
 
 ```python
 stressed = context.replace(
@@ -101,7 +115,7 @@ stressed = context.replace(
 
 ### 局部波动率 {#local-volatility}
 
-`LocalVolatilitySurface` 保存矩形网格，行对应时间，列对应绝对标的价格。时间与价格节点均至少两个并严格递增，价格和波动率必须为正有限值。波动率按时间和价格双线性插值，价格超出网格时使用端点值，时间不允许外推。改变上下文的现价或估值时点不会移动曲面节点。
+`LocalVolatilitySurface` 保存矩形网格，行对应时间，列对应绝对标的价格。时间与价格节点均至少两个并严格递增，价格和波动率必须为正有限值。波动率按时间和价格双线性插值，价格超出网格时使用端点值，查询时间须位于网格覆盖范围内。曲面节点固定在绝对价格和时间坐标上，改变上下文的现价或估值时点后仍使用这些坐标。
 
 沿用[首次定价](../guide/first-price)的 `option` 和 `context`：
 
@@ -129,9 +143,9 @@ print(local_result.price, local_result.delta, local_result.gamma)
 
 一维有限差分的所有产品族均支持该模型的价格与固定绝对曲面 delta、gamma；其他 Greeks 返回 `None`，状态为 `unsupported`。到期 Greeks 按支付函数判断，导数无定义或数值模板不可用时也返回 `None`，用 `status()` 区分原因。数字期权有限差分要求利率和股息率为恒定曲线。
 
-自动赎回有限差分支持该模型的隐含票息求解。其他引擎族、`numerical_greeks()` 和隐含波动率求解不接受局部波动率模型。
+自动赎回有限差分支持该模型的隐含票息求解。局部波动率模型的定价入口为一维有限差分引擎，Greeks 通过其 `price_with_greeks()` 请求；`numerical_greeks()` 与隐含波动率求解适用于 BSM 标量波动率。
 
-曲面须覆盖剩余随机演化时段，利率须覆盖所需折现时段。自动空间边界使用该演化时段内插值后的最大局部波动率；仍应检查时间、空间网格和边界的收敛性。
+曲面须覆盖剩余随机演化时段，利率须覆盖所需折现时段。自动空间边界使用该演化时段内插值后的最大局部波动率。分别细化时间、空间网格并扩大边界，比较价格与 Greeks 的变化，以检查收敛性。
 
 ### Heston 模型 {#heston}
 
@@ -163,11 +177,13 @@ print(AnalyticHestonEuropeanEngine().price(option, heston_context))
 print(FiniteDifferenceHestonVanillaEngine().price(option, heston_context))
 ```
 
-Fourier 积分引擎仅支持欧式普通期权；二维有限差分引擎还支持美式普通期权。两者均支持确定性利率曲线、零方差参数及相关系数端点。`price_with_greeks()` 返回价格，请求的 Greeks 标记为 `unsupported`；扰动控制会验证但不参与计算。`numerical_greeks()` 和隐含参数求解不接受 Heston 模型；其他引擎也不接受该模型。积分容差、评估预算、网格与边界设置见 [Heston 定价](../guide/engines#heston-pricing)。
+Fourier 积分引擎计算欧式普通期权价格，二维有限差分引擎还可计算美式普通期权价格。两者均支持确定性利率曲线、零方差参数及相关系数端点。`price_with_greeks()` 返回价格，请求的 Greeks 标记为 `unsupported`；传入的扰动控制会接受验证，价格使用模型自身的算法计算。
+
+Heston 定价使用这两个专用引擎，`numerical_greeks()` 和隐含参数求解对该模型抛出 `UnsupportedOperationError`。积分容差、评估预算、网格与边界设置见 [Heston 定价](../guide/engines#heston-pricing)。
 
 ### 日历与观察日程 {#calendars-and-schedules}
 
-`weekdays_calendar()`、`all_days_calendar()` 和 `sse_calendar()` 提供内置日历。`custom_calendar()` 可在基础日历上覆盖开市日和休市日，同一天不能同时出现在两组中。交易年分母来自日历，与利率曲线的 Actual/365 Fixed 时间不同。
+`weekdays_calendar()`、`all_days_calendar()` 和 `sse_calendar()` 提供内置日历。`custom_calendar()` 可在基础日历上覆盖开市日和休市日，两组日期须互斥。交易年分母来自日历，利率曲线的时间采用 Actual/365 Fixed。
 
 ```python
 from datetime import date, datetime, time
@@ -195,7 +211,11 @@ schedule = monthly_schedule(
 
 该模块提供解析与数值引擎、Greeks、隐含波动率和隐含票息求解器。
 
-欧式解析定价使用 `AnalyticEuropeanEngine`；CPU 蒙特卡洛定价可用 `MonteCarloVanillaEngine`，单／双障碍产品共用 `MonteCarloBarrierEngine`。`price(option, context)` 直接返回 `float`。引擎只读，具有可配置构造字段的引擎支持 `engine.replace(...)` 创建经过构造验证的新引擎；省略配置或传入 `...` 保留原值，`None` 只用于可空配置。无配置字段的解析引擎不提供 `replace()`。
+欧式解析定价使用 `AnalyticEuropeanEngine`；CPU 蒙特卡洛定价可用 `MonteCarloVanillaEngine`，单／双障碍产品共用 `MonteCarloBarrierEngine`。`price(option, context)` 直接返回 `float`。
+
+引擎只读。具有可配置构造字段的引擎支持 `engine.replace(...)` 创建经过构造验证的新引擎；省略配置或传入 `...` 保留原值，`None` 只用于可空配置。无配置字段的解析引擎直接构造使用。
+
+### Greeks 与结果状态
 
 `price_with_greeks()` 必须传入 `greeks`：可用单个名称、名称序列或 `"all"`，空序列仅请求价格，返回只读的 `PricingResult`。共有十二项指标：delta、gamma、speed、theta、charm、color、vega、volga、vanna、zomma、rho、dividend_rho。均为未缩放偏导，波动率与利率使用小数单位，估值时间使用年（Actual/365 Fixed），其余输入保持不变。Rho 与 dividend_rho 分别对应无风险利率曲线和股息率曲线的平行移动。
 
@@ -209,13 +229,22 @@ schedule = monthly_schedule(
 | `undefined` | 当前估值下导数无定义 |
 | `stencil_unavailable` | 数值差分模板不可用，可尝试调整扰动 |
 
-即使请求中没有受支持的指标，仍返回价格与状态。`requested` 和 `supported` 分别给出所请求及引擎／模型支持的名称；`result.require(name)` 在无数值时抛出带 `greek` 和 `status` 属性的 `GreekUnavailableError`。
+结果始终包含价格与指标状态，包括所有请求指标均为 `unsupported` 的情况。`requested` 和 `supported` 分别给出所请求及引擎／模型支持的名称；`result.require(name)` 返回指标数值，或在无数值时抛出带 `greek` 和 `status` 属性的 `GreekUnavailableError`。
 
 ### Greeks 扰动控制 {#greek-controls}
 
-`engine.greek_method(instrument, context)` 查询估计方法，`engine.active_greek_controls(instrument, context)` 查询可能使用的扰动控制。`price_with_greeks()` 统一接受 `spot_shift`、`volatility_shift`、`rate_shift`、`time_shift`，只调节数值回退及可用性检查，保留原生估计方法；`numerical_greeks()` 显式选择 BSM 标量数值差分。这四项控制只在请求中指定，不属于引擎构造或替换字段。
+`engine.greek_method(instrument, context)` 查询估计方法，`engine.active_greek_controls(instrument, context)` 查询可能使用的扰动控制。`price_with_greeks()` 使用原生估计方法，通过扰动控制调节数值回退及可用性检查；`numerical_greeks()` 显式选择 BSM 标量数值差分。
 
-省略控制或传入 `...` 使用共享默认值；现价、波动率和时间扰动的 `None` 表示自动选择，`rate_shift` 不接受 `None`。`spot_shift` 是标的价格单位的绝对扰动，`volatility_shift` 和 `rate_shift` 使用小数单位，`time_shift` 使用正的 `datetime.timedelta`。自动时间步至多一天，并缩短以避开观察事件；显式时间扰动不因观察事件而缩短。自动波动率步长为 `min(0.0001, volatility / 2)`，`rate_shift` 的共享默认值为 `0.0001`。所有显式控制都会验证。
+两种调用均在每次请求中接受以下控制：
+
+| 参数 | 单位 | 默认设置 |
+| --- | --- | --- |
+| `spot_shift` | 标的价格单位的绝对扰动 | 自动选择 |
+| `volatility_shift` | 小数单位 | 自动选择，步长为 `min(0.0001, volatility / 2)` |
+| `rate_shift` | 小数单位 | `0.0001`，要求具体数值 |
+| `time_shift` | 正的 `datetime.timedelta` | 自动选择，至多一天，并缩短以避开观察事件 |
+
+省略控制或传入 `...` 使用共享默认值；现价、波动率和时间扰动的 `None` 表示自动选择。显式时间扰动按给定步长使用，所有显式控制都会验证。引擎构造函数和 `replace()` 接收的是网格、积分或采样配置。
 
 沿用[首次定价](../guide/first-price)的 `engine`、`option` 和 `context`：
 
@@ -237,7 +266,7 @@ print(numerical_result.price, numerical_result.require("delta"))
 
 ### 隐含参数 {#implied-parameters}
 
-`implied_volatility()` 必须显式提供 `lower_bound` 和 `upper_bound`，以选择波动率根的搜索区间。数字与障碍产品可能有多个根；数值容差只约束所选引擎的价格曲线。沿用[首次定价](../guide/first-price)中的对象：
+调用 `implied_volatility()` 时，显式提供 `lower_bound` 和 `upper_bound`，指定波动率根的搜索区间。数字与障碍产品可能有多个根，通过搜索区间选择目标根。容差用于控制所选引擎价格曲线上的求根精度，引擎的数值精度通过[收敛与采样检查](../guide/engines#compare-methods-carefully)评估。沿用[首次定价](../guide/first-price)中的对象：
 
 ```python
 from kiyosi.pricing import implied_volatility
@@ -251,7 +280,7 @@ print(sigma)
 
 `implied_snowball_coupon()` 返回包含年化 `first_observation_coupon` 和 `quote_convention` 的字典。必填的 `quote_convention` 可为 `"shift_maturity_coupon"`（同步平移到期票息）或 `"preserve_maturity_coupon"`（固定到期票息）；用 `note.with_coupon(**quote)` 应用报价，保留各观察票息的利差。
 
-`implied_phoenix_coupon()` 返回包含 `coupon_per_period` 的字典，同样可用 `note.with_coupon(**quote)` 应用。凤凰、FCN／DCN 的求解边界、容差和返回值使用每期绝对票息率。蒙特卡洛求解须使用显式种子；可先保留 `engine.with_resolved_seed()` 返回的引擎，供求解与回代使用。签名、单位和限制见[定价 API](/api/python/kiyosi-pricing)。
+`implied_phoenix_coupon()` 返回包含 `coupon_per_period` 的字典，同样可用 `note.with_coupon(**quote)` 应用。凤凰、FCN／DCN 的求解边界、容差和返回值使用每期绝对票息率。蒙特卡洛求解使用显式种子；先保存 `engine.with_resolved_seed()` 返回的引擎，再用它求解与回代，保持抽样一致。签名、单位和参数要求见[定价 API](/api/python/kiyosi-pricing)。
 
 ## 错误处理与并发 {#errors-and-concurrency}
 
@@ -267,13 +296,23 @@ print(sigma)
 | `RootNotBracketedError` | 给定区间没有包围根 |
 | `NonConvergenceError` | 迭代或积分未收敛 |
 
-`InvalidInputError` 同时继承 `ValueError`。表示和调用签名错误使用 Python 原生异常，已报告的运行环境错误使用 `OSError`。不要解析错误文本判断类别。启用 Rust 栈展开时，panic 抛出继承 `BaseException` 的 `pyo3_runtime.PanicException`；终止式 panic 和内存耗尽可能终止进程。
+`InvalidInputError` 同时继承 `ValueError`。表示和调用签名错误使用 Python 原生异常，已报告的运行环境错误使用 `OSError`。异常类型用于分类处理，错误文本用于诊断。启用 Rust 栈展开时，panic 抛出继承 `BaseException` 的 `pyo3_runtime.PanicException`；终止式 panic 和内存耗尽可能终止进程。
 
-合约、估值、曲线和观察时间使用无时区的 `datetime.datetime`，精度为微秒，所有输入须采用调用方选定的同一时间基准；不接受纯 `date` 或带时区的 `datetime`。日历日期使用 `datetime.date`（不含 `datetime`），观察时钟使用无时区的 `datetime.time`。超出 Python 年份 1–9999 的结果抛出 `ValueError`。
+### 时间与数值输入
+
+| 输入 | 类型与约定 |
+| --- | --- |
+| 合约、估值、曲线和观察时间 | 无时区的 `datetime.datetime`，精度为微秒，所有输入采用同一时间基准 |
+| 日历日期 | `datetime.date`，以纯日期传入 |
+| 观察时钟 | 无时区的 `datetime.time` |
+
+超出 Python 年份 1–9999 的结果抛出 `ValueError`。
 
 数值输入拒绝布尔值和隐式舍入；精确实数必须可无损表示为浮点数，显式 `float(value)` 表示接受舍入。整数输入要求 `__index__`，小数抛出 `TypeError`，超范围抛出 `OverflowError`。集合属性返回自有元组，曲面使用嵌套元组；对象只读、支持复制与 pickle，跨进程须使用同一 kiyosi 版本。
 
-共享或独立实例均支持并发读取和定价。长计算会释放 GIL，短调用可能保留 GIL。调用同步完成，长请求中调用线程会轮询信号；`KeyboardInterrupt` 等信号处理异常将协作取消计算，等待工作停止后传播，不返回部分结果。内存分配或单个工作单元可能延迟取消。完整约定见[包级参考](/api/python/kiyosi)。
+### 并发与取消
+
+共享或独立实例均支持并发读取和定价。长计算会释放 GIL，短调用可能保留 GIL。每次调用同步执行，正常完成后返回完整结果。长请求中调用线程会轮询信号；收到 `KeyboardInterrupt` 等信号处理异常后，计算协作取消，等待工作停止后传播异常。取消响应时间受内存分配和单个工作单元耗时影响。完整约定见[包级参考](/api/python/kiyosi)。
 
 ## 实用示例 {#working-examples}
 

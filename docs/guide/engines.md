@@ -4,7 +4,7 @@ description: 按产品选择 kiyosi 定价算法，配置数值方法和 CPU 蒙
 
 # 定价引擎
 
-请按金融工具类型选择引擎。虽然各引擎都使用 `price(instrument, context)` 接口，但支持的产品和模型条件不同。本页对应 kiyosi **0.19.0**。
+按产品与市场模型选择引擎，再设置网格、积分或采样参数。各引擎统一使用 `price(instrument, context)` 接口。本页对应 kiyosi **0.19.0**。
 
 ## 支持的产品与方法 {#instrument-coverage}
 
@@ -47,9 +47,11 @@ engine = FiniteDifferenceVanillaEngine(
 )
 ```
 
-输入不合法时会抛出 `InvalidInputError`；不受支持的产品或模型条件会抛出 `UnsupportedOperationError`。应根据各引擎的参考文档选择参数，不能仅凭共享的调用接口推断支持范围。
+输入不合法时抛出 `InvalidInputError`；产品或模型条件超出引擎支持范围时抛出 `UnsupportedOperationError`。各引擎的参数和适用条件见[定价 API](/api/python/kiyosi-pricing)。
 
-一维有限差分在自动选择空间边界且使用非显式格式时，为欧式普通期权和局部波动率数字期权在行权价附近集中布点；BSM 数字期权和显式指定上边界时使用均匀标的网格，美式期权使用双曲正弦网格。自动赎回有限差分引擎默认 `asset_step_count=800`、`time_step_count=400`；观察事件与平滑可能增加子步，仍须验证网格收敛。
+一维有限差分在自动选择空间边界且使用非显式格式时，为欧式普通期权和局部波动率数字期权在行权价附近集中布点；BSM 数字期权和显式指定上边界时使用均匀标的网格，美式期权使用双曲正弦网格。
+
+自动赎回有限差分引擎默认 `asset_step_count=800`、`time_step_count=400`，观察事件与平滑可能增加子步。逐步增加空间和时间步数，比较价格与 Greeks 的变化，以检查网格收敛。
 
 ## 普通与数字期权积分 {#quadrature-pricing}
 
@@ -70,7 +72,7 @@ print(engine.price(option, context))
 
 欧式定价采用复合 Simpson 积分；美式普通期权使用高斯积分反向递推，在估值时点、均匀时间网格与到期时点允许行权。`time_step_count` 至少为 1，仅用于美式普通期权；欧式普通期权忽略此参数，数字期权引擎不接受此参数。两者的空间步数至少为 4，积分范围须为正有限值。
 
-数字期权的积分范围以支付加权正态密度为中心，截断范围外的贡献按零处理；到期时现价等于行权价不支付。应分别检查空间步数、积分范围、美式行权时间步及数值 Greeks 扰动的收敛性；固定网格计算完成不提供误差估计。
+数字期权的积分范围以支付加权正态密度为中心，截断范围外的贡献按零处理；到期时现价等于行权价不支付。固定网格积分的精度通过收敛检查评估：分别增加空间步数、扩大积分范围、细化美式行权时间步，并调整数值 Greeks 扰动，比较结果的变化。
 
 `QuadratureAutocallableEngine` 的空间范围同时考虑正向漂移和事件边界的反向移动。低波动率、每日观察等情况下，应分别检查空间分辨率和积分范围。
 
@@ -106,15 +108,19 @@ for contract in (single, double):
 
 使用 [Heston 市场上下文](../reference/python#heston)时，欧式普通期权可选 `AnalyticHestonEuropeanEngine`，欧式和美式普通期权均可选 `FiniteDifferenceHestonVanillaEngine`。这两个引擎只计算价格；`price_with_greeks()` 返回价格并将请求的 Greeks 标记为 `unsupported`。`numerical_greeks()` 与隐含参数求解抛出 `UnsupportedOperationError`，其他引擎不接受 Heston 模型。
 
-Fourier 积分引擎采用自适应积分和确定性方差控制变量，默认 `absolute_tolerance=1e-8`、`relative_tolerance=1e-8`、`max_evaluations=10000`。绝对容差按价格单位计量，两种容差均须为非负有限值且至少一个为正；评估预算须为正整数，覆盖一次请求中的特征函数、控制变量与尾部检查。预算或数值分辨率不足会抛出 `NonConvergenceError`。到期与确定性方差分支不消耗积分预算；误差估计不保证所有参数下的精度，尾部价格尤其需要收敛检查。
+Fourier 积分引擎采用自适应积分和确定性方差控制变量，默认 `absolute_tolerance=1e-8`、`relative_tolerance=1e-8`、`max_evaluations=10000`。绝对容差按价格单位计量，两种容差均须为非负有限值且至少一个为正；评估预算须为正整数，覆盖一次请求中的特征函数、控制变量与尾部检查。
 
-二维有限差分使用修正 Craig–Sneyd（MCS）交替方向隐式（ADI）格式，美式行权使用 Ikonen–Toivanen 分裂。默认标的、方差和时间区间数分别为 400、100、400；空间区间数至少为 3，时间区间数至少为 1，利率曲线节点会加入时间网格。`asset_upper_boundary` 和 `variance_upper_boundary` 默认为 `None`，由引擎自动选择；显式边界须为正有限值，并在需要相应数值网格时严格高于现价与行权价、或初始方差。应分别检查空间、时间细化和边界扩大后的收敛性，计算完成不提供误差估计。
+预算或数值分辨率不足时抛出 `NonConvergenceError`；到期与确定性方差分支直接计算价格。检查积分收敛时，收紧容差并增加评估预算，比较价格变化，尤其关注尾部价格。
+
+二维有限差分使用修正 Craig–Sneyd（MCS）交替方向隐式（ADI）格式，美式行权使用 Ikonen–Toivanen 分裂。默认标的、方差和时间区间数分别为 400、100、400；空间区间数至少为 3，时间区间数至少为 1，利率曲线节点会加入时间网格。
+
+`asset_upper_boundary` 和 `variance_upper_boundary` 默认为 `None`，由引擎自动选择。显式边界须为正有限值；需要相应数值网格时，标的上边界须严格高于现价与行权价，方差上边界须严格高于初始方差。精度通过分别细化空间、时间网格和扩大边界后的价格变化评估。
 
 Heston 二维有限差分的设置独立于一维引擎，不接受 `scheme` 参数；局部波动率模型使用一维有限差分引擎。
 
 ## CPU 并发与复现 {#cpu-concurrency}
 
-蒙特卡洛在 CPU 上运行。并行调用共用库持有的 Rayon 线程池，首次并行使用时初始化，并保留到进程退出。`max_active_workers=0` 自动选择活跃工作线程数，`1` 在调用线程上串行执行，正整数限制单次调用的活跃工作线程数；它不限制线程创建数量，也不预留工作线程。
+蒙特卡洛在 CPU 上运行。并行调用共用库持有的 Rayon 线程池，首次并行使用时初始化，并保留到进程退出。`max_active_workers=0` 自动选择活跃工作线程数，`1` 在调用线程上串行执行，正整数限制单次调用的活跃工作线程数。线程池大小由 `configure_monte_carlo_pool()` 单独配置，池中工作线程供并行调用共享。
 
 如需限制进程内该池创建的工作线程数，在首次并行请求前调用 `configure_monte_carlo_pool(max_workers=...)`，实际数量还受可用 CPU 数限制；未配置时按可用 CPU 数量选择。线程池忽略 `RAYON_NUM_THREADS`，不修改应用的全局 Rayon 池。例如，在新进程中沿用[首次定价](./first-price)的合约与上下文：
 
@@ -127,9 +133,9 @@ estimate = engine.price(option, context)
 print(estimate)
 ```
 
-固定种子时，同一构建中的随机抽样不随线程数改变；不保证跨版本或构建完全一致。`engine.with_resolved_seed()` 返回带具体种子的独立引擎，保留其余设置；`price_with_seed()` 返回 `(price, seed)`，也可通过统计结果和 Greeks 结果的 `seed` 查询实际抽样种子。无需抽样时种子为 `None`。每次调用同步完成自己的计算，可并发共享只读引擎。
+同一构建中，固定种子可在不同线程数下复现随机抽样。复现实验时，保存使用的构建、引擎配置和实际种子。`engine.with_resolved_seed()` 返回带具体种子的独立引擎，保留其余设置；`price_with_seed()` 返回 `(price, seed)`，统计结果和 Greeks 结果也通过 `seed` 提供实际种子。无需抽样时种子为 `None`。每次调用同步完成自己的计算，可并发共享只读引擎。
 
-使用 Python 多进程时选择 `spawn` 启动方式；线程池初始化后再 `fork`，子进程中的该池将无法使用。
+使用 Python 多进程时选择 `spawn` 启动方式，让各子进程独立初始化线程池。
 
 ## 采样与误差估计 {#sampling-and-error}
 
@@ -150,10 +156,14 @@ print(result.seed, result.uncertainty_status)
 
 美式蒙特卡洛行权网格每次调用最多保留 1 GiB 路径数据，大小为 `8 * path_count * step_count` 字节；对偶采样的奇数路径数按下一偶数预留，其他缓冲区另计。超限时在抽样前抛出 `InvalidInputError`，需减少路径数或时间区间数。到期、确定性定价，以及股息率非正且利率非负、仅需终值采样的美式看涨期权，不分配该网格，也不受此限额约束。
 
-未来的障碍、敲入、敲出、票息和加速观察使用模拟的对数价格变化进行判定，即使还原后的现价因浮点舍入恰好等于阈值；单／双障碍期权的到期收益也保留此精度。估值时点的观察仍使用传入的现价。
+未来的障碍、敲入、敲出、票息和加速观察直接使用模拟的对数价格变化判定，以保留阈值附近的精度；单／双障碍期权的到期收益也使用这一精度。估值时点的观察使用传入的现价。
 
 ## 如何比较定价方法 {#compare-methods-carefully}
 
-使用相同的合约条款、估值时点与市场输入。数值方法引入离散或模拟误差，需要分别检查网格收敛与采样误差。隐含参数求解器的容差不能衡量蒙特卡洛误差。
+使用相同的合约条款、估值时点与市场输入，再按误差来源检查结果：
+
+- **网格与积分误差**：逐步细化网格、扩大边界或收紧积分容差，比较价格与 Greeks 的变化。
+- **采样误差**：使用 `price_with_statistics()` 查看可用的标准误差和置信区间，再增加路径数比较结果。
+- **隐含参数求解误差**：求解器容差约束所选引擎价格曲线上的求根过程；使用蒙特卡洛时，同时检查采样误差。
 
 模型范围见[简介](./introduction#model-scope)。产品与算法表依据[上游 README](https://github.com/lilkui/kiyosi/blob/fb6ea0f626e81b4e62beff9d9c8027855e94b015/README.md#支持产品与算法)整理，更多用例见[Python 示例](https://github.com/lilkui/kiyosi/tree/fb6ea0f626e81b4e62beff9d9c8027855e94b015/examples/python)与[测试](https://github.com/lilkui/kiyosi/tree/fb6ea0f626e81b4e62beff9d9c8027855e94b015/python/tests)。

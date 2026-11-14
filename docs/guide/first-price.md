@@ -42,7 +42,7 @@ print(f"Price: {price:.6f}")  # 9.227006
 python first_price.py
 ```
 
-脚本会输出期权价格。示例中的时间是固定的，计算以 `valuation_time` 为估值时点，与脚本运行当天的日期无关。时间参数使用无时区的 `datetime`，所有输入须采用调用方选定的同一时间基准。
+输出为 `Price: 9.227006`。计算以示例中固定的 `valuation_time` 为估值时点。时间参数使用无时区的 `datetime`，所有输入采用同一时间基准。
 
 ## 理解输入参数 {#understand-the-inputs}
 
@@ -67,9 +67,11 @@ result = engine.price_with_greeks(option, context, greeks=["delta", "gamma", "ve
 print(result.price, result.delta, result.gamma, result.vega)
 ```
 
-该方法返回只读的 `PricingResult`。`greeks` 是必填参数，可传单个名称（如 `"delta"`）、名称序列，或 `"all"` 请求全部十二项指标；空序列仅请求价格。不可用的指标为 `None`，不能当作零处理；使用 `result.status("delta")` 查看状态，`result.require("delta")` 在指标不可用时抛出 `GreekUnavailableError`。
+该方法返回只读的 `PricingResult`。`greeks` 是必填参数，可传单个名称（如 `"delta"`）、名称序列，或 `"all"` 请求全部十二项指标；空序列仅请求价格。
 
-`price_with_greeks()` 使用引擎自身的估计方法。各引擎在该请求中统一接受 `spot_shift`、`volatility_shift`、`rate_shift` 和 `time_shift`，用于数值回退与可用性检查；省略或传入 `...` 使用共享默认值。需要显式使用 BSM 标量数值差分时，调用 `numerical_greeks()`，详见 [Greeks 扰动控制](../reference/python#greek-controls)。
+指标为 `None` 时，使用 `result.status("delta")` 查询原因；`result.require("delta")` 返回数值，或在指标不可用时抛出 `GreekUnavailableError`。`None` 表示缺少可用数值，零表示该偏导的计算值为零。
+
+`price_with_greeks()` 使用引擎自身的估计方法。数值差分与扰动设置见 [Greeks 扰动控制](../reference/python#greek-controls)。
 
 所有 Greeks 均为未缩放偏导：波动率和利率以小数为单位，时间以年（Actual/365 Fixed）为单位。例如，波动率上升 1 个百分点的近似价格变化为 `result.vega * 0.01`；估值时点前进一天的近似价格变化为 `theta / 365`。完整定义见 [`PricingResult`](/api/python/kiyosi#pricingresult)。
 
@@ -84,6 +86,6 @@ estimate = MonteCarloVanillaEngine(seed=42, max_active_workers=4).price(option, 
 print(estimate)
 ```
 
-蒙特卡洛方法通过数值模拟估算价格，结果可能与解析解不同。`seed` 固定随机种子，`max_active_workers` 限制单次 CPU 调用的活跃工作线程数。各类产品的引擎支持范围与采样设置见[定价引擎](./engines)。
+蒙特卡洛方法通过随机抽样估算价格，可用统计接口查看采样误差。`seed` 固定随机种子，`max_active_workers` 限制单次 CPU 调用的活跃工作线程数。产品与引擎的对应关系见[定价引擎](./engines)，统计接口见[采样与误差估计](./engines#sampling-and-error)。
 
 本示例改编自 [kiyosi Python 定价模块示例](https://github.com/lilkui/kiyosi/blob/fb6ea0f626e81b4e62beff9d9c8027855e94b015/python/src/kiyosi/pricing.py)。

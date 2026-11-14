@@ -18,7 +18,7 @@ cargo build -p kiyosi --release --locked
 cargo test -p kiyosi --locked
 ```
 
-Cargo 首次构建需要下载锁文件指定的依赖。核心构建无需 Python 或 maturin。
+Cargo 首次构建会下载锁文件指定的依赖，整个核心构建由 Rust 工具链完成。
 
 ## 接入应用
 
@@ -62,7 +62,7 @@ fn main() -> kiyosi::Result<()> {
 
 导入 `PricingEngine` trait 后，用 `price_with_greeks()` 请求指定指标，默认使用共享扰动设置。需要指定扰动时，将 `NumericalShiftSettings` 传给 `price_with_greeks_with_settings()`；`spot_shift`、`volatility_shift`、`rate_shift` 和 `time_shift` 属于本次请求。显式 BSM 标量差分使用 `numerical_greeks(engine, option, context, request, settings)`。
 
-结果中的不可用指标为 `None`，通过 `status(Greek::...)` 查看原因，或通过 `require(Greek::...)` 获取数值并在不可用时返回错误。无受支持指标的请求仍返回价格和状态。
+结果包含价格与各指标的状态。不可用指标为 `None`，通过 `status(Greek::...)` 查看原因；`require(Greek::...)` 返回指标数值，或在指标不可用时返回错误。
 
 采样与网格通过各引擎的配置类型设置；`MonteCarloBarrierEngine` 同时为 `BarrierOption` 和 `DoubleBarrierOption` 定价。修改合约日历使用对应的 `*Changes` 中的 `calendar` 字段，经 `replace()` 重新验证条款和历史。
 
@@ -74,4 +74,4 @@ fn main() -> kiyosi::Result<()> {
 cargo doc -p kiyosi --no-deps --locked --open
 ```
 
-入口为 `target/doc/kiyosi/index.html`。本网站托管同一提交生成的完整 rustdoc 目录，保留类型链接、源码和搜索资源。Python API 与 Rust API 的名称、接口和覆盖范围可能不同，使用时以各自参考文档为准。
+入口为 `target/doc/kiyosi/index.html`。本网站也提供同一提交生成的 <a href="../api/rust/kiyosi/index.html" target="_self">Rust API 参考</a>，包含类型、trait、实现、源码链接和搜索。Python 调用方式见 [Python API 参考](/api/python/)。
