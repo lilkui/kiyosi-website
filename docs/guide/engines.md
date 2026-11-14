@@ -4,7 +4,7 @@ description: 按产品选择 kiyosi 定价算法，配置数值方法和 CPU 蒙
 
 # 定价引擎
 
-请按金融工具类型选择引擎。虽然各引擎都使用 `price(instrument, context)` 接口，但支持的产品和模型条件不同。本页对应 kiyosi **0.18.0**。
+请按金融工具类型选择引擎。虽然各引擎都使用 `price(instrument, context)` 接口，但支持的产品和模型条件不同。本页对应 kiyosi **0.19.0**。
 
 ## 支持的产品与方法 {#instrument-coverage}
 
@@ -29,7 +29,9 @@ description: 按产品选择 kiyosi 定价算法，配置数值方法和 CPU 蒙
 
 ## 引擎配置与验证 {#engine-settings}
 
-数值引擎在构造时验证配置，合约与市场条件在定价时验证。引擎配置只读；调整网格或采样时，使用 `engine.replace(...)` 创建经过验证的新引擎，或重新构造引擎。
+数值引擎在构造时验证配置，合约与市场条件在定价时验证。引擎配置只读；具有可配置构造字段的引擎提供 `engine.replace(...)`，用于创建经过验证的新引擎。无配置字段的解析引擎直接构造使用。
+
+构造函数与 `replace()` 接收网格、积分或采样设置。Greeks 的 `spot_shift`、`volatility_shift`、`rate_shift` 和 `time_shift` 在每次 `price_with_greeks()` 或 `numerical_greeks()` 请求中指定，省略或传入 `...` 使用共享默认值，详见 [Greeks 扰动控制](../reference/python#greek-controls)。
 
 有限差分默认使用 `"rannacher"`：前两个时间区间分别用两个隐式 Euler 半步替代，并在日程中的障碍、累购或自动赎回观察后重新平滑。`"crank_nicolson"` 表示不进行时间步平滑的标准 Crank–Nicolson 格式；另可选 `"explicit_euler"` 和 `"implicit_euler"`。
 
@@ -71,6 +73,34 @@ print(engine.price(option, context))
 数字期权的积分范围以支付加权正态密度为中心，截断范围外的贡献按零处理；到期时现价等于行权价不支付。应分别检查空间步数、积分范围、美式行权时间步及数值 Greeks 扰动的收敛性；固定网格计算完成不提供误差估计。
 
 `QuadratureAutocallableEngine` 的空间范围同时考虑正向漂移和事件边界的反向移动。低波动率、每日观察等情况下，应分别检查空间分辨率和积分范围。
+
+## 单／双障碍蒙特卡洛 {#barrier-monte-carlo}
+
+`MonteCarloBarrierEngine` 同时接受 `BarrierOption` 和 `DoubleBarrierOption`，要求恒定利率与股息率的 BSM 模型。两种合约共用采样设置、种子、统计接口及 Greeks 接口；原生 Greeks 仅支持 delta 和 gamma。
+
+沿用[首次定价](./first-price)的 `option` 和 `context`：
+
+```python
+from kiyosi.instruments import BarrierOption, DoubleBarrierOption
+from kiyosi.pricing import MonteCarloBarrierEngine
+
+single = BarrierOption(
+    option_type="call", strike=100.0,
+    effective_time=option.effective_time, expiry_time=option.expiry_time,
+    barrier_level=120.0, barrier_type="up_and_out",
+)
+double = DoubleBarrierOption(
+    option_type="call", strike=100.0,
+    effective_time=option.effective_time, expiry_time=option.expiry_time,
+    lower_barrier=80.0, upper_barrier=120.0, barrier_type="knock_out",
+)
+barrier_engine = MonteCarloBarrierEngine(path_count=131_072, seed=42)
+for contract in (single, double):
+    estimate = barrier_engine.price_with_statistics(contract, context)
+    print(estimate.price, estimate.standard_error)
+```
+
+`observation_times=None` 选择连续监控，使用终值抽样与 Brownian bridge 存活概率；双障碍存活概率采用像方法／谱级数。显式的非空观察时间序列选择离散监控，模拟保留原始观察时点，必要时补充不作障碍观察的到期段；引擎不接受 `step_count`。合约监控与历史输入见[障碍与触碰产品](../reference/python#barrier-and-touch-contracts)。
 
 ## Heston 定价 {#heston-pricing}
 
@@ -126,4 +156,4 @@ print(result.seed, result.uncertainty_status)
 
 使用相同的合约条款、估值时点与市场输入。数值方法引入离散或模拟误差，需要分别检查网格收敛与采样误差。隐含参数求解器的容差不能衡量蒙特卡洛误差。
 
-模型范围见[简介](./introduction#model-scope)。产品与算法表依据[上游 README](https://github.com/lilkui/kiyosi/blob/a125eb5b6512606881d3e809ae861bac96f90880/README.md#支持产品与算法)整理，更多用例见[Python 示例](https://github.com/lilkui/kiyosi/tree/a125eb5b6512606881d3e809ae861bac96f90880/examples/python)与[测试](https://github.com/lilkui/kiyosi/tree/a125eb5b6512606881d3e809ae861bac96f90880/python/tests)。
+模型范围见[简介](./introduction#model-scope)。产品与算法表依据[上游 README](https://github.com/lilkui/kiyosi/blob/fb6ea0f626e81b4e62beff9d9c8027855e94b015/README.md#支持产品与算法)整理，更多用例见[Python 示例](https://github.com/lilkui/kiyosi/tree/fb6ea0f626e81b4e62beff9d9c8027855e94b015/examples/python)与[测试](https://github.com/lilkui/kiyosi/tree/fb6ea0f626e81b4e62beff9d9c8027855e94b015/python/tests)。

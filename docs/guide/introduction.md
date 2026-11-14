@@ -7,7 +7,7 @@ description: 了解 kiyosi 的功能、定价流程和当前模型的适用范�
 Kiyosi 是一个开源衍生品定价库，支持普通期权、奇异期权和结构化产品。核心功能用 Rust 实现，主要通过 Python API 使用。
 
 ::: warning 早期开发阶段
-本文档对应 **kiyosi 0.18.0**，源码提交为 `a125eb5`。项目处于 Alpha 阶段，API 可能发生变化，不保证向后兼容。
+本文档对应 **kiyosi 0.19.0**，源码提交为 `fb6ea0f`。项目处于 Alpha 阶段，API 可能发生变化，不保证向后兼容。
 :::
 
 ## 定价流程 {#how-pricing-fits-together}
@@ -42,4 +42,4 @@ Kiyosi 的定价测试以 QuantLib 独立生成的数值为基准。QuantLib 用
 - [完成首次定价](./first-price)，运行一个完整示例。
 - [构建 Rust 核心](../rust/building)，直接使用原生 API。
 
-来源：[kiyosi README](https://github.com/lilkui/kiyosi/blob/a125eb5b6512606881d3e809ae861bac96f90880/README.md)。Kiyosi 采用 [MIT 许可证](https://github.com/lilkui/kiyosi/blob/a125eb5b6512606881d3e809ae861bac96f90880/LICENSE.txt)。
+来源：[kiyosi README](https://github.com/lilkui/kiyosi/blob/fb6ea0f626e81b4e62beff9d9c8027855e94b015/README.md)。Kiyosi 采用 [MIT 许可证](https://github.com/lilkui/kiyosi/blob/fb6ea0f626e81b4e62beff9d9c8027855e94b015/LICENSE.txt)。

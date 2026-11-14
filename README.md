@@ -2,7 +2,7 @@
 
 这是 [kiyosi](https://github.com/lilkui/kiyosi) 的 VitePress 文档站，提供中文指南、Python API 参考和原生 Rust API 文档。
 
-文档对应的上游版本和源码提交见 [`upstream.json`](./upstream.json)。
+当前文档对应 **kiyosi v0.19.0**，固定源码提交为 `fb6ea0f626e81b4e62beff9d9c8027855e94b015`，由 [`upstream.json`](./upstream.json) 管理。Python API 和 Rust API 均从该提交生成。
 
 ## 构建要求
 

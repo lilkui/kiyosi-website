@@ -4,7 +4,7 @@ description: 了解 kiyosi 的 instruments、market 和 pricing 模块，以及�
 
 # Python API 概览
 
-本页对应 **kiyosi 0.18.0**。所有公开导出对象、运行时签名、属性和文档字符串均可在[完整 Python API 参考](/api/python/)中查阅。参考文档保留英文，与源码注释一致。
+本页对应 **kiyosi 0.19.0**。所有公开导出对象、运行时签名、属性和文档字符串均可在[完整 Python API 参考](/api/python/)中查阅。参考文档保留英文，与源码注释一致。
 
 ## `kiyosi.instruments`
 
@@ -20,15 +20,43 @@ description: 了解 kiyosi 的 instruments、market 和 pricing 模块，以及�
 
 `Accumulator` 默认 `option_type="call"` 表示累购，`"put"` 表示累沽。`knock_out_observation_times=None` 表示每个交易日按显式的 `observation_clock_time` 观察敲出，空序列表示不提前敲出；显式时间须严格递增且位于合约期限内。观察时先判定敲出，不再增加数量。
 
-`BinaryBarrierOption` 和 `TouchOption` 通过必填的 `payoff_type="cash"` 或 `"asset"` 选择支付类型；现金支付需要 `payout`，资产支付不接受该金额。`cash_touch_option()`、`asset_touch_option()` 构造单触碰期权，`cash_no_touch_option()`、`asset_no_touch_option()` 构造单不触碰期权；只有单触碰可在触碰时结算。障碍与触碰合约以 `observation_times=None` 选择连续监控，以非空时间序列选择离散监控，`observation_mode` 可查询模式。
-
 `AutocallableObservation.snowball()` 和 `.phoenix()` 构造产品专用的敲出与票息观察记录；`autocallable_observations()` 可从等长数组构建。合约的 `autocall_observations`、`autocall_times` 分别返回记录与时间戳。敲入独立使用 `KnockInObservation.every_trading_day(time(...))` 或 `.at_expiry()`；每日敲入的预设工厂要求显式传入 `knock_in_observation_clock_time`。直接构造自动赎回合约时必须显式提供 `calendar`，预设工厂可以继承日程的日历。
+
+### 障碍与触碰产品 {#barrier-and-touch-contracts}
+
+`BarrierOption` 和 `DoubleBarrierOption` 描述带行权价的单／双障碍普通期权。`BinaryBarrierOption` 描述带行权条件的二元障碍支付；`TouchOption` 不含行权价，按是否触碰支付。后两者使用必填的 `payoff_type="cash"` 或 `"asset"` 选择支付类型，现金支付必须提供正数 `payout`，资产支付不接受该金额。
+
+`TouchOption` 的 `barrier_type="up_and_in"` 或 `"down_and_in"` 表示单触碰，`"up_and_out"` 或 `"down_and_out"` 表示单不触碰。`DoubleTouchOption` 仅支付现金：`barrier_type="knock_in"` 表示触及任一边界支付，`"knock_out"` 表示始终未触及两侧边界支付。默认在到期结算；`settlement_timing="at_hit"` 仅适用于触碰后支付的合约。
+
+沿用[首次定价](../guide/first-price)的 `option` 和 `context`：
+
+```python
+from kiyosi.instruments import DoubleTouchOption, TouchOption
+from kiyosi.pricing import AnalyticBinaryBarrierEngine, AnalyticDoubleTouchEngine
+
+touch = TouchOption(
+    effective_time=option.effective_time, expiry_time=option.expiry_time,
+    barrier_level=120.0, barrier_type="up_and_in",
+    payoff_type="cash", payout=10.0, settlement_timing="at_hit",
+)
+no_touch = DoubleTouchOption(
+    effective_time=option.effective_time, expiry_time=option.expiry_time,
+    lower_barrier=80.0, upper_barrier=120.0,
+    barrier_type="knock_out", payout=10.0,
+)
+print(AnalyticBinaryBarrierEngine().price(touch, context))
+print(AnalyticDoubleTouchEngine().price(no_touch, context))
+```
+
+障碍相等计为触碰。`observation_times=None` 选择连续监控，非空时间序列选择离散监控；只读属性 `observation_mode` 报告 `"continuous"` 或 `"scheduled"`。连续监控的 `observation_times` 和 `observation_schedule` 均为 `None`。离散监控合约的 `observation_schedule` 可以作为另一合约的 `observation_times` 传入并保留日历；单独传递时间戳元组时需显式转交 `calendar`。各引擎的监控模式支持范围见[金融工具 API](/api/python/kiyosi-instruments)和[定价 API](/api/python/kiyosi-pricing)。
 
 ### 历史与替换 {#history-and-replacement}
 
 产品的 `replace()` 返回经过验证的新对象，原对象不变。省略字段或传入 `...`（`Ellipsis`）保留原值；`None` 将可空字段清为未知，必填字段不接受 `None`。条款与历史一起验证，省略的历史字段分别保留；修改条款不会自动重建历史。可替换字段见[金融工具 API](/api/python/kiyosi-instruments)。
 
 历史描述估值时点**严格之前**的事件；恰好在估值时点的观察使用当前现价处理一次。缺失历史表示未知，不能当作零或未触碰。障碍产品使用 `touch_state`，自动赎回使用 `barrier_state`；亚式使用已实现平均价 `realized_average`，区间累计使用 `realized_hit_count`，累购使用 `accumulated_quantity` 与 `knock_out_settled`。`barrier_state="knocked_out"` 和 `knock_out_settled=True` 表示此前已敲出并结算。
+
+`RangeAccrualOption` 在构造和 `replace()` 时检查 `realized_hit_count` 不超过到期时点严格之前的观察次数；定价时还检查其不超过估值时点严格之前的观察次数。到期时刻本身的观察不计入历史。
 
 调用方负责历史与估值时点、合约条款及结算进度的一致性，并防止使用过期或未来状态。库不会检查历史年龄或重放历史路径，缺少必需历史时抛出 `MissingHistoryError`。数值时间敏感度保持所提供的历史不变。
 
@@ -161,13 +189,13 @@ schedule = monthly_schedule(
 
 `first_observation_month=1` 表示从起始时刻后一个月开始观察。月末会按原始锚点处理，并按日历调整，再应用显式的 `observation_clock_time`。也可用 `ObservationSchedule(times=..., start_time=..., end_time=...)` 验证不规则时间序列。
 
-`ObservationSchedule` 支持迭代、`reversed()`、长度、整数索引（含负数）和切片。切片返回保留原日历的独立日程，不接受递减选择；布尔索引抛出 `TypeError`，越界索引抛出 `IndexError`。接收日程的合约会继承其日历，显式 `calendar` 可覆盖；普通列表与元组不携带日历。日程边界和日历约定见[市场 API](/api/python/kiyosi-market)。
+`ObservationSchedule` 支持迭代、`reversed()`、长度、整数索引（含负数）和切片。正向与反向迭代按需产生时间戳，并保留所属日程对象。切片返回保留原日历的独立日程，不接受递减选择；布尔索引抛出 `TypeError`，越界索引抛出 `IndexError`。接收日程的合约会继承其日历，显式 `calendar` 可覆盖；普通列表与元组不携带日历。日程边界和日历约定见[市场 API](/api/python/kiyosi-market)。
 
 ## `kiyosi.pricing`
 
 该模块提供解析与数值引擎、Greeks、隐含波动率和隐含票息求解器。
 
-欧式解析定价使用 `AnalyticEuropeanEngine`；CPU 蒙特卡洛定价可用 `MonteCarloVanillaEngine`。`price(option, context)` 直接返回 `float`。引擎只读，`engine.replace(...)` 创建经过构造验证的新引擎；省略配置或传入 `...` 保留原值，`None` 只用于可空配置。
+欧式解析定价使用 `AnalyticEuropeanEngine`；CPU 蒙特卡洛定价可用 `MonteCarloVanillaEngine`，单／双障碍产品共用 `MonteCarloBarrierEngine`。`price(option, context)` 直接返回 `float`。引擎只读，具有可配置构造字段的引擎支持 `engine.replace(...)` 创建经过构造验证的新引擎；省略配置或传入 `...` 保留原值，`None` 只用于可空配置。无配置字段的解析引擎不提供 `replace()`。
 
 `price_with_greeks()` 必须传入 `greeks`：可用单个名称、名称序列或 `"all"`，空序列仅请求价格，返回只读的 `PricingResult`。共有十二项指标：delta、gamma、speed、theta、charm、color、vega、volga、vanna、zomma、rho、dividend_rho。均为未缩放偏导，波动率与利率使用小数单位，估值时间使用年（Actual/365 Fixed），其余输入保持不变。Rho 与 dividend_rho 分别对应无风险利率曲线和股息率曲线的平行移动。
 
@@ -183,7 +211,27 @@ schedule = monthly_schedule(
 
 即使请求中没有受支持的指标，仍返回价格与状态。`requested` 和 `supported` 分别给出所请求及引擎／模型支持的名称；`result.require(name)` 在无数值时抛出带 `greek` 和 `status` 属性的 `GreekUnavailableError`。
 
-`engine.greek_method(instrument, context)` 查询估计方法，`active_greek_controls()` 查询可能使用的扰动控制。`price_with_greeks()` 统一接受 `spot_shift`、`volatility_shift`、`rate_shift`、`time_shift`，只调节数值回退及可用性检查，保留原生估计方法；`numerical_greeks()` 显式选择 BSM 标量数值差分。省略控制或传入 `...` 继承引擎设置；现价、波动率和时间扰动的 `None` 表示自动选择。`time_shift` 使用正的 `datetime.timedelta`；自动时间步至多一天，并缩短以避开观察事件。自动波动率步长为 `min(0.0001, volatility / 2)`，`rate_shift` 的共享默认值为 `0.0001`。所有显式控制都会验证。
+### Greeks 扰动控制 {#greek-controls}
+
+`engine.greek_method(instrument, context)` 查询估计方法，`engine.active_greek_controls(instrument, context)` 查询可能使用的扰动控制。`price_with_greeks()` 统一接受 `spot_shift`、`volatility_shift`、`rate_shift`、`time_shift`，只调节数值回退及可用性检查，保留原生估计方法；`numerical_greeks()` 显式选择 BSM 标量数值差分。这四项控制只在请求中指定，不属于引擎构造或替换字段。
+
+省略控制或传入 `...` 使用共享默认值；现价、波动率和时间扰动的 `None` 表示自动选择，`rate_shift` 不接受 `None`。`spot_shift` 是标的价格单位的绝对扰动，`volatility_shift` 和 `rate_shift` 使用小数单位，`time_shift` 使用正的 `datetime.timedelta`。自动时间步至多一天，并缩短以避开观察事件；显式时间扰动不因观察事件而缩短。自动波动率步长为 `min(0.0001, volatility / 2)`，`rate_shift` 的共享默认值为 `0.0001`。所有显式控制都会验证。
+
+沿用[首次定价](../guide/first-price)的 `engine`、`option` 和 `context`：
+
+```python
+from datetime import timedelta
+from kiyosi.pricing import numerical_greeks
+
+print(engine.greek_method(option, context))
+print(engine.active_greek_controls(option, context))
+numerical_result = numerical_greeks(
+    engine, option, context, greeks=["delta", "gamma", "vega", "theta"],
+    spot_shift=0.01, volatility_shift=0.0001,
+    rate_shift=0.0001, time_shift=timedelta(hours=1),
+)
+print(numerical_result.price, numerical_result.require("delta"))
+```
 
 `QuadratureVanillaEngine` 和 `QuadratureDigitalEngine` 使用恒定利率 BSM，提供价格与数值 Greeks；单／双障碍蒙特卡洛的原生 Greeks 仅支持 delta、gamma。配置与收敛检查见[定价引擎](../guide/engines)。
 
@@ -219,17 +267,17 @@ print(sigma)
 | `RootNotBracketedError` | 给定区间没有包围根 |
 | `NonConvergenceError` | 迭代或积分未收敛 |
 
-`InvalidInputError` 同时继承 `ValueError`。表示和调用签名错误使用 Python 原生异常，已报告的运行环境错误使用 `OSError`。不要解析错误文本判断类别。Rust 内部 panic 与领域异常不同；内存耗尽可能终止进程。
+`InvalidInputError` 同时继承 `ValueError`。表示和调用签名错误使用 Python 原生异常，已报告的运行环境错误使用 `OSError`。不要解析错误文本判断类别。启用 Rust 栈展开时，panic 抛出继承 `BaseException` 的 `pyo3_runtime.PanicException`；终止式 panic 和内存耗尽可能终止进程。
 
 合约、估值、曲线和观察时间使用无时区的 `datetime.datetime`，精度为微秒，所有输入须采用调用方选定的同一时间基准；不接受纯 `date` 或带时区的 `datetime`。日历日期使用 `datetime.date`（不含 `datetime`），观察时钟使用无时区的 `datetime.time`。超出 Python 年份 1–9999 的结果抛出 `ValueError`。
 
 数值输入拒绝布尔值和隐式舍入；精确实数必须可无损表示为浮点数，显式 `float(value)` 表示接受舍入。整数输入要求 `__index__`，小数抛出 `TypeError`，超范围抛出 `OverflowError`。集合属性返回自有元组，曲面使用嵌套元组；对象只读、支持复制与 pickle，跨进程须使用同一 kiyosi 版本。
 
-共享或独立实例均支持并发读取和定价。长计算会释放 GIL，较短的解析调用可能保留 GIL。调用同步完成，长请求中调用线程会轮询信号；`KeyboardInterrupt` 等信号处理异常将协作取消计算，等待工作停止后传播，不返回部分结果。内存分配或单个工作单元可能延迟取消。完整约定见[包级参考](/api/python/kiyosi)。
+共享或独立实例均支持并发读取和定价。长计算会释放 GIL，短调用可能保留 GIL。调用同步完成，长请求中调用线程会轮询信号；`KeyboardInterrupt` 等信号处理异常将协作取消计算，等待工作停止后传播，不返回部分结果。内存分配或单个工作单元可能延迟取消。完整约定见[包级参考](/api/python/kiyosi)。
 
 ## 实用示例 {#working-examples}
 
 - [首次定价](../guide/first-price)：完整 Python 脚本与 Greeks。
 - [采样与误差估计](../guide/engines#sampling-and-error)：蒙特卡洛统计接口。
-- [上游 Python 示例](https://github.com/lilkui/kiyosi/tree/a125eb5b6512606881d3e809ae861bac96f90880/examples/python)：产品定价、历史输入、日历和票息求解。
-- [上游 Python 测试](https://github.com/lilkui/kiyosi/tree/a125eb5b6512606881d3e809ae861bac96f90880/python/tests)：更多产品用法。
+- [上游 Python 示例](https://github.com/lilkui/kiyosi/tree/fb6ea0f626e81b4e62beff9d9c8027855e94b015/examples/python)：产品定价、历史输入、日历和票息求解。
+- [上游 Python 测试](https://github.com/lilkui/kiyosi/tree/fb6ea0f626e81b4e62beff9d9c8027855e94b015/python/tests)：更多产品用法。
