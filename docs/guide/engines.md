@@ -29,13 +29,13 @@ description: 按产品选择 kiyosi 定价算法，配置数值方法和 CPU 蒙
 
 ## 引擎配置与验证 {#engine-settings}
 
-数值引擎在构造时验证配置，合约与市场条件在定价时验证。引擎配置只读；具有可配置构造字段的引擎提供 `engine.replace(...)`，用于创建经过验证的新引擎。无配置字段的解析引擎直接构造使用。
+数值引擎在构造时验证配置，在定价时验证合约与市场条件。引擎配置只读；构造字段可配置的引擎提供 `engine.replace(...)`，用于创建并验证新引擎。无配置字段的解析引擎可直接构造使用。
 
-构造函数与 `replace()` 接收网格、积分或采样设置。Greeks 的 `spot_shift`、`volatility_shift`、`rate_shift` 和 `time_shift` 在每次 `price_with_greeks()` 或 `numerical_greeks()` 请求中指定，省略或传入 `...` 使用共享默认值，详见 [Greeks 扰动控制](../reference/python#greek-controls)。
+构造函数与 `replace()` 接收网格、积分或采样设置。Greeks 的 `spot_shift`、`volatility_shift`、`rate_shift` 和 `time_shift` 则在每次 `price_with_greeks()` 或 `numerical_greeks()` 请求中指定。省略扰动参数或传入 `...` 时使用共享默认值，详见 [Greeks 扰动控制](../reference/python#greek-controls)。
 
 有限差分默认使用 `"rannacher"`：前两个时间区间分别用两个隐式 Euler 半步替代，并在日程中的障碍、累购或自动赎回观察后重新平滑。`"crank_nicolson"` 表示不进行时间步平滑的标准 Crank–Nicolson 格式；另可选 `"explicit_euler"` 和 `"implicit_euler"`。
 
-例如，显式选择默认的 Rannacher 格式：
+以下示例显式选择默认的 Rannacher 格式：
 
 ```python
 from kiyosi.pricing import FiniteDifferenceVanillaEngine
@@ -49,9 +49,9 @@ engine = FiniteDifferenceVanillaEngine(
 
 输入不合法时抛出 `InvalidInputError`；产品或模型条件超出引擎支持范围时抛出 `UnsupportedOperationError`。各引擎的参数和适用条件见[定价 API](/api/python/kiyosi-pricing)。
 
-一维有限差分在自动选择空间边界且使用非显式格式时，为欧式普通期权和局部波动率数字期权在行权价附近集中布点；BSM 数字期权和显式指定上边界时使用均匀标的网格，美式期权使用双曲正弦网格。
+一维有限差分自动选择空间边界且使用非显式格式时，会在欧式普通期权和局部波动率数字期权的行权价附近集中布点。BSM 数字期权和显式指定上边界的情况使用均匀标的网格，美式期权使用双曲正弦网格。
 
-自动赎回有限差分引擎默认 `asset_step_count=800`、`time_step_count=400`，观察事件与平滑可能增加子步。逐步增加空间和时间步数，比较价格与 Greeks 的变化，以检查网格收敛。
+自动赎回有限差分引擎默认使用 `asset_step_count=800`、`time_step_count=400`，观察事件与平滑可能增加子步。检查网格收敛性时，逐步增加空间和时间步数，比较价格与 Greeks 的变化。
 
 ## 普通与数字期权积分 {#quadrature-pricing}
 
@@ -70,9 +70,13 @@ engine = QuadratureVanillaEngine(
 print(engine.price(option, context))
 ```
 
-欧式定价采用复合 Simpson 积分；美式普通期权使用高斯积分反向递推，在估值时点、均匀时间网格与到期时点允许行权。`time_step_count` 至少为 1，仅用于美式普通期权；欧式普通期权忽略此参数，数字期权引擎不接受此参数。两者的空间步数至少为 4，积分范围须为正有限值。
+欧式定价采用复合 Simpson 积分；美式普通期权使用高斯积分反向递推，允许在估值时点、均匀时间网格与到期时点行权。
 
-数字期权的积分范围以支付加权正态密度为中心，截断范围外的贡献按零处理；到期时现价等于行权价不支付。固定网格积分的精度通过收敛检查评估：分别增加空间步数、扩大积分范围、细化美式行权时间步，并调整数值 Greeks 扰动，比较结果的变化。
+`time_step_count` 至少为 1，仅用于美式普通期权；欧式普通期权忽略此参数，数字期权引擎不接受此参数。两个引擎的空间步数都至少为 4，积分范围须为正有限值。
+
+数字期权的积分范围以支付加权正态密度为中心，截断范围外的贡献按零处理；到期时，现价等于行权价则不支付。
+
+评估固定网格积分的精度时，分别增加空间步数、扩大积分范围、细化美式行权时间步，并调整数值 Greeks 扰动，通过比较结果的变化检查收敛性。
 
 `QuadratureAutocallableEngine` 的空间范围同时考虑正向漂移和事件边界的反向移动。低波动率、每日观察等情况下，应分别检查空间分辨率和积分范围。
 
@@ -102,11 +106,15 @@ for contract in (single, double):
     print(estimate.price, estimate.standard_error)
 ```
 
-`observation_times=None` 选择连续监控，使用终值抽样与 Brownian bridge 存活概率；双障碍存活概率采用像方法／谱级数。显式的非空观察时间序列选择离散监控，模拟保留原始观察时点，必要时补充不作障碍观察的到期段；引擎不接受 `step_count`。合约监控与历史输入见[障碍与触碰产品](../reference/python#barrier-and-touch-contracts)。
+`observation_times=None` 表示连续监控，使用终值抽样与 Brownian bridge 存活概率；双障碍存活概率采用像方法／谱级数。显式传入非空观察时间序列时使用离散监控，模拟保留原始观察时点，必要时补充不作障碍观察的到期段。
+
+引擎不接受 `step_count`。合约监控与历史输入见[障碍与触碰产品](../reference/python#barrier-and-touch-contracts)。
 
 ## Heston 定价 {#heston-pricing}
 
-使用 [Heston 市场上下文](../reference/python#heston)时，欧式普通期权可选 `AnalyticHestonEuropeanEngine`，欧式和美式普通期权均可选 `FiniteDifferenceHestonVanillaEngine`。这两个引擎只计算价格；`price_with_greeks()` 返回价格并将请求的 Greeks 标记为 `unsupported`。`numerical_greeks()` 与隐含参数求解抛出 `UnsupportedOperationError`，其他引擎不接受 Heston 模型。
+使用 [Heston 市场上下文](../reference/python#heston)时，欧式普通期权可选 `AnalyticHestonEuropeanEngine`，欧式和美式普通期权均可选 `FiniteDifferenceHestonVanillaEngine`。
+
+这两个引擎只计算价格；`price_with_greeks()` 返回价格并将请求的 Greeks 标记为 `unsupported`。`numerical_greeks()` 与隐含参数求解抛出 `UnsupportedOperationError`，其他引擎不接受 Heston 模型。
 
 Fourier 积分引擎采用自适应积分和确定性方差控制变量，默认 `absolute_tolerance=1e-8`、`relative_tolerance=1e-8`、`max_evaluations=10000`。绝对容差按价格单位计量，两种容差均须为非负有限值且至少一个为正；评估预算须为正整数，覆盖一次请求中的特征函数、控制变量与尾部检查。
 
@@ -114,15 +122,19 @@ Fourier 积分引擎采用自适应积分和确定性方差控制变量，默认
 
 二维有限差分使用修正 Craig–Sneyd（MCS）交替方向隐式（ADI）格式，美式行权使用 Ikonen–Toivanen 分裂。默认标的、方差和时间区间数分别为 400、100、400；空间区间数至少为 3，时间区间数至少为 1，利率曲线节点会加入时间网格。
 
-`asset_upper_boundary` 和 `variance_upper_boundary` 默认为 `None`，由引擎自动选择。显式边界须为正有限值；需要相应数值网格时，标的上边界须严格高于现价与行权价，方差上边界须严格高于初始方差。精度通过分别细化空间、时间网格和扩大边界后的价格变化评估。
+`asset_upper_boundary` 和 `variance_upper_boundary` 默认为 `None`，由引擎自动选择。显式边界须为正有限值；需要相应数值网格时，标的上边界须严格高于现价与行权价，方差上边界须严格高于初始方差。评估精度时，分别细化空间、时间网格并扩大边界，比较价格变化。
 
 Heston 二维有限差分的设置独立于一维引擎，不接受 `scheme` 参数；局部波动率模型使用一维有限差分引擎。
 
 ## CPU 并发与复现 {#cpu-concurrency}
 
-蒙特卡洛在 CPU 上运行。并行调用共用库持有的 Rayon 线程池，首次并行使用时初始化，并保留到进程退出。`max_active_workers=0` 自动选择活跃工作线程数，`1` 在调用线程上串行执行，正整数限制单次调用的活跃工作线程数。线程池大小由 `configure_monte_carlo_pool()` 单独配置，池中工作线程供并行调用共享。
+蒙特卡洛在 CPU 上运行。并行调用共用库持有的 Rayon 线程池，该池在首次并行使用时初始化，并保留到进程退出。
 
-如需限制进程内该池创建的工作线程数，在首次并行请求前调用 `configure_monte_carlo_pool(max_workers=...)`，实际数量还受可用 CPU 数限制；未配置时按可用 CPU 数量选择。线程池忽略 `RAYON_NUM_THREADS`，不修改应用的全局 Rayon 池。例如，在新进程中沿用[首次定价](./first-price)的合约与上下文：
+`max_active_workers=0` 自动选择活跃工作线程数，`1` 在调用线程上串行执行，正整数限制单次调用的活跃工作线程数。线程池大小由 `configure_monte_carlo_pool()` 单独配置，池中工作线程供并行调用共享。
+
+如需限制该池在进程内创建的工作线程数，在首次并行请求前调用 `configure_monte_carlo_pool(max_workers=...)`。实际数量还受可用 CPU 数限制；未配置时按可用 CPU 数量选择。线程池忽略 `RAYON_NUM_THREADS`，不修改应用的全局 Rayon 池。
+
+以下示例在新进程中沿用[首次定价](./first-price)的合约与上下文：
 
 ```python
 from kiyosi.pricing import MonteCarloVanillaEngine, configure_monte_carlo_pool
@@ -133,7 +145,9 @@ estimate = engine.price(option, context)
 print(estimate)
 ```
 
-同一构建中，固定种子可在不同线程数下复现随机抽样。复现实验时，保存使用的构建、引擎配置和实际种子。`engine.with_resolved_seed()` 返回带具体种子的独立引擎，保留其余设置；`price_with_seed()` 返回 `(price, seed)`，统计结果和 Greeks 结果也通过 `seed` 提供实际种子。无需抽样时种子为 `None`。每次调用同步完成自己的计算，可并发共享只读引擎。
+同一构建中，固定种子可在不同线程数下复现随机抽样。复现实验时，保存使用的构建、引擎配置和实际种子。`engine.with_resolved_seed()` 返回带具体种子的独立引擎，保留其余设置；`price_with_seed()` 返回 `(price, seed)`，统计结果和 Greeks 结果也通过 `seed` 提供实际种子。无需抽样时，种子为 `None`。
+
+每次调用同步完成自身计算，只读引擎可由并发调用共享。
 
 使用 Python 多进程时选择 `spawn` 启动方式，让各子进程独立初始化线程池。
 
@@ -148,13 +162,15 @@ print(result.price, result.standard_error, result.confidence_interval)
 print(result.seed, result.uncertainty_status)
 ```
 
-伪随机独立样本或完整对偶样本对可提供标准误差和渐近 95% 正态置信区间。Sobol、独立样本不足或奇数路径的对偶采样不报告不确定度，相应字段为 `None`；`uncertainty_status` 分别报告 `unsupported_sampling`、`insufficient_observations` 或 `incomplete_antithetic_pair`，可用时为 `available`。
+伪随机独立样本或完整对偶样本对可提供标准误差和渐近 95% 正态置信区间。使用 Sobol、独立样本不足或对偶采样的路径数为奇数时，不报告不确定度，相应字段为 `None`；`uncertainty_status` 分别为 `unsupported_sampling`、`insufficient_observations` 或 `incomplete_antithetic_pair`。不确定度可用时，状态为 `available`。
 
 欧式普通期权直接采样终值，`step_count` 不影响其价格；美式期权使用最小二乘蒙特卡洛，`step_count` 表示行权时间区间数，到期前至少为 2。详细约束见 [MonteCarloVanillaEngine](/api/python/kiyosi-pricing#montecarlovanillaengine)。
 
 `step_count` 仅由 `MonteCarloVanillaEngine` 和 `MonteCarloAsianEngine` 接受；其他蒙特卡洛引擎按各自的观察或监控日程计算。
 
-美式蒙特卡洛行权网格每次调用最多保留 1 GiB 路径数据，大小为 `8 * path_count * step_count` 字节；对偶采样的奇数路径数按下一偶数预留，其他缓冲区另计。超限时在抽样前抛出 `InvalidInputError`，需减少路径数或时间区间数。到期、确定性定价，以及股息率非正且利率非负、仅需终值采样的美式看涨期权，不分配该网格，也不受此限额约束。
+美式蒙特卡洛行权网格每次调用最多保留 1 GiB 路径数据，大小为 `8 * path_count * step_count` 字节；对偶采样的路径数为奇数时，按下一个偶数预留，其他缓冲区另计。超限时在抽样前抛出 `InvalidInputError`，需减少路径数或时间区间数。
+
+到期、确定性定价，以及股息率非正且利率非负、仅需终值采样的美式看涨期权，不分配该网格，也不受此限额约束。
 
 未来的障碍、敲入、敲出、票息和加速观察直接使用模拟的对数价格变化判定，以保留阈值附近的精度；单／双障碍期权的到期收益也使用这一精度。估值时点的观察使用传入的现价。
 

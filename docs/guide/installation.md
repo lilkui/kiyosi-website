@@ -24,9 +24,9 @@ python -m pip install "kiyosi==0.19.0"
 
 :::
 
-pip 会选择匹配当前 Python 与平台的预编译 wheel；使用 wheel 安装时无需 Rust。Python 绑定使用 `abi3-py312` 稳定 ABI，wheel 构建配置覆盖 Python 3.12–3.15。pip 转为源码构建时，按下节准备编译环境。
+pip 会选择与当前 Python 版本及平台匹配的预编译 wheel，安装 wheel 无需 Rust。Python 绑定使用 `abi3-py312` 稳定 ABI，wheel 构建配置覆盖 Python 3.12–3.15。如果 pip 转为源码构建，请按下节准备编译环境。
 
-安装后确认版本和入口：
+安装后，确认包版本并检查能否导入定价引擎：
 
 ```sh
 python -c "import kiyosi; from kiyosi.pricing import AnalyticEuropeanEngine; print(kiyosi.__version__)"
@@ -48,7 +48,7 @@ python -m pip install .
 python -c "import kiyosi; print(kiyosi.__version__)"  # 0.19.0
 ```
 
-pip 自动安装构建所需的 maturin，并由 Cargo 使用源码中的锁文件构建 Rust 扩展。首次构建需要联网下载依赖。若只使用 Rust，请参阅[构建 Rust 核心](../rust/building)。
+pip 会自动安装构建所需的 maturin，Cargo 按源码中的锁文件构建 Rust 扩展。首次构建需要联网下载依赖。若只使用 Rust，请参阅[构建 Rust 核心](../rust/building)。
 
 ## 常见问题 {#troubleshooting}
 

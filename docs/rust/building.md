@@ -18,7 +18,7 @@ cargo build -p kiyosi --release --locked
 cargo test -p kiyosi --locked
 ```
 
-Cargo 首次构建会下载锁文件指定的依赖，整个核心构建由 Rust 工具链完成。
+首次构建时，Cargo 会下载锁文件指定的依赖。核心库的构建全部由 Rust 工具链完成。
 
 ## 接入应用
 
@@ -56,15 +56,15 @@ fn main() -> kiyosi::Result<()> {
 
 合约边界和估值时点使用 `Timestamp`，按调用方选定的同一时间基准解释；`Date::start_of_day()` 构造当天零点，`Date::at_time(TimeOfDay)` 可指定日内时刻。
 
-领域错误通过 `kiyosi::Result` 返回。公开内置类型拥有自己的数据，并支持并发读取和定价；修改值需要独占访问。`replace()` 使用对应的 `*Changes` 类型创建经过验证的新值。完整约定见 <a href="../api/rust/kiyosi/index.html" target="_self">Rust API</a>。
+领域错误通过 `kiyosi::Result` 返回。公开的内置类型拥有自己的数据，支持并发读取和定价；修改值需要独占访问。`replace()` 使用对应的 `*Changes` 类型创建新值，并验证其有效性。完整约定见 <a href="../api/rust/kiyosi/index.html" target="_self">Rust API</a>。
 
 ## Greeks 与引擎设置
 
-导入 `PricingEngine` trait 后，用 `price_with_greeks()` 请求指定指标，默认使用共享扰动设置。需要指定扰动时，将 `NumericalShiftSettings` 传给 `price_with_greeks_with_settings()`；`spot_shift`、`volatility_shift`、`rate_shift` 和 `time_shift` 属于本次请求。显式 BSM 标量差分使用 `numerical_greeks(engine, option, context, request, settings)`。
+导入 `PricingEngine` trait 后，用 `price_with_greeks()` 请求指定指标，默认使用共享扰动设置。需要指定扰动时，将 `NumericalShiftSettings` 传给 `price_with_greeks_with_settings()`；`spot_shift`、`volatility_shift`、`rate_shift` 和 `time_shift` 仅作用于本次请求。若要显式使用 BSM 标量差分，调用 `numerical_greeks(engine, option, context, request, settings)`。
 
 结果包含价格与各指标的状态。不可用指标为 `None`，通过 `status(Greek::...)` 查看原因；`require(Greek::...)` 返回指标数值，或在指标不可用时返回错误。
 
-采样与网格通过各引擎的配置类型设置；`MonteCarloBarrierEngine` 同时为 `BarrierOption` 和 `DoubleBarrierOption` 定价。修改合约日历使用对应的 `*Changes` 中的 `calendar` 字段，经 `replace()` 重新验证条款和历史。
+通过各引擎的配置类型设置采样与网格；`MonteCarloBarrierEngine` 可为 `BarrierOption` 和 `DoubleBarrierOption` 定价。修改合约日历时，设置对应 `*Changes` 类型中的 `calendar` 字段，再调用 `replace()` 重新验证条款和历史。
 
 ## 生成原生 API 文档
 

@@ -4,7 +4,7 @@ description: 使用 kiyosi 的 Python 接口和 Black-Scholes 解析引擎为欧
 
 # 首次定价
 
-本示例计算一份欧式看涨期权的价格，行权价为 100，期限为一年。请先[安装 kiyosi](./installation)，再将以下代码保存为 `first_price.py`。
+本示例为一份行权价为 100、期限为一年的欧式看涨期权定价。请先[安装 kiyosi](./installation)，再将以下代码保存为 `first_price.py`。
 
 ## 完整示例 {#a-complete-example}
 
@@ -42,7 +42,7 @@ print(f"Price: {price:.6f}")  # 9.227006
 python first_price.py
 ```
 
-输出为 `Price: 9.227006`。计算以示例中固定的 `valuation_time` 为估值时点。时间参数使用无时区的 `datetime`，所有输入采用同一时间基准。
+输出为 `Price: 9.227006`。估值时点由示例中固定的 `valuation_time` 指定。时间参数使用无时区的 `datetime`，所有输入采用同一时间基准。
 
 ## 理解输入参数 {#understand-the-inputs}
 
@@ -67,9 +67,9 @@ result = engine.price_with_greeks(option, context, greeks=["delta", "gamma", "ve
 print(result.price, result.delta, result.gamma, result.vega)
 ```
 
-该方法返回只读的 `PricingResult`。`greeks` 是必填参数，可传单个名称（如 `"delta"`）、名称序列，或 `"all"` 请求全部十二项指标；空序列仅请求价格。
+该方法返回只读的 `PricingResult`。`greeks` 是必填参数，可传入单个名称（如 `"delta"`）或名称序列，也可用 `"all"` 请求全部十二项指标；空序列仅请求价格。
 
-指标为 `None` 时，使用 `result.status("delta")` 查询原因；`result.require("delta")` 返回数值，或在指标不可用时抛出 `GreekUnavailableError`。`None` 表示缺少可用数值，零表示该偏导的计算值为零。
+指标为 `None` 时，可用 `result.status("delta")` 查询原因。`result.require("delta")` 返回数值，指标不可用时则抛出 `GreekUnavailableError`。`None` 表示缺少可用数值，零表示该偏导的计算值为零。
 
 `price_with_greeks()` 使用引擎自身的估计方法。数值差分与扰动设置见 [Greeks 扰动控制](../reference/python#greek-controls)。
 
@@ -86,6 +86,8 @@ estimate = MonteCarloVanillaEngine(seed=42, max_active_workers=4).price(option, 
 print(estimate)
 ```
 
-蒙特卡洛方法通过随机抽样估算价格，可用统计接口查看采样误差。`seed` 固定随机种子，`max_active_workers` 限制单次 CPU 调用的活跃工作线程数。产品与引擎的对应关系见[定价引擎](./engines)，统计接口见[采样与误差估计](./engines#sampling-and-error)。
+蒙特卡洛方法通过随机抽样估算价格，可用统计接口查看采样误差。`seed` 固定随机种子，`max_active_workers` 限制单次 CPU 调用的活跃工作线程数。
+
+产品与引擎的对应关系见[定价引擎](./engines)，统计接口见[采样与误差估计](./engines#sampling-and-error)。
 
 本示例改编自 [kiyosi Python 定价模块示例](https://github.com/lilkui/kiyosi/blob/fb6ea0f626e81b4e62beff9d9c8027855e94b015/python/src/kiyosi/pricing.py)。
