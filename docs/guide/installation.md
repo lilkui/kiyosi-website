@@ -24,7 +24,7 @@ python -m pip install "kiyosi==0.19.0"
 
 :::
 
-pip 会选择与当前 Python 版本及平台匹配的预编译 wheel，安装 wheel 无需 Rust。Python 绑定使用 `abi3-py312` 稳定 ABI，wheel 构建配置覆盖 Python 3.12–3.15。如果 pip 转为源码构建，请按下节准备编译环境。
+pip 会选择匹配当前 Python 版本及平台的预编译 wheel，安装 wheel 无需 Rust。Python 绑定使用 `abi3-py312` 稳定 ABI，wheel 构建配置覆盖 Python 3.12–3.15。如果 pip 转为源码构建，请按下节准备编译环境。
 
 安装后，确认包版本并检查能否导入定价引擎：
 

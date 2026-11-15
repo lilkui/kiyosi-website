@@ -33,7 +33,7 @@ description: 按产品选择 kiyosi 定价算法，配置数值方法和 CPU 蒙
 
 构造函数与 `replace()` 接收网格、积分或采样设置。Greeks 的 `spot_shift`、`volatility_shift`、`rate_shift` 和 `time_shift` 则在每次 `price_with_greeks()` 或 `numerical_greeks()` 请求中指定。省略扰动参数或传入 `...` 时使用共享默认值，详见 [Greeks 扰动控制](../reference/python#greek-controls)。
 
-有限差分默认使用 `"rannacher"`：前两个时间区间分别用两个隐式 Euler 半步替代，并在日程中的障碍、累购或自动赎回观察后重新平滑。`"crank_nicolson"` 表示不进行时间步平滑的标准 Crank–Nicolson 格式；另可选 `"explicit_euler"` 和 `"implicit_euler"`。
+有限差分默认使用 `"rannacher"`：前两个时间区间分别用两个隐式 Euler 半步替代，并在日程中的障碍、累购或自动赎回观察后重新平滑。`"crank_nicolson"` 表示不做时间步平滑的标准 Crank–Nicolson 格式；另可选 `"explicit_euler"` 和 `"implicit_euler"`。
 
 以下示例显式选择默认的 Rannacher 格式：
 
@@ -76,7 +76,7 @@ print(engine.price(option, context))
 
 数字期权的积分范围以支付加权正态密度为中心，截断范围外的贡献按零处理；到期时，现价等于行权价则不支付。
 
-评估固定网格积分的精度时，分别增加空间步数、扩大积分范围、细化美式行权时间步，并调整数值 Greeks 扰动，通过比较结果的变化检查收敛性。
+评估固定网格积分的精度时，分别增加空间步数、扩大积分范围、细化美式行权时间步，并调整数值 Greeks 扰动，比较结果变化以检查收敛性。
 
 `QuadratureAutocallableEngine` 的空间范围同时考虑正向漂移和事件边界的反向移动。低波动率、每日观察等情况下，应分别检查空间分辨率和积分范围。
 
@@ -132,7 +132,7 @@ Heston 二维有限差分的设置独立于一维引擎，不接受 `scheme` 参
 
 `max_active_workers=0` 自动选择活跃工作线程数，`1` 在调用线程上串行执行，正整数限制单次调用的活跃工作线程数。线程池大小由 `configure_monte_carlo_pool()` 单独配置，池中工作线程供并行调用共享。
 
-如需限制该池在进程内创建的工作线程数，在首次并行请求前调用 `configure_monte_carlo_pool(max_workers=...)`。实际数量还受可用 CPU 数限制；未配置时按可用 CPU 数量选择。线程池忽略 `RAYON_NUM_THREADS`，不修改应用的全局 Rayon 池。
+如需限制该池在进程内创建的工作线程数，在首次并行请求前调用 `configure_monte_carlo_pool(max_workers=...)`。实际线程数还受可用 CPU 数限制；未配置时按可用 CPU 数选择。线程池忽略 `RAYON_NUM_THREADS`，不修改应用的全局 Rayon 池。
 
 以下示例在新进程中沿用[首次定价](./first-price)的合约与上下文：
 

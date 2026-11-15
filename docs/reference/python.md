@@ -20,7 +20,7 @@ description: 了解 kiyosi 的 instruments、market 和 pricing 模块，以及�
 
 `early_profit_snowball()` 和 `butterfly_snowball()` 分别提供两段和三段年化票息。阶段截止时刻归入前一阶段；敲出时，将所选阶段的票息率用于整个持有期，到期则使用最后阶段的票息率。
 
-雪球和凤凰的价格是以单位原始名义本金计量的尚未结算现金流现值，包含条款规定的本金、票息及损失。`principal_redemption_ratio` 是归一化本金偿还比例；使用持仓名义本金时，需在外部同时缩放完整价格和 Greeks。
+雪球和凤凰的价格按单位原始名义本金计量，表示尚未结算的现金流现值，包含条款规定的本金、票息及损失。`principal_redemption_ratio` 是归一化本金偿还比例；使用持仓名义本金时，需在外部同时缩放完整价格和 Greeks。
 
 `Accumulator` 默认 `option_type="call"` 表示累购，`"put"` 表示累沽。`knock_out_observation_times=None` 表示每个交易日按显式的 `observation_clock_time` 观察敲出，空序列表示不提前敲出；显式时间须严格递增且位于合约期限内。每次观察先判定敲出，触发敲出时结束累计。
 
@@ -76,7 +76,7 @@ print(AnalyticDoubleTouchEngine().price(no_touch, context))
 
 `barrier_state="knocked_out"` 和 `knock_out_settled=True` 表示此前已敲出并结算。
 
-`RangeAccrualOption` 在构造和 `replace()` 时检查 `realized_hit_count` 不超过到期时点严格之前的观察次数；定价时还检查其不超过估值时点严格之前的观察次数。到期时刻本身的观察不计入历史。
+`RangeAccrualOption` 在构造和 `replace()` 时要求 `realized_hit_count` 不超过到期时点严格之前的观察次数，定价时进一步要求不超过估值时点严格之前的观察次数。到期时刻本身的观察不计入历史。
 
 定价前，需按估值时点整理历史快照，确保其与合约条款、结算进度一致，并随合约传入。定价使用该快照，缺少必需历史时抛出 `MissingHistoryError`。计算数值时间敏感度时，所提供的历史保持固定。
 
@@ -90,7 +90,7 @@ print(AnalyticDoubleTouchEngine().price(no_touch, context))
 
 ### 利率期限结构 {#rate-curves}
 
-`RateTermStructure` 根据参考时点、节点时点和因子构建，对因子在对数空间做线性插值，时间采用 Actual/365 Fixed。查询节点曲线时，查询时点必须位于其覆盖范围内：
+`RateTermStructure` 根据参考时点、节点时点和因子构建，在对数空间对因子做线性插值，时间采用 Actual/365 Fixed。查询节点曲线时，查询时点必须位于其覆盖范围内：
 
 ```python
 from datetime import datetime
@@ -318,7 +318,7 @@ print(sigma)
 | `RootNotBracketedError` | 给定区间没有包围根 |
 | `NonConvergenceError` | 迭代或积分未收敛 |
 
-`InvalidInputError` 同时继承 `ValueError`。表示和调用签名错误使用 Python 原生异常，已报告的运行环境错误使用 `OSError`。可按异常类型分类处理，通过错误文本诊断原因。
+`InvalidInputError` 同时继承 `ValueError`。表示和调用签名错误使用 Python 原生异常，运行环境报告的错误使用 `OSError`。可按异常类型分类处理，通过错误文本诊断原因。
 
 启用 Rust 栈展开时，panic 抛出继承 `BaseException` 的 `pyo3_runtime.PanicException`；终止式 panic 和内存耗尽可能终止进程。
 

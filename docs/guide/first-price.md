@@ -4,7 +4,7 @@ description: 使用 kiyosi 的 Python 接口和 Black-Scholes 解析引擎为欧
 
 # 首次定价
 
-本示例为一份行权价为 100、期限为一年的欧式看涨期权定价。请先[安装 kiyosi](./installation)，再将以下代码保存为 `first_price.py`。
+本示例对一份行权价 100、期限一年的欧式看涨期权定价。请先[安装 kiyosi](./installation)，再将以下代码保存为 `first_price.py`。
 
 ## 完整示例 {#a-complete-example}
 
@@ -42,7 +42,7 @@ print(f"Price: {price:.6f}")  # 9.227006
 python first_price.py
 ```
 
-输出为 `Price: 9.227006`。估值时点由示例中固定的 `valuation_time` 指定。时间参数使用无时区的 `datetime`，所有输入采用同一时间基准。
+输出为 `Price: 9.227006`。示例通过固定的 `valuation_time` 指定估值时点。时间参数使用无时区的 `datetime`，所有输入采用同一时间基准。
 
 ## 理解输入参数 {#understand-the-inputs}
 
@@ -69,7 +69,7 @@ print(result.price, result.delta, result.gamma, result.vega)
 
 该方法返回只读的 `PricingResult`。`greeks` 是必填参数，可传入单个名称（如 `"delta"`）或名称序列，也可用 `"all"` 请求全部十二项指标；空序列仅请求价格。
 
-指标为 `None` 时，可用 `result.status("delta")` 查询原因。`result.require("delta")` 返回数值，指标不可用时则抛出 `GreekUnavailableError`。`None` 表示缺少可用数值，零表示该偏导的计算值为零。
+指标为 `None` 时，可用 `result.status("delta")` 查询原因。`result.require("delta")` 在指标可用时返回数值，否则抛出 `GreekUnavailableError`。`None` 表示缺少可用数值，零表示该偏导的计算值为零。
 
 `price_with_greeks()` 使用引擎自身的估计方法。数值差分与扰动设置见 [Greeks 扰动控制](../reference/python#greek-controls)。
 

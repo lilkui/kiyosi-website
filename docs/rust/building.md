@@ -18,7 +18,7 @@ cargo build -p kiyosi --release --locked
 cargo test -p kiyosi --locked
 ```
 
-首次构建时，Cargo 会下载锁文件指定的依赖。核心库的构建全部由 Rust 工具链完成。
+首次构建时，Cargo 会下载锁文件指定的依赖，整个构建过程均由 Rust 工具链完成。
 
 ## 接入应用
 
@@ -56,7 +56,7 @@ fn main() -> kiyosi::Result<()> {
 
 合约边界和估值时点使用 `Timestamp`，按调用方选定的同一时间基准解释；`Date::start_of_day()` 构造当天零点，`Date::at_time(TimeOfDay)` 可指定日内时刻。
 
-领域错误通过 `kiyosi::Result` 返回。公开的内置类型拥有自己的数据，支持并发读取和定价；修改值需要独占访问。`replace()` 使用对应的 `*Changes` 类型创建新值，并验证其有效性。完整约定见 <a href="../api/rust/kiyosi/index.html" target="_self">Rust API</a>。
+领域错误通过 `kiyosi::Result` 返回。公开的内置类型持有自身数据，支持并发读取和定价；修改值需要独占访问。`replace()` 通过对应的 `*Changes` 类型创建并验证新值。完整约定见 <a href="../api/rust/kiyosi/index.html" target="_self">Rust API</a>。
 
 ## Greeks 与引擎设置
 
