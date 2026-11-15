@@ -9,7 +9,7 @@ description: kiyosi 定价模型、数值算法与验证结果的技术报告。
 
 ## 自动赎回结构有限差分定价
 
-[阅读《Kiyosi 自动赎回结构（雪球、凤凰）有限差分定价：原理、实现与验证报告》](./autocallable-finite-difference-report)
+[阅读《Kiyosi 自动赎回结构（雪球、凤凰）有限差分定价：原理、实现与验证报告》](./autocallable-finite-difference)
 
 报告涵盖雪球、二元雪球、三元雪球和凤凰的产品定义、数学模型、有限差分算法、独立参考解及数值验证，并提供源码索引和复现脚本。
 

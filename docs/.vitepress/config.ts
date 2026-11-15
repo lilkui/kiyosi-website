@@ -62,7 +62,7 @@ export default defineConfig({
         text: '技术报告',
         items: [
           { text: '报告目录', link: '/reports/' },
-          { text: '自动赎回结构有限差分定价', link: '/reports/autocallable-finite-difference-report' },
+          { text: '自动赎回结构有限差分定价', link: '/reports/autocallable-finite-difference' },
         ],
       },
     ],
