@@ -9,6 +9,7 @@ export default defineConfig({
   appearance: true,
   head: [['link', { rel: 'icon', href: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"%3E%3Crect width="32" height="32" rx="6" fill="%2308776b"/%3E%3Ctext x="8" y="25" fill="%23fcfdfc" font-family="sans-serif" font-weight="700" font-size="28"%3Ek%3C/text%3E%3C/svg%3E' }]],
   markdown: {
+    math: true,
     theme: { light: 'github-light-high-contrast', dark: 'github-dark-high-contrast' },
     codeCopyButtonTitle: '复制代码',
     container: {
@@ -27,6 +28,7 @@ export default defineConfig({
     nav: [
       { text: '使用指南', link: '/guide/introduction', activeMatch: '/guide/' },
       { text: 'API 参考', link: '/api/', activeMatch: '/api/' },
+      { text: '技术报告', link: '/reports/', activeMatch: '/reports/' },
     ],
     sidebar: [
       {
@@ -51,6 +53,13 @@ export default defineConfig({
           { text: '概览', link: '/api/' },
           { text: 'Rust API', link: '/api/rust/kiyosi/index.html', target: '_self' },
           { text: 'Python API', link: '/api/python/' },
+        ],
+      },
+      {
+        text: '技术报告',
+        items: [
+          { text: '报告目录', link: '/reports/' },
+          { text: '自动赎回结构有限差分定价', link: '/reports/autocallable-finite-difference-report' },
         ],
       },
     ],
