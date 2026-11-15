@@ -5,6 +5,9 @@ export default defineConfig({
   description: '以 Rust 为核心的 Python 衍生品定价库，支持普通期权、奇异期权和结构化产品。',
   lang: 'zh-CN',
   base: process.env.DOCS_BASE || '/',
+  sitemap: {
+    hostname: 'https://lilkui.github.io/kiyosi/',
+  },
   srcExclude: ['public/**'],
   appearance: true,
   head: [['link', { rel: 'icon', href: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"%3E%3Crect width="32" height="32" rx="6" fill="%2308776b"/%3E%3Ctext x="8" y="25" fill="%23fcfdfc" font-family="sans-serif" font-weight="700" font-size="28"%3Ek%3C/text%3E%3C/svg%3E' }]],
