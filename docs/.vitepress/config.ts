@@ -63,6 +63,7 @@ export default defineConfig({
         items: [
           { text: '报告目录', link: '/reports/' },
           { text: '自动赎回结构有限差分定价', link: '/reports/autocallable-finite-difference' },
+          { text: 'Kiyosi vs QuantLib 基准测试', link: '/reports/quantlib-benchmark' },
         ],
       },
     ],
