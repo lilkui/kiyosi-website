@@ -4,7 +4,7 @@ description: 了解 kiyosi 的 instruments、market 和 pricing 模块，以及�
 
 # Python API 概览
 
-本页对应 **kiyosi 0.19.0**，按合约、市场输入和定价结果组织常用接口。完整签名、属性和方法见 [Python API 参考](/api/python/)，其中的英文说明来自源码文档字符串。
+本页对应 **kiyosi 0.20.0**，按合约、市场输入和定价结果组织常用接口。完整签名、属性和方法见 [Python API 参考](/api/python/)，其中的英文说明来自源码文档字符串。
 
 ## `kiyosi.instruments`
 
@@ -14,17 +14,17 @@ description: 了解 kiyosi 的 instruments、market 和 pricing 模块，以及�
 
 ### 结构化产品与观察记录
 
-`standard_phoenix()` 和 `step_down_phoenix()` 提供标准与降敲凤凰，`coupon_per_period` 表示每个合格观察时点支付的每期绝对票息率。`lockout_periods` 设置前若干期的敲出锁定期，期间票息与敲入观察仍有效。锁定期后须至少保留一次可敲出观察，降敲障碍从首次允许敲出的观察开始递减。
+`standard_phoenix()` 和 `step_down_phoenix()` 提供标准与降敲凤凰，`coupon_per_period` 表示每个合格观察时点支付的每期绝对票息率。`lockout_periods` 设置前若干期的敲出锁定期，期间票息与敲入观察仍有效。锁定期后须至少保留一次可敲出观察，降敲障碍从首次允许敲出的观察开始递减。`PhoenixOption` 分别保存敲出观察（`KnockOutObservation`、`knock_out_observations` / `knock_out_times`）与派息观察（`CouponObservation`、`coupon_observations` / `coupon_times`），可独立修改其中一组列表。
 
 `fixed_coupon_note()`（FCN）和 `digital_coupon_note()`（DCN）返回 `PhoenixOption`，使用每期票息 `coupon_per_period`，仅在到期时观察敲入。
 
 `early_profit_snowball()` 和 `butterfly_snowball()` 分别提供两段和三段年化票息。阶段截止时刻归入前一阶段；敲出时，将所选阶段的票息率用于整个持有期，到期则使用最后阶段的票息率。
 
-雪球和凤凰的价格按单位原始名义本金计量，表示尚未结算的现金流现值，包含条款规定的本金、票息及损失。`principal_redemption_ratio` 是归一化本金偿还比例；使用持仓名义本金时，需在外部同时缩放完整价格和 Greeks。
+雪球和凤凰的价格按单位原始名义本金计量，表示尚未结算的现金流现值，包含条款规定的本金、票息、返息及损失。`principal_redemption_ratio` 是归一化本金偿还比例；`rebate_rate` 为单位名义本金的固定返息，`annual_rebate_rate` 为按 Actual/365 Fixed 从生效日计息至实际敲出或到期的年化返息率。使用持仓名义本金时，需在外部同时缩放完整价格和 Greeks。
 
 `Accumulator` 默认 `option_type="call"` 表示累购，`"put"` 表示累沽。`knock_out_observation_times=None` 表示每个交易日按显式的 `observation_clock_time` 观察敲出，空序列表示不提前敲出；显式时间须严格递增且位于合约期限内。每次观察先判定敲出，触发敲出时结束累计。
 
-`AutocallableObservation.snowball()` 和 `.phoenix()` 构造产品专用的敲出与票息观察记录；`autocallable_observations()` 可从等长数组构建记录。合约的 `autocall_observations`、`autocall_times` 分别返回记录与时间戳。
+`AutocallableObservation.snowball()` 构造雪球专用的敲出观察记录；`autocallable_observations()` 可从等长数组构建记录。雪球合约的 `autocall_observations`、`autocall_times` 分别返回记录与时间戳。
 
 敲入观察单独使用 `KnockInObservation.every_trading_day(time(...))` 或 `.at_expiry()` 设置；每日敲入的预设工厂要求显式传入 `knock_in_observation_clock_time`。直接构造自动赎回合约时，必须显式提供 `calendar`；预设工厂可以继承日程的日历。
 
@@ -86,7 +86,7 @@ print(AnalyticDoubleTouchEngine().price(no_touch, context))
 
 `BlackScholesMertonParameters` 接收无风险利率、股息率和非负恒定波动率，零波动率使用确定性定价；`LocalVolatilityParameters` 使用局部波动率曲面；`HestonParameters` 描述随机方差过程。
 
-三种模型的利率和股息率可以是连续复利标量，也可以是 `RateTermStructure`。`PricingContext` 将模型参数与 `spot_price`、`valuation_time` 组合为估值上下文。
+三种模型的利率和股息率可以是连续复利标量，也可以是 `RateTermStructure`。三者均接受 `time_convention`（默认 `"actual_365_fixed"`）与 `calendar` 参数；BSM 和局部波动率的一维有限差分引擎支持 `time_convention="business"` 并指定 `calendar`，实现波动率交易时间与利率自然时间的双时钟 PDE 定价。`PricingContext` 将模型参数与 `spot_price`、`valuation_time` 组合为估值上下文。
 
 ### 利率期限结构 {#rate-curves}
 
@@ -108,7 +108,7 @@ model = BlackScholesMertonParameters(
 )
 ```
 
-`RateTermStructure.flat()` 构造无上界的恒定曲线；同时需要精确恒定利率和双端覆盖范围时，使用 `RateTermStructure.bounded_flat(rate, reference_time=..., max_time=...)`。恒定性按实际远期利率判断，节点因子舍入会影响计算出的远期利率。
+`RateTermStructure.flat()` 构造无上界的恒定曲线；同时需要精确恒定利率和双端覆盖范围时，使用 `RateTermStructure.bounded_flat(rate, reference_time=..., max_time=..., calendar=...)`。传入 `calendar` 时，按各开市日经过的时段与该日历年化基准的比值计息，休市日计息为零。恒定性按实际远期利率判断，节点因子舍入会影响计算出的远期利率。
 
 转交模型利率时，使用 `risk_free_curve` 和 `dividend_curve` 保留覆盖范围。`flat_risk_free_rate`、`flat_dividend_yield` 返回恒定曲线的标量，非恒定曲线会抛出异常。
 
@@ -197,7 +197,7 @@ Heston 定价使用这两个专用引擎，`numerical_greeks()` 和隐含参数�
 
 ### 日历与观察日程 {#calendars-and-schedules}
 
-`weekdays_calendar()`、`all_days_calendar()` 和 `sse_calendar()` 提供内置日历。`custom_calendar()` 可在基础日历上覆盖开市日和休市日，两组日期须互斥。交易年分母来自日历，利率曲线的时间采用 Actual/365 Fixed。
+`weekdays_calendar()`、`all_days_calendar()` 和 `sse_calendar()` 提供内置日历（其中工作日日历的年化基准为 261 天）。`custom_calendar()` 可在基础日历上覆盖开市日和休市日，两组日期须互斥。交易年分母来自日历，利率曲线默认使用 Actual/365 Fixed。
 
 ```python
 from datetime import date, datetime, time
@@ -227,7 +227,7 @@ schedule = monthly_schedule(
 
 该模块提供解析与数值引擎、Greeks、隐含波动率和隐含票息求解器。
 
-欧式解析定价使用 `AnalyticEuropeanEngine`；CPU 蒙特卡洛定价可用 `MonteCarloVanillaEngine`，单／双障碍产品共用 `MonteCarloBarrierEngine`。`price(option, context)` 直接返回 `float`。
+欧式解析定价使用 `AnalyticEuropeanEngine`；CPU 蒙特卡洛定价可用 `MonteCarloVanillaEngine`，单／双障碍产品共用 `MonteCarloBarrierEngine`。`price(option, context)` 直接返回 `float`。有限差分引擎还提供 `solve(instrument, context, spot_range=...)` 返回可复用的 `FiniteDifferenceSolution`，用于批量查询不同现价下的价格与 Greeks。
 
 引擎只读。构造字段可配置的引擎支持 `engine.replace(...)`，用于创建新引擎并执行构造验证；省略配置或传入 `...` 时保留原值，`None` 只用于可空配置。无配置字段的解析引擎可直接构造使用。
 
@@ -334,11 +334,13 @@ print(sigma)
 
 数值输入拒绝布尔值和隐式舍入。精确实数必须能无损表示为浮点数，显式调用 `float(value)` 表示接受舍入。整数输入要求支持 `__index__`；传入小数时抛出 `TypeError`，超出范围时抛出 `OverflowError`。
 
-集合属性返回自有元组，曲面使用嵌套元组。对象只读，支持复制与 pickle；跨进程须使用同一 kiyosi 版本。
+集合属性返回自有元组，曲面使用嵌套元组。对象只读，支持 `copy` 与 `deepcopy`；不支持 `pickle`。
 
 ### 并发与取消
 
-共享或独立实例均支持并发读取和定价。长计算会释放 GIL，短调用可能保留 GIL。每次调用同步执行，正常完成后返回完整结果。
+在 Python 层并行定价时，优先使用多线程（如 `concurrent.futures.ThreadPoolExecutor`）。共享或独立实例均支持并发读取和定价。长计算会释放 GIL，短调用可能保留 GIL。每次调用同步执行，正常完成后返回完整结果。
+
+若必须使用多进程，请采用 `spawn` 启动方式并在各子进程内构造 kiyosi 对象，返回可序列化的基础数据；通过 `fork` 继承的蒙特卡洛线程池不可用。
 
 长请求中，调用线程会轮询信号。收到 `KeyboardInterrupt` 等信号处理异常后，会协作取消计算，等待工作停止后再传播异常。取消响应时间受内存分配和单个工作单元耗时影响。完整约定见[包级参考](/api/python/kiyosi)。
 
@@ -346,5 +348,5 @@ print(sigma)
 
 - [首次定价](../guide/first-price)：完整 Python 脚本与 Greeks。
 - [采样与误差估计](../guide/engines#sampling-and-error)：蒙特卡洛统计接口。
-- [上游 Python 示例](https://github.com/lilkui/kiyosi/tree/fb6ea0f626e81b4e62beff9d9c8027855e94b015/examples/python)：产品定价、历史输入、日历和票息求解。
-- [上游 Python 测试](https://github.com/lilkui/kiyosi/tree/fb6ea0f626e81b4e62beff9d9c8027855e94b015/python/tests)：更多产品用法。
+- [上游 Python 示例](https://github.com/lilkui/kiyosi/tree/c170982ede641196c824da12dd6ea4a848a6a4df/examples/python)：产品定价、历史输入、日历和票息求解。
+- [上游 Python 测试](https://github.com/lilkui/kiyosi/tree/c170982ede641196c824da12dd6ea4a848a6a4df/python/tests)：更多产品用法。

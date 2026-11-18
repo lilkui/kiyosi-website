@@ -4,7 +4,7 @@ description: 按产品选择 kiyosi 定价算法，配置数值方法和 CPU 蒙
 
 # 定价引擎
 
-按产品与市场模型选择引擎，再设置网格、积分或采样参数。各引擎统一使用 `price(instrument, context)` 接口。本页对应 kiyosi **0.19.0**。
+按产品与市场模型选择引擎，再设置网格、积分或采样参数。各引擎统一使用 `price(instrument, context)` 接口。本页对应 kiyosi **0.20.0**。
 
 ## 支持的产品与方法 {#instrument-coverage}
 
@@ -52,6 +52,22 @@ engine = FiniteDifferenceVanillaEngine(
 一维有限差分自动选择空间边界且使用非显式格式时，会在欧式普通期权和局部波动率数字期权的行权价附近集中布点。BSM 数字期权和显式指定上边界的情况使用均匀标的网格，美式期权使用双曲正弦网格。
 
 自动赎回有限差分引擎默认使用 `asset_step_count=800`、`time_step_count=400`，观察事件与平滑可能增加子步。检查网格收敛性时，逐步增加空间和时间步数，比较价格与 Greeks 的变化。
+
+## 有限差分可复用求解 {#finite-difference-solutions}
+
+所有一维和二维有限差分引擎都提供 `solve(instrument, context, spot_range=(low, high))`，在固定合约、模型、估值时刻与历史的前提下完成一次网格回溯，返回只读的 `FiniteDifferenceSolution`：
+
+```python
+from kiyosi.pricing import FiniteDifferenceVanillaEngine
+
+engine = FiniteDifferenceVanillaEngine()
+solution = engine.solve(option, context, spot_range=(70, 130))
+spots = (80, 90, 100, 110, 120)
+prices = solution.price_many(spots)
+results = solution.price_many_with_greeks(spots, greeks=("delta", "gamma"))
+```
+
+对同一解调用 `price(spot)`、`price_many(spots)`、`price_with_greeks(...)` 或 `price_many_with_greeks(...)` 时不再重复求解 PDE；查询可跨越当前估值时刻的敲入、敲出、票息与结算条件。计算 Greeks 时，`spot_range` 需为数值差分采样留出余量，不可用指标返回 `None`。
 
 ## 普通与数字期权积分 {#quadrature-pricing}
 
@@ -149,7 +165,7 @@ print(estimate)
 
 每次调用同步完成自身计算，只读引擎可由并发调用共享。
 
-使用 Python 多进程时选择 `spawn` 启动方式，让各子进程独立初始化线程池。
+使用 Python 多进程时选择 `spawn` 启动方式，让各子进程独立初始化线程池；通过 `fork` 继承的蒙特卡洛线程池不可用。在 Python 层并行调用时，优先使用多线程（如 `concurrent.futures.ThreadPoolExecutor`）。
 
 ## 采样与误差估计 {#sampling-and-error}
 
@@ -182,4 +198,4 @@ print(result.seed, result.uncertainty_status)
 - **采样误差**：使用 `price_with_statistics()` 查看可用的标准误差和置信区间，再增加路径数比较结果。
 - **隐含参数求解误差**：求解器容差约束所选引擎价格曲线上的求根过程；使用蒙特卡洛时，同时检查采样误差。
 
-模型范围见[简介](./introduction#model-scope)。产品与算法表依据[上游 README](https://github.com/lilkui/kiyosi/blob/fb6ea0f626e81b4e62beff9d9c8027855e94b015/README.md#支持产品与算法)整理，更多用例见[Python 示例](https://github.com/lilkui/kiyosi/tree/fb6ea0f626e81b4e62beff9d9c8027855e94b015/examples/python)与[测试](https://github.com/lilkui/kiyosi/tree/fb6ea0f626e81b4e62beff9d9c8027855e94b015/python/tests)。
+模型范围见[简介](./introduction#model-scope)。产品与算法表依据[上游 README](https://github.com/lilkui/kiyosi/blob/c170982ede641196c824da12dd6ea4a848a6a4df/README.md#支持产品与算法)整理，更多用例见[Python 示例](https://github.com/lilkui/kiyosi/tree/c170982ede641196c824da12dd6ea4a848a6a4df/examples/python)与[测试](https://github.com/lilkui/kiyosi/tree/c170982ede641196c824da12dd6ea4a848a6a4df/python/tests)。

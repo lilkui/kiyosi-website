@@ -6,7 +6,7 @@ description: 了解 kiyosi 的定价流程、模型、产品与验证方式。
 
 kiyosi 是一个开源衍生品定价库，支持普通期权、奇异期权和结构化产品。核心功能用 Rust 实现，主要通过 Python API 使用。
 
-本文档对应 **kiyosi 0.19.0**，源码提交为 `fb6ea0f`，项目处于 Alpha 开发阶段。
+本文档对应 **kiyosi 0.20.0**，源码提交为 `c170982`，项目处于 Alpha 开发阶段。
 
 ## 定价流程 {#how-pricing-fits-together}
 
@@ -22,7 +22,7 @@ Python 的 `price()` 直接返回价格数值；需要计算希腊字母风险�
 
 ## 模型与产品 {#model-scope}
 
-`BlackScholesMertonParameters` 使用非负恒定波动率；零波动率对应确定性定价。无风险利率和股息率可使用常数，或用 `RateTermStructure` 表示确定性期限结构。
+`BlackScholesMertonParameters` 使用非负恒定波动率；零波动率对应确定性定价。无风险利率和股息率可使用常数，或用 `RateTermStructure` 表示确定性期限结构。BSM、局部波动率和 Heston 参数均支持通过 `time_convention` 和 `calendar` 指定波动率及方差时钟（一维有限差分支持 `"business"` 交易日历时间与利率自然时间双时钟定价）。
 
 `LocalVolatilitySurface` 和 `LocalVolatilityParameters` 用时间与绝对标的价格网格描述局部波动率。一维有限差分引擎可计算该模型的价格，以及固定曲面下的 delta 和 gamma；自动赎回有限差分还支持隐含票息求解。模型条件与用法见[局部波动率](../reference/python#local-volatility)。
 
@@ -40,4 +40,4 @@ kiyosi 的定价测试以 QuantLib 独立生成的数值为基准。QuantLib 用
 - [完成首次定价](./first-price)，运行一个完整示例。
 - [构建 Rust 核心](../rust/building)，直接使用原生 API。
 
-来源：[kiyosi README](https://github.com/lilkui/kiyosi/blob/fb6ea0f626e81b4e62beff9d9c8027855e94b015/README.md)。kiyosi 采用 [MIT 许可证](https://github.com/lilkui/kiyosi/blob/fb6ea0f626e81b4e62beff9d9c8027855e94b015/LICENSE.txt)。
+来源：[kiyosi README](https://github.com/lilkui/kiyosi/blob/c170982ede641196c824da12dd6ea4a848a6a4df/README.md)。kiyosi 采用 [MIT 许可证](https://github.com/lilkui/kiyosi/blob/c170982ede641196c824da12dd6ea4a848a6a4df/LICENSE.txt)。
