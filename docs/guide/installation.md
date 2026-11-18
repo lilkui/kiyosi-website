@@ -43,7 +43,7 @@ python -c "import kiyosi; from kiyosi.pricing import AnalyticEuropeanEngine; pri
 ```sh
 git clone https://github.com/lilkui/kiyosi.git
 cd kiyosi
-git checkout c170982ede641196c824da12dd6ea4a848a6a4df
+git checkout be67a2427fbf3cb14de6d7e03c83eff2473d0c28
 python -m pip install .
 python -c "import kiyosi; print(kiyosi.__version__)"  # 0.20.0
 ```
@@ -59,4 +59,4 @@ pip 会自动安装构建所需的 maturin，Cargo 按源码中的锁文件构�
 | 找不到 Cargo 或链接器 | 检查 `cargo --version`，确保本机编译工具可在终端调用。 |
 | 示例找不到引擎名 | 用 `python -c "import kiyosi; print(kiyosi.__version__)"` 检查版本，并核对[定价 API](/api/python/kiyosi-pricing)中的名称与导入路径。 |
 
-来源：[kiyosi 安装说明](https://github.com/lilkui/kiyosi/blob/c170982ede641196c824da12dd6ea4a848a6a4df/README.md#安装)、[构建配置](https://github.com/lilkui/kiyosi/blob/c170982ede641196c824da12dd6ea4a848a6a4df/pyproject.toml)。
+来源：[kiyosi 安装说明](https://github.com/lilkui/kiyosi/blob/be67a2427fbf3cb14de6d7e03c83eff2473d0c28/README.md#安装)、[构建配置](https://github.com/lilkui/kiyosi/blob/be67a2427fbf3cb14de6d7e03c83eff2473d0c28/pyproject.toml)。

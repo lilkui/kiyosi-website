@@ -90,4 +90,4 @@ print(estimate)
 
 产品与引擎的对应关系见[定价引擎](./engines)，统计接口见[采样与误差估计](./engines#sampling-and-error)。
 
-本示例改编自 [kiyosi Python 定价模块示例](https://github.com/lilkui/kiyosi/blob/c170982ede641196c824da12dd6ea4a848a6a4df/python/src/kiyosi/pricing.py)。
+本示例改编自 [kiyosi Python 定价模块示例](https://github.com/lilkui/kiyosi/blob/be67a2427fbf3cb14de6d7e03c83eff2473d0c28/python/src/kiyosi/pricing.py)。

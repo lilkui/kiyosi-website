@@ -198,4 +198,4 @@ print(result.seed, result.uncertainty_status)
 - **采样误差**：使用 `price_with_statistics()` 查看可用的标准误差和置信区间，再增加路径数比较结果。
 - **隐含参数求解误差**：求解器容差约束所选引擎价格曲线上的求根过程；使用蒙特卡洛时，同时检查采样误差。
 
-模型范围见[简介](./introduction#model-scope)。产品与算法表依据[上游 README](https://github.com/lilkui/kiyosi/blob/c170982ede641196c824da12dd6ea4a848a6a4df/README.md#支持产品与算法)整理，更多用例见[Python 示例](https://github.com/lilkui/kiyosi/tree/c170982ede641196c824da12dd6ea4a848a6a4df/examples/python)与[测试](https://github.com/lilkui/kiyosi/tree/c170982ede641196c824da12dd6ea4a848a6a4df/python/tests)。
+模型范围见[简介](./introduction#model-scope)。产品与算法表依据[上游 README](https://github.com/lilkui/kiyosi/blob/be67a2427fbf3cb14de6d7e03c83eff2473d0c28/README.md#支持产品与算法)整理，更多用例见[Python 示例](https://github.com/lilkui/kiyosi/tree/be67a2427fbf3cb14de6d7e03c83eff2473d0c28/examples/python)与[测试](https://github.com/lilkui/kiyosi/tree/be67a2427fbf3cb14de6d7e03c83eff2473d0c28/python/tests)。

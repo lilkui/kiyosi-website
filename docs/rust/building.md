@@ -13,7 +13,7 @@ description: 使用 Cargo 构建 kiyosi Rust 核心、生成 rustdoc，并接入
 ```sh
 git clone https://github.com/lilkui/kiyosi.git
 cd kiyosi
-git checkout c170982ede641196c824da12dd6ea4a848a6a4df
+git checkout be67a2427fbf3cb14de6d7e03c83eff2473d0c28
 cargo build -p kiyosi --release --locked
 cargo test -p kiyosi --locked
 ```
@@ -26,7 +26,7 @@ cargo test -p kiyosi --locked
 
 ```toml
 [dependencies]
-kiyosi = { git = "https://github.com/lilkui/kiyosi.git", rev = "c170982ede641196c824da12dd6ea4a848a6a4df" }
+kiyosi = { git = "https://github.com/lilkui/kiyosi.git", rev = "be67a2427fbf3cb14de6d7e03c83eff2473d0c28" }
 ```
 
 以下代码与 [Python 首次定价](../guide/first-price)使用相同的参数：
