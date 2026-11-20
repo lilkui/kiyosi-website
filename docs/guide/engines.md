@@ -4,7 +4,7 @@ description: 按产品选择 kiyosi 定价算法，配置数值方法和 CPU 蒙
 
 # 定价引擎
 
-按产品与市场模型选择引擎，再设置网格、积分或采样参数。各引擎统一使用 `price(instrument, context)` 接口。本页对应 kiyosi **0.20.0**。
+按产品与市场模型选择引擎，再设置网格、积分或采样参数。各引擎统一使用 `price(instrument, context)` 接口。本页对应 kiyosi **0.21.0**。
 
 ## 支持的产品与方法 {#instrument-coverage}
 
@@ -198,4 +198,4 @@ print(result.seed, result.uncertainty_status)
 - **采样误差**：使用 `price_with_statistics()` 查看可用的标准误差和置信区间，再增加路径数比较结果。
 - **隐含参数求解误差**：求解器容差约束所选引擎价格曲线上的求根过程；使用蒙特卡洛时，同时检查采样误差。
 
-模型范围见[简介](./introduction#model-scope)。产品与算法表依据[上游 README](https://github.com/lilkui/kiyosi/blob/be67a2427fbf3cb14de6d7e03c83eff2473d0c28/README.md#支持产品与算法)整理，更多用例见[Python 示例](https://github.com/lilkui/kiyosi/tree/be67a2427fbf3cb14de6d7e03c83eff2473d0c28/examples/python)与[测试](https://github.com/lilkui/kiyosi/tree/be67a2427fbf3cb14de6d7e03c83eff2473d0c28/python/tests)。
+模型范围见[简介](./introduction#model-scope)。产品与算法表依据[上游 README](https://github.com/lilkui/kiyosi/blob/95dc91155223b9095d06cbbf7ba4bda5bc72b7c1/README.md#支持产品与算法)整理，更多用例见[Python 示例](https://github.com/lilkui/kiyosi/tree/95dc91155223b9095d06cbbf7ba4bda5bc72b7c1/examples/python)与[测试](https://github.com/lilkui/kiyosi/tree/95dc91155223b9095d06cbbf7ba4bda5bc72b7c1/python/tests)。

@@ -6,20 +6,20 @@ description: 安装 kiyosi Python 包，或使用 Rust 和 maturin 从固定源�
 
 ## Python 环境要求 {#python-requirements}
 
-使用 **Python 3.12+**，在虚拟环境中安装本文档对应的 **kiyosi 0.20.0**：
+使用 **Python 3.12+**，在虚拟环境中安装本文档对应的 **kiyosi 0.21.0**：
 
 ::: code-group
 
 ```sh [Linux / macOS]
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install "kiyosi==0.20.0"
+python -m pip install "kiyosi==0.21.0"
 ```
 
 ```powershell [Windows]
 py -m venv .venv
 .venv\Scripts\Activate.ps1
-python -m pip install "kiyosi==0.20.0"
+python -m pip install "kiyosi==0.21.0"
 ```
 
 :::
@@ -43,9 +43,9 @@ python -c "import kiyosi; from kiyosi.pricing import AnalyticEuropeanEngine; pri
 ```sh
 git clone https://github.com/lilkui/kiyosi.git
 cd kiyosi
-git checkout be67a2427fbf3cb14de6d7e03c83eff2473d0c28
+git checkout 95dc91155223b9095d06cbbf7ba4bda5bc72b7c1
 python -m pip install .
-python -c "import kiyosi; print(kiyosi.__version__)"  # 0.20.0
+python -c "import kiyosi; print(kiyosi.__version__)"  # 0.21.0
 ```
 
 pip 会自动安装构建所需的 maturin，Cargo 按源码中的锁文件构建 Rust 扩展。首次构建需要联网下载依赖。若只使用 Rust，请参阅[构建 Rust 核心](../rust/building)。
@@ -59,4 +59,4 @@ pip 会自动安装构建所需的 maturin，Cargo 按源码中的锁文件构�
 | 找不到 Cargo 或链接器 | 检查 `cargo --version`，确保本机编译工具可在终端调用。 |
 | 示例找不到引擎名 | 用 `python -c "import kiyosi; print(kiyosi.__version__)"` 检查版本，并核对[定价 API](/api/python/kiyosi-pricing)中的名称与导入路径。 |
 
-来源：[kiyosi 安装说明](https://github.com/lilkui/kiyosi/blob/be67a2427fbf3cb14de6d7e03c83eff2473d0c28/README.md#安装)、[构建配置](https://github.com/lilkui/kiyosi/blob/be67a2427fbf3cb14de6d7e03c83eff2473d0c28/pyproject.toml)。
+来源：[kiyosi 安装说明](https://github.com/lilkui/kiyosi/blob/95dc91155223b9095d06cbbf7ba4bda5bc72b7c1/README.md#安装)、[构建配置](https://github.com/lilkui/kiyosi/blob/95dc91155223b9095d06cbbf7ba4bda5bc72b7c1/pyproject.toml)。

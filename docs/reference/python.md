@@ -4,7 +4,7 @@ description: 了解 kiyosi 的 instruments、market 和 pricing 模块，以及�
 
 # Python API 概览
 
-本页对应 **kiyosi 0.20.0**，按合约、市场输入和定价结果组织常用接口。完整签名、属性和方法见 [Python API 参考](/api/python/)，其中的英文说明来自源码文档字符串。
+本页对应 **kiyosi 0.21.0**，按合约、市场输入和定价结果组织常用接口。完整签名、属性和方法见 [Python API 参考](/api/python/)，其中的英文说明来自源码文档字符串。
 
 ## `kiyosi.instruments`
 
@@ -348,5 +348,5 @@ print(sigma)
 
 - [首次定价](../guide/first-price)：完整 Python 脚本与 Greeks。
 - [采样与误差估计](../guide/engines#sampling-and-error)：蒙特卡洛统计接口。
-- [上游 Python 示例](https://github.com/lilkui/kiyosi/tree/be67a2427fbf3cb14de6d7e03c83eff2473d0c28/examples/python)：产品定价、历史输入、日历和票息求解。
-- [上游 Python 测试](https://github.com/lilkui/kiyosi/tree/be67a2427fbf3cb14de6d7e03c83eff2473d0c28/python/tests)：更多产品用法。
+- [上游 Python 示例](https://github.com/lilkui/kiyosi/tree/95dc91155223b9095d06cbbf7ba4bda5bc72b7c1/examples/python)：产品定价、历史输入、日历和票息求解。
+- [上游 Python 测试](https://github.com/lilkui/kiyosi/tree/95dc91155223b9095d06cbbf7ba4bda5bc72b7c1/python/tests)：更多产品用法。
