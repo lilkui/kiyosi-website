@@ -22,4 +22,4 @@ npm run docs:preview
 
 构建输出位于 `docs/.vitepress/dist/`。开发和构建命令会根据固定提交的源码生成 Python API 页面与 Rust API 静态资源，分别写入 `docs/api/` 和 `docs/public/api/rust/`。
 
-API 页面内容来自源码中的文档字符串和注释。手写中文指南位于 `docs/guide/`、`docs/reference/` 和 `docs/rust/`。
+API 页面内容来自源码中的文档字符串和注释。手写中文指南与报告位于 `docs/guide/`、`docs/reference/`、`docs/rust/` 和 `docs/reports/`。

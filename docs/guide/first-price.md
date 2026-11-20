@@ -73,7 +73,7 @@ print(result.price, result.delta, result.gamma, result.vega)
 
 `price_with_greeks()` 使用引擎自身的估计方法。数值差分与扰动设置见 [Greeks 扰动控制](../reference/python#greek-controls)。
 
-所有 Greeks 均为未缩放偏导：波动率和利率以小数为单位，时间以年（Actual/365 Fixed）为单位。例如，波动率上升 1 个百分点的近似价格变化为 `result.vega * 0.01`；估值时点前进一天的近似价格变化为 `theta / 365`。完整定义见 [`PricingResult`](/api/python/kiyosi#pricingresult)。
+所有 Greeks 均为未缩放偏导：波动率和利率以小数为单位，时间以年（Actual/365 Fixed）为单位。例如，波动率上升 1 个百分点的近似价格变化为 `result.vega * 0.01`；估值时点前进一天的近似价格变化为 `result.theta / 365`。完整定义见 [`PricingResult`](/api/python/kiyosi#pricingresult)。
 
 ## 更换定价引擎 {#change-the-engine}
 

@@ -22,13 +22,13 @@ Python 的 `price()` 直接返回价格数值；需要计算希腊字母风险�
 
 ## 模型与产品 {#model-scope}
 
-`BlackScholesMertonParameters` 使用非负恒定波动率；零波动率对应确定性定价。无风险利率和股息率可使用常数，或用 `RateTermStructure` 表示确定性期限结构。BSM、局部波动率和 Heston 参数均支持通过 `time_convention` 和 `calendar` 指定波动率及方差时钟（一维有限差分支持 `"business"` 交易日历时间与利率自然时间双时钟定价）。
+`BlackScholesMertonParameters` 使用非负恒定波动率；零波动率对应确定性定价。无风险利率和股息率可使用常数，或用 `RateTermStructure` 表示确定性期限结构。BSM、局部波动率和 Heston 参数均支持通过 `time_convention` 和 `calendar` 指定波动率及方差时钟；BSM 与局部波动率的一维有限差分引擎支持 `"business"` 交易日历时间与利率自然时间双时钟定价。
 
 `LocalVolatilitySurface` 和 `LocalVolatilityParameters` 用时间与绝对标的价格网格描述局部波动率。一维有限差分引擎可计算该模型的价格，以及固定曲面下的 delta 和 gamma；自动赎回有限差分还支持隐含票息求解。模型条件与用法见[局部波动率](../reference/python#local-volatility)。
 
 `HestonParameters` 描述风险中性下的随机波动率模型，支持确定性利率与股息率曲线。`AnalyticHestonEuropeanEngine` 通过 Fourier 积分计算欧式普通期权价格；`FiniteDifferenceHestonVanillaEngine` 通过二维有限差分计算欧式与美式普通期权价格。用法见 [Heston 模型](../reference/python#heston)。
 
-库中还提供交易日历和观察日程构建工具，包含上交所节假日安排。支持的产品包括欧式期权、美式期权、累购／累沽、凤凰、固定票息票据（FCN）、数字票息票据（DCN）及多种雪球结构。
+库中还提供交易日历和观察日程构建工具，包含上交所节假日安排。支持的产品包括普通期权、数字期权、亚式期权、障碍与触碰期权、区间累计，以及累购／累沽、凤凰、固定票息票据（FCN）、数字票息票据（DCN）和多种雪球结构。
 
 ## 结果验证 {#validation}
 

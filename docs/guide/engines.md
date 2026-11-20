@@ -23,7 +23,7 @@ description: 按产品选择 kiyosi 定价算法，配置数值方法和 CPU 蒙
 | 累购／累沽 | 积分、有限差分、蒙特卡洛 |
 | 区间累计 | BSM 区间概率解析求和 |
 
-雪球和凤凰共用 `QuadratureAutocallableEngine`、`FiniteDifferenceAutocallableEngine` 或 `MonteCarloAutocallableEngine`。累购使用对应的 `AccumulatorEngine`。欧式解析引擎为 `AnalyticEuropeanEngine`。完整名称、参数及支持条件见[定价 API](/api/python/kiyosi-pricing)。
+雪球和凤凰共用 `QuadratureAutocallableEngine`、`FiniteDifferenceAutocallableEngine` 或 `MonteCarloAutocallableEngine`。累购／累沽共用 `QuadratureAccumulatorEngine`、`FiniteDifferenceAccumulatorEngine` 或 `MonteCarloAccumulatorEngine`。欧式解析引擎为 `AnalyticEuropeanEngine`。完整名称、参数及支持条件见[定价 API](/api/python/kiyosi-pricing)。
 
 双触碰类产品可用 `AnalyticDoubleTouchEngine`。表中未标注模型的方法适用于 BSM；局部波动率仅支持一维有限差分，详见[局部波动率](../reference/python#local-volatility)。Heston 使用专用引擎，详见 [Heston 定价](#heston-pricing)。
 
@@ -146,7 +146,7 @@ Heston 二维有限差分的设置独立于一维引擎，不接受 `scheme` 参
 
 蒙特卡洛在 CPU 上运行。并行调用共用库持有的 Rayon 线程池，该池在首次并行使用时初始化，并保留到进程退出。
 
-`max_active_workers=0` 自动选择活跃工作线程数，`1` 在调用线程上串行执行，正整数限制单次调用的活跃工作线程数。线程池大小由 `configure_monte_carlo_pool()` 单独配置，池中工作线程供并行调用共享。
+`max_active_workers=0` 自动选择活跃工作线程数，`1` 在调用线程上串行执行，正整数限制单次调用的活跃工作线程数。线程池大小由 `configure_monte_carlo_pool()` 单独配置。
 
 如需限制该池在进程内创建的工作线程数，在首次并行请求前调用 `configure_monte_carlo_pool(max_workers=...)`。实际线程数还受可用 CPU 数限制；未配置时按可用 CPU 数选择。线程池忽略 `RAYON_NUM_THREADS`，不修改应用的全局 Rayon 池。
 
