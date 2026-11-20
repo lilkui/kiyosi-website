@@ -8,12 +8,12 @@
 
 ## 1. 执行摘要
 
-本报告基于 `benchmarks/quantlib/report.json` 的实测数据，评估 Kiyosi 原生核心与 QuantLib C++ 1.44 的衍生品定价精度和单线程延迟。测试覆盖 **20 类定价引擎**、**51 个必测语义单元（Semantic Cells）** 和 **59 个评测场景**。每个场景预先指定参考值及误差预算，双端均通过精度门禁后才比较延迟。
+本报告基于 `benchmarks/quantlib/report.json`，对比 Kiyosi 原生核心与 QuantLib C++ 1.44 在衍生品定价上的精度和单线程延迟。测试覆盖 **20 类定价引擎**、**51 个必测语义单元（Semantic Cells）** 和 **59 个评测场景**。每个场景均预先指定参考值与误差预算，双端通过精度门禁后再比较延迟。
 
 ### 核心结论
 
 - 全部 **59 个场景**均通过误差预算校验（$|\text{Price} - \text{Reference}| + u_{\text{ref}} \le \text{Budget}$）。5 个蒙特卡洛场景使用 32 个预设验证种子（$1009 + 97i,\ i=0\dots 31$），均方根误差（RMSE）、有符号偏差的绝对值和样本标准差均在门限内。
-- Kiyosi 在 **59 个场景**中的中位数延迟均低于 QuantLib。按 $Q/K = \text{Median}(\text{QuantLib}) / \text{Median}(\text{Kiyosi})$ 计算，几何平均加速比为 **4.93×**，中位数加速比为 **4.07×**，区间为 **1.16×–113.18×**。
+- Kiyosi 在全部 **59 个场景**中的中位数延迟均低于 QuantLib。按 $Q/K = \text{Median}(\text{QuantLib}) / \text{Median}(\text{Kiyosi})$ 计算，几何平均加速比为 **4.93×**，中位数加速比为 **4.07×**，区间为 **1.16×–113.18×**。
 - Heston 欧式看涨解析积分（`heston-analytic-call`）的加速比最小，为 **1.16×**。Kiyosi 和 QuantLib 的中位数延迟分别为 $57.83\ \mu\text{s}$ 和 $66.90\ \mu\text{s}$，绝对误差均约为 $2\times 10^{-14}$。
 - BSM 解析引擎的加速比为 **2.13×–22.63×**（几何平均 **6.13×**）。采用相同空间规模和时间步数的一维有限差分场景中，BSM 的加速比为 **2.91×–3.55×**（几何平均 **3.03×**），局部波动率为 **1.27×–2.38×**（几何平均 **2.00×**）。路径数相同的欧式与障碍蒙特卡洛场景的加速比分别为 **7.11×** 和 **2.91×**。
 
@@ -44,18 +44,18 @@
 | 并发限制 | 单工作线程（`workers_per_backend = 1`），无多线程并行加速 |
 | Kiyosi 编译 | `rustc 1.99.1 (58cf8f9c3 2026-10-13)`，`cargo build --release --locked -p kiyosi-quantlib-bench --bin quantlib_bench --message-format=json-render-diagnostics`（Cargo release，thin LTO，`RUSTFLAGS` 未额外指定） |
 | QuantLib 基准程序 | `c++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0`，`-std=c++17 -O3 -DNDEBUG`，动态链接 `/usr/local/lib/libQuantLib.so.1.44.0` |
-| 调度与校验环境 | Python `3.14.4`（负责独立参考解生成、精度门禁校验与配对计时调度） |
+| 调度与校验环境 | Python `3.14.4`（生成独立参考解、校验精度门禁与调度配对计时） |
 
 ### 2.2 评测方法论
 
 1. **精度门禁优先（Accuracy-First Gating）**：
-   每个场景均使用预先生成的参考值 $V_{\text{ref}}$ 和参考不确定度 $u_{\text{ref}}$。双端均须满足以下条件。
+   每个场景均使用预先生成的参考值 $V_{\text{ref}}$ 和参考不确定度 $u_{\text{ref}}$。双端均须满足：
    $$
    |V_{\text{backend}} - V_{\text{ref}}| + u_{\text{ref}} \le \text{error\_budget}
    $$
    有限差分和蒙特卡洛等数值方法使用各后端预先指定的离散配置，并遵循同一误差预算。
 2. **配对交替采样（Paired Alternating Sampling）**：
-   合约、市场上下文、模型及引擎对象均在计时循环外预先构造，计时仅测量单次公开定价调用（Kiyosi `price()` vs QuantLib `recalculate() + NPV()`）。每个场景执行 3 次预热，随后自适应调整单批迭代次数使单批耗时达到目标阈值（`target_ms = 20`），并按 `[kiyosi, quantlib]` 与 `[quantlib, kiyosi]` 交替顺序采集 **15 组配对样本**，抵消系统热漂移与背景噪声。分位数（`q1_ns`、`median_ns`、`q3_ns`、`iqr_ns`）采用包含端点的线性插值计算。
+   合约、市场上下文、模型及引擎对象均在计时循环外预先构造，计时仅测量单次公开定价调用（Kiyosi `price()` vs QuantLib `recalculate() + NPV()`）。每个场景执行 3 次预热，随后自适应调整单批迭代次数，使单批耗时达到目标阈值（`target_ms = 20`），并按 `[kiyosi, quantlib]` 与 `[quantlib, kiyosi]` 交替顺序采集 **15 组配对样本**，抵消系统热漂移与背景噪声。分位数（`q1_ns`、`median_ns`、`q3_ns`、`iqr_ns`）采用包含端点的线性插值计算。
 3. **工作量透明度**：
    测试直接调用双端公开原生定价接口，不人为剥离引擎内部固有开销。例如 QuantLib 部分解析与有限差分引擎在 `recalculate()` 时会附带计算部分 Greeks，其蒙特卡洛引擎会累加样本方差；这些实际发生的计算均保留在测量时间内，并在各模块分析中明确说明。
 
@@ -211,7 +211,7 @@
 - **美式最小二乘蒙特卡洛（LSM）**：在 `mc-american-put`（65,536 条定价路径、50 个行权时间步、二次单项式基）中，Kiyosi 在实值（ITM）定价路径上直接做样本内回归拟合（基函数 $1, S/K, (S/K)^2$），而 QuantLib 在每次 `recalculate()` 中先独立模拟 32,768 条校准路径再模拟 65,536 条定价路径。根据 `report.json` 记录的 LSM 细化实验（`lsm_refinement`）：
   - 将定价路径翻倍至 $131{,}072$ 时，Kiyosi 与 QuantLib 的 32 种子 RMSE 分别降至 $0.0332$ 与 $0.0315$；
   - 在 $131{,}072$ 路径下将行权步从 50 加密至 100，Kiyosi 与 QuantLib 的种子均值变化仅为 $-0.00141$（$\text{SE}=0.00340$）与 $+0.00075$（$\text{SE}=0.00297$）；
-  - 将 QuantLib 校准路径从 $32{,}768$ 翻倍至 $65{,}536$ 时，均值变化仅 $+4.56\times 10^{-5}$（$\text{SE}=7.16\times 10^{-4}$）。
+  - 将 QuantLib 校准路径从 $32{,}768$ 翻倍至 $65{,}536$ 时，均值变化仅为 $+4.56\times 10^{-5}$（$\text{SE}=7.16\times 10^{-4}$）。
   基线配置的 32 种子 RMSE 为 Kiyosi $0.0405$、QuantLib $0.0402$，中位数延迟分别为 $136.92\ \text{ms}$ 和 $662.51\ \text{ms}$，加速比为 **4.84×**。
 
 ---
@@ -219,11 +219,11 @@
 ## 4. 覆盖范围、局限与解读说明
 
 1. **严格语义对齐与排除边界**：
-   本基准覆盖 **20 类引擎（51 个语义单元）**，每类都能在相同合约条款、市场模型与算法类别下使用 QuantLib 原生引擎进行对照。Kiyosi 其余 14 类引擎因缺乏直接等价的 QuantLib 原生实现而未纳入对比，包括：
+   本基准覆盖 **20 类引擎（51 个语义单元）**，每类都能在相同合约条款、市场模型与算法类别下与 QuantLib 原生引擎对照。Kiyosi 其余 14 类引擎因缺乏直接等价的 QuantLib 原生实现而未纳入对比，包括：
    - 近似公式版本不同：`BjerksundStenslandVanillaEngine`（Kiyosi 实现 2002 版，QuantLib 为 1993 版）；
    - 结构化奇异产品无内置对应引擎：自动赎回（`Autocallable`）、累购累沽（`Accumulator`）的积分、有限差分与蒙特卡洛引擎，以及区间累计解析引擎（`AnalyticRangeAccrualEngine`）；
    - 离散／连续监控或算法语义差异：数字期权与连续平均亚式蒙特卡洛、双障碍／双触碰有限差分、障碍期权数值积分及数字期权 CRR 二叉树。
 2. **加速比解读注意事项**：
    - CRR 二叉树的步数、18 个一维有限差分场景的空间规模与时间步数，以及 2 个蒙特卡洛场景的定价与校准路径数，在双端均相同。`fd-bsm-up-no-touch-asset-expiry`（**113.18×**）、`fd-local-vol-up-no-touch-asset-expiry`（**78.43×**）和 `mc-european-call`（**12.99×**）的加速比包含通过共同精度门禁所用的时间步数或路径数差异。
-   - **接口固有附加计算**：QuantLib 原生 `recalculate()` 在部分解析引擎和有限差分引擎中会同步计算灵敏度指标，在蒙特卡洛中会累计样本方差；Kiyosi 的 `price()` 仅计算价格标量（Greeks 由 `price_with_greeks()` 按需调用）。
+   - **接口固有附加计算**：QuantLib 原生 `recalculate()` 在部分解析引擎和有限差分引擎中会同步计算 Greeks，在蒙特卡洛中会累计样本方差；Kiyosi 的 `price()` 仅计算价格标量（Greeks 由 `price_with_greeks()` 按需调用）。
    - **单核基准**：所有测量均固定 `workers = 1`，反映单核指令与内存布局效率，不包含 Kiyosi 蒙特卡洛引擎在多线程 Rayon 池下的并行扩展加速。
