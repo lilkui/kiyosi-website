@@ -1,12 +1,6 @@
 {
   "version": 2,
   "skills": {
-    "documentation": {
-      "source": "anthropics/knowledge-work-plugins",
-      "sourceType": "github",
-      "skillPath": "engineering/skills/documentation/SKILL.md",
-      "computedHash": "d401429502dcfb37aadfbeddcc3577a9618c393555d305c56821800570dcd1ed"
-    },
     "frontend-design": {
       "source": "anthropics/skills",
       "sourceType": "github",
