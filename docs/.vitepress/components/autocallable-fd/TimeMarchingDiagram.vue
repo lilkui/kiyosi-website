@@ -111,7 +111,7 @@
           stroke-dasharray="6 3"
         />
         <text x="272" y="123" text-anchor="middle" font-size="10" fill="var(--fd-crimson)" font-weight="600">
-          无阻尼 CN：R(∞) → −1（逐拍反号振荡）
+          无阻尼 CN：R(∞) → −1（逐步反号振荡）
         </text>
 
         <!-- Two Implicit Euler half-steps: R_damp(z) = 1 / (1 + z/4)^2 -> approaches 0 rapidly! -->

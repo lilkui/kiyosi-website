@@ -89,7 +89,7 @@
           直接取中心点修正：Vⱼ⁻ = Vⱼ⁺ + ΔV(Sⱼ)
         </text>
         <text x="118" y="215" text-anchor="middle" font-size="10.2" fill="var(--fd-muted)">
-          零人工数值耗散，光滑延续价值原样保留
+          无人工数值耗散，光滑延续价值原样保留
         </text>
       </g>
 

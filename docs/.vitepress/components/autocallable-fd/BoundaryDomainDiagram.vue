@@ -184,7 +184,7 @@
       </g>
     </svg>
     <figcaption>
-      <strong>图 4　计算域与仿射边界推进</strong>
+      <strong>图 4：计算域与仿射边界推进。</strong>
       （a）正障碍位于 <span class="fd-math">[S<sub>min</sub>, S<sub>max</sub>]</span> 内，现货可以在相邻观察之间越界后返回。（b）上边界价值近似常数时，仿射推进接近纯现金贴现。观察日按端点现货重置敲出支付或叠加当期票息。（c）已知的两端边界值进入三对角系统首末内部行的右端向量。
     </figcaption>
   </figure>
