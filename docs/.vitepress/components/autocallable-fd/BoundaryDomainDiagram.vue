@@ -1,7 +1,7 @@
 <template>
   <figure class="fd-diagram" role="img" aria-labelledby="fd-fig-boundary-title">
     <svg viewBox="0 0 860 405" xmlns="http://www.w3.org/2000/svg">
-      <title id="fd-fig-boundary-title">离散障碍计算域构造、渐近贴现 Dirichlet 边界条件及三对角右端项消元</title>
+      <title id="fd-fig-boundary-title">离散障碍计算域、仿射边界推进与三对角右端项消元</title>
       <defs>
         <marker id="fd-arr-bd" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
           <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="var(--fd-muted)" />
@@ -11,9 +11,9 @@
         </marker>
       </defs>
 
-      <!-- ================= TOP PANEL: SPATIAL DOMAIN [0, S_max] ================= -->
+      <!-- ================= TOP PANEL: SPATIAL DOMAIN [S_min, S_max] ================= -->
       <text x="430" y="20" text-anchor="middle" font-size="13.5" font-weight="650" fill="var(--fd-ink)">
-        （a）全正半轴截断计算域 [0, <tspan class="fd-math">S</tspan><tspan dy="3" font-size="9.5">max</tspan><tspan dy="-3">]：离散监测障碍作为网格内部界面而非截断边界</tspan>
+        （a）现货计算域 [Sₘᵢₙ, Sₘₐₓ] 中的离散监测障碍
       </text>
 
       <!-- Domain zones along S -->
@@ -60,15 +60,15 @@
 
       <!-- Labels along S axis -->
       <g font-size="11.3" text-anchor="middle">
-        <text x="76" y="156" font-weight="650" fill="var(--fd-ink)">S₀ = 0（下边界）</text>
-        <text x="76" y="171" font-size="10.2" fill="var(--fd-muted)">GBM 吸收态 ∂ₜV = rV</text>
+        <text x="76" y="156" font-weight="650" fill="var(--fd-ink)">Sₘᵢₙ > 0（下边界）</text>
+        <text x="76" y="171" font-size="10.2" fill="var(--fd-muted)">局部仿射贴现</text>
         <text x="230" y="156" font-weight="600" fill="var(--fd-crimson)">Bⁱⁿ（内部界面）</text>
         <text x="436" y="156" font-weight="600" fill="var(--fd-teal)">Bᵒᵘᵗₖ（内部界面）</text>
         <text x="504" y="156" fill="var(--fd-muted)" class="fd-math">H</text>
         <text x="774" y="156" font-weight="650" fill="var(--fd-ink)">
           <tspan class="fd-math">S</tspan><tspan dy="3" font-size="8.5">N</tspan><tspan dy="-3"> = </tspan><tspan class="fd-math">S</tspan><tspan dy="3" font-size="8.5">max</tspan><tspan dy="-3">（上边界）</tspan>
         </text>
-        <text x="774" y="171" font-size="10.2" fill="var(--fd-muted)">贴现重置 Dirichlet</text>
+        <text x="774" y="171" font-size="10.2" fill="var(--fd-muted)">局部仿射贴现</text>
       </g>
 
       <!-- ================= BOTTOM LEFT: V(t, S_max) TRAJECTORY ================= -->
@@ -107,7 +107,7 @@
         <circle cx="66" cy="120" r="3.8" fill="var(--fd-teal)" />
 
         <text x="358" y="61" text-anchor="middle" font-size="10" fill="var(--fd-teal)">观察日重置为 Qₖ+Cₖ</text>
-        <text x="284" y="116" text-anchor="middle" font-size="10" fill="var(--fd-muted)">区间内乘 e⁻ʳᵐΔᵗ</text>
+        <text x="284" y="116" text-anchor="middle" font-size="10" fill="var(--fd-muted)">价值近似常数时乘 e⁻ʳᵐΔᵗ</text>
         <text x="150" y="84" text-anchor="middle" font-size="10" fill="var(--fd-amber)" font-weight="600">锁定期仅叠加 +c</text>
 
         <g font-size="10.8" fill="var(--fd-muted)" text-anchor="middle">
@@ -140,7 +140,7 @@
         <rect x="254" y="54" width="76" height="22" rx="4" fill="var(--fd-panel)" stroke="var(--fd-muted)" />
         <text x="292" y="69" text-anchor="middle" font-size="10.5" fill="var(--fd-muted)">V₀ᵐ⁺¹</text>
         <line x1="254" y1="65" x2="150" y2="65" stroke="var(--fd-crimson)" stroke-width="1.4" marker-end="url(#fd-arr-bd)" />
-        <text x="202" y="59" text-anchor="middle" font-size="9.5" fill="var(--fd-crimson)">× e⁻ʳᵐΔᵗ</text>
+        <text x="202" y="59" text-anchor="middle" font-size="9.5" fill="var(--fd-crimson)">仿射推进</text>
 
         <!-- Interior node i=1 -->
         <rect x="70" y="92" width="76" height="22" rx="4" fill="var(--fd-teal-soft)" stroke="var(--fd-teal)" />
@@ -173,6 +173,7 @@
           <tspan class="fd-math">V</tspan><tspan dy="2.5" font-size="8">N</tspan><tspan dy="-6.5" font-size="8">m+1</tspan>
         </text>
         <line x1="254" y1="175" x2="150" y2="175" stroke="var(--fd-crimson)" stroke-width="1.4" marker-end="url(#fd-arr-bd)" />
+        <text x="202" y="169" text-anchor="middle" font-size="9.5" fill="var(--fd-crimson)">仿射推进</text>
 
         <!-- Boundary contributions into i=N-1 -->
         <path d="M 108 164 L 108 152" stroke="var(--fd-teal)" stroke-width="1.5" marker-end="url(#fd-arr-bd-teal)" />
@@ -183,8 +184,8 @@
       </g>
     </svg>
     <figcaption>
-      <strong>图 4：计算域构造与贴现重置 Dirichlet 边界机制。</strong>
-      （a）由于敲入和敲出均为离散时点观察，障碍水平必须置于 <span class="fd-math">[0, S<sub>max</sub>]</span> 内部以容纳观察间隔内的越界回弹路径；（b）上边界节点在相邻事件间按 <span class="fd-math">e<sup>−r<sub>m</sub>Δt</sup></span> 贴现衰减，在有效敲出日自动重置为 <span class="fd-math">Q<sub>k</sub> + C<sub>k</sub></span>，在凤凰锁定期则保留远期赎回贴现值并叠加当期票息 <span class="fd-math">+c</span>；（c）已知两端值同时以显式项 <span class="fd-math">(1 − θ)Δt</span> 与隐式项 <span class="fd-math">θΔt</span> 移入首末内部行的右端向量。
+      <strong>图 4　计算域与仿射边界推进</strong>
+      （a）正障碍位于 <span class="fd-math">[S<sub>min</sub>, S<sub>max</sub>]</span> 内，现货可以在相邻观察之间越界后返回。（b）上边界价值近似常数时，仿射推进接近纯现金贴现。观察日按端点现货重置敲出支付或叠加当期票息。（c）已知的两端边界值进入三对角系统首末内部行的右端向量。
     </figcaption>
   </figure>
 </template>

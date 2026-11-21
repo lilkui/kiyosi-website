@@ -1,7 +1,7 @@
 <template>
   <figure class="fd-diagram" role="img" aria-labelledby="fd-fig-proj-title">
     <svg viewBox="0 0 860 395" xmlns="http://www.w3.org/2000/svg">
-      <title id="fd-fig-proj-title">合约水平对齐的 sinh 加密网格与控制体积跳跃修正投影</title>
+      <title id="fd-fig-proj-title">对数现货网格的 sinh 加密与控制体积跳跃修正投影</title>
       <defs>
         <marker id="fd-arr-pj" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
           <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="var(--fd-muted)" />
@@ -10,7 +10,7 @@
 
       <!-- ================= TOP STRIP: SINH MULTI-LEVEL CONCENTRATED GRID ================= -->
       <text x="430" y="20" text-anchor="middle" font-size="13.2" font-weight="650" fill="var(--fd-ink)">
-        （a）多合约水平精确落点与中点分界 sinh 加密空间网格（grid::concentrate）
+        （a）对数坐标 x = ln(S/Sₐ) 上的合约水平对齐与 sinh 加密
       </text>
 
       <rect x="48" y="34" width="764" height="62" rx="5" fill="var(--fd-panel-alt)" stroke="var(--fd-grid)" />
@@ -34,7 +34,7 @@
         <line v-for="dx in [4, 9, 16, 27, 43, 65]" :key="'r2-'+dx" :x1="390 + dx" y1="63" :x2="390 + dx" y2="77" />
         <!-- Between midpoint 455 and B^out=520 -->
         <line v-for="dx in [0, 4, 9, 16, 27, 43]" :key="'l3-'+dx" :x1="520 - dx" y1="63" :x2="520 - dx" y2="77" />
-        <!-- Right of B^out=520 out to S_max=796 -->
+        <!-- Right of B^out=520 out to x_max=796 -->
         <line v-for="dx in [4, 9, 16, 26, 40, 60, 88, 124, 168, 220, 276]" :key="'r3-'+dx" :x1="520 + dx" y1="63" :x2="520 + dx" y2="77" />
       </g>
 
@@ -46,12 +46,12 @@
       <circle cx="796" cy="70" r="3.5" fill="var(--fd-ink)" />
 
       <g font-size="11" text-anchor="middle">
-        <text x="64" y="90" fill="var(--fd-muted)">0</text>
-        <text x="220" y="90" fill="var(--fd-crimson)" font-weight="650">Bⁱⁿ（精确节点）</text>
-        <text x="390" y="90" fill="var(--fd-amber)" font-weight="650">Bᶜₖ（精确节点）</text>
-        <text x="520" y="90" fill="var(--fd-teal)" font-weight="650">Bᵒᵘᵗₖ, U（精确节点）</text>
+        <text x="64" y="90" fill="var(--fd-muted)">xₘᵢₙ</text>
+        <text x="220" y="90" fill="var(--fd-crimson)" font-weight="650">x(Bⁱⁿ)</text>
+        <text x="390" y="90" fill="var(--fd-amber)" font-weight="650">x(Bᶜₖ)</text>
+        <text x="520" y="90" fill="var(--fd-teal)" font-weight="650">x(Bᵒᵘᵗₖ) = x(U)</text>
         <text x="782" y="90" fill="var(--fd-muted)">
-          <tspan class="fd-math">S</tspan><tspan dy="2.5" font-size="8.5">max</tspan>
+          <tspan class="fd-math">x</tspan><tspan dy="2.5" font-size="8.5">max</tspan>
         </text>
       </g>
 
@@ -160,7 +160,7 @@
     </svg>
     <figcaption>
       <strong>图 6：空间网格加密与控制体积增量跳跃投影原理。</strong>
-      （a）<code>concentrate</code> 将有效障碍与行权价精确置入网格节点，并在两侧按 <span class="fd-math">sinh</span> 规律加密；（b）在含间断的控制体积 <span class="fd-math">C<sub>i</sub></span> 内，<code>project_interval</code> 同时以障碍坐标 <span class="fd-math">x<sub>b</sub></span> 与单元中心 <span class="fd-math">x<sub>i</sub></span> 切分区间（消除 <span class="fd-math">I<sub>lin</sub>[V<sup>+</sup>]</span> 在 <span class="fd-math">x<sub>i</sub></span> 处的折角误差），仅对不连续跳跃量 <span class="fd-math">ΔV = V<sup>−</sup> − V<sup>+</sup></span> 做加权积分平均。
+      （a）<code>concentrate</code> 将保留的障碍与行权价映射为对数网格节点，并在两侧按 <span class="fd-math">sinh</span> 规律加密；（b）在含间断的控制体积 <span class="fd-math">C<sub>i</sub></span> 内，<code>project_interval</code> 同时以障碍坐标 <span class="fd-math">x<sub>b</sub></span> 与单元中心 <span class="fd-math">x<sub>i</sub></span> 切分区间（消除 <span class="fd-math">I<sub>lin</sub>[V<sup>+</sup>]</span> 在 <span class="fd-math">x<sub>i</sub></span> 处的折角误差），仅对不连续跳跃量 <span class="fd-math">ΔV = V<sup>−</sup> − V<sup>+</sup></span> 做加权积分平均。
     </figcaption>
   </figure>
 </template>

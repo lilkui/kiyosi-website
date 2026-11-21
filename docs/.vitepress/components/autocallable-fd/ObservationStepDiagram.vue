@@ -63,7 +63,7 @@
         />
 
         <!-- Pre-event V^(0)(t_k^-, S) SOLID BOLD:
-             [0, B^in): follows V^(1)+ from (56,266) to (176,206)
+             [S_min, B^in): follows V^(1)+ from (56,266) to (176,206)
              [B^in, B^out): follows V^(0)+ from (176,160) to (296,98)
              [B^out, S_max]: flat at Q_k (y=74) -->
         <path d="M 56 266 Q 116 240 176 206" fill="none" stroke="var(--fd-teal)" stroke-width="2.8" />
@@ -88,7 +88,7 @@
 
         <!-- X-axis labels -->
         <g font-size="11.2" text-anchor="middle" fill="var(--fd-muted)">
-          <text x="56" y="308">0</text>
+          <text x="56" y="308">Sₘᵢₙ</text>
           <text x="176" y="308" fill="var(--fd-crimson)" font-weight="600">Bⁱⁿ (&lt;)</text>
           <text x="296" y="308" fill="var(--fd-teal)" font-weight="600">Bᵒᵘᵗₖ (≥)</text>
           <text x="404" y="306" class="fd-math">S</text>
@@ -170,7 +170,7 @@
 
         <!-- X-axis labels -->
         <g font-size="11.2" text-anchor="middle" fill="var(--fd-muted)">
-          <text x="48" y="308">0</text>
+          <text x="48" y="308">Sₘᵢₙ</text>
           <text x="136" y="308" fill="var(--fd-crimson)" font-weight="600">Bⁱⁿ (&lt;)</text>
           <text x="214" y="308" fill="var(--fd-amber)" font-weight="600">Bᶜₖ (≥)</text>
           <text x="302" y="308" fill="var(--fd-teal)" font-weight="600">Bᵒᵘᵗₖ (≥)</text>
