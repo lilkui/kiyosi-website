@@ -4,7 +4,7 @@ description: 了解 kiyosi 的 instruments、market 和 pricing 模块，以及�
 
 # Python API 概览
 
-本页对应 **kiyosi 0.21.0**，按合约、市场输入和定价结果组织常用接口。完整签名、属性和方法见 [Python API 参考](/api/python/)，其中的英文说明来自源码文档字符串。
+本页对应 **kiyosi 0.22.0**，按合约、市场输入和定价结果组织常用接口。完整签名、属性和方法见 [Python API 参考](/api/python/)，其中的英文说明来自源码文档字符串。
 
 ## `kiyosi.instruments`
 
@@ -340,13 +340,13 @@ print(sigma)
 
 在 Python 层并行定价时，优先使用多线程（如 `concurrent.futures.ThreadPoolExecutor`）。共享或独立实例均支持并发读取和定价。长计算会释放 GIL，短调用可能保留 GIL。每次调用同步执行，正常完成后返回完整结果。
 
-若必须使用多进程，请采用 `spawn` 启动方式并在各子进程内构造 kiyosi 对象，返回可序列化的基础数据；通过 `fork` 继承的蒙特卡洛线程池不可用。
+若必须使用多进程，请采用 `spawn` 启动方式，在各子进程内构造 kiyosi 对象并返回可序列化的基础数据。使用 `fork` 时，可在子进程中通过 `max_active_workers=1` 串行运行蒙特卡洛；通过 `fork` 继承的蒙特卡洛线程池不可用。
 
-长请求中，调用线程会轮询信号。收到 `KeyboardInterrupt` 等信号处理异常后，会协作取消计算，等待工作停止后再传播异常。取消响应时间受内存分配和单个工作单元耗时影响。完整约定见[包级参考](/api/python/kiyosi)。
+长请求中，调用线程会轮询信号。收到 `KeyboardInterrupt` 等信号处理异常后，会协作取消计算，等待工作停止后再传播异常。取消响应时间受内存分配和单个工作单元耗时影响。构造或替换雪球和凤凰时，读取观察记录的迭代过程也会检查 Python 信号。完整约定见[包级参考](/api/python/kiyosi)。
 
 ## 实用示例 {#working-examples}
 
 - [首次定价](../guide/first-price)：完整 Python 脚本与 Greeks。
 - [采样与误差估计](../guide/engines#sampling-and-error)：蒙特卡洛统计接口。
-- [上游 Python 示例](https://github.com/lilkui/kiyosi/tree/95dc91155223b9095d06cbbf7ba4bda5bc72b7c1/examples/python)：产品定价、历史输入、日历和票息求解。
-- [上游 Python 测试](https://github.com/lilkui/kiyosi/tree/95dc91155223b9095d06cbbf7ba4bda5bc72b7c1/python/tests)：更多产品用法。
+- [上游 Python 示例](https://github.com/lilkui/kiyosi/tree/d8413d14ab2f7a53ecc3df145d394bd3c5ba783e/examples/python)：产品定价、历史输入、日历和票息求解。
+- [上游 Python 测试](https://github.com/lilkui/kiyosi/tree/d8413d14ab2f7a53ecc3df145d394bd3c5ba783e/python/tests)：更多产品用法。

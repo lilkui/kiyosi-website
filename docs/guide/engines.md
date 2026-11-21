@@ -4,7 +4,7 @@ description: 按产品选择 kiyosi 定价算法，配置数值方法和 CPU 蒙
 
 # 定价引擎
 
-按产品与市场模型选择引擎，再设置网格、积分或采样参数。各引擎统一使用 `price(instrument, context)` 接口。本页对应 kiyosi **0.21.0**。
+按产品与市场模型选择引擎，再设置网格、积分或采样参数。各引擎统一使用 `price(instrument, context)` 接口。本页对应 kiyosi **0.22.0**。
 
 ## 支持的产品与方法 {#instrument-coverage}
 
@@ -49,7 +49,7 @@ engine = FiniteDifferenceVanillaEngine(
 
 输入不合法时抛出 `InvalidInputError`；产品或模型条件超出引擎支持范围时抛出 `UnsupportedOperationError`。各引擎的参数和适用条件见[定价 API](/api/python/kiyosi-pricing)。
 
-一维有限差分自动选择空间边界且使用非显式格式时，会在欧式普通期权和局部波动率数字期权的行权价附近集中布点。BSM 数字期权和显式指定上边界的情况使用均匀标的网格，美式期权使用双曲正弦网格。
+一维有限差分使用对数现货网格，数值下界为正。普通期权和数字期权引擎在自动选域且使用非显式格式时，通常在行权价附近集中布点。对剩余演化期内波动率恒定的欧式普通期权和数字期权，自动选域的 Rannacher 格式可在回溯前按确定性持有收益调整行权价，回溯后应用相应的贴现因子。低波动率且漂移占优时，引擎也可沿行权价的漂移区间布点。
 
 自动赎回有限差分引擎默认使用 `asset_step_count=800`、`time_step_count=400`，观察事件与平滑可能增加子步。检查网格收敛性时，逐步增加空间和时间步数，比较价格与 Greeks 的变化。
 
@@ -67,7 +67,7 @@ prices = solution.price_many(spots)
 results = solution.price_many_with_greeks(spots, greeks=("delta", "gamma"))
 ```
 
-对同一解调用 `price(spot)`、`price_many(spots)`、`price_with_greeks(...)` 或 `price_many_with_greeks(...)` 时不再重复求解 PDE；查询可跨越当前估值时刻的敲入、敲出、票息与结算条件。计算 Greeks 时，`spot_range` 需为数值差分采样留出余量，不可用指标返回 `None`。
+对同一解调用 `price(spot)`、`price_many(spots)`、`price_with_greeks(...)` 或 `price_many_with_greeks(...)` 时不再重复求解 PDE。各查询现货独立判定估值时刻的敲入、敲出、票息与结算条件。网格覆盖查询区间内需要回溯的状态，显式边界须满足这些状态的覆盖要求。计算 Greeks 时，`spot_range` 需为数值差分采样留出余量，不可用指标返回 `None`。
 
 ## 普通与数字期权积分 {#quadrature-pricing}
 
@@ -136,7 +136,7 @@ Fourier 积分引擎采用自适应积分和确定性方差控制变量，默认
 
 预算或数值分辨率不足时抛出 `NonConvergenceError`；到期与确定性方差分支直接计算价格。检查积分收敛时，收紧容差并增加评估预算，比较价格变化，尤其关注尾部价格。
 
-二维有限差分使用修正 Craig–Sneyd（MCS）交替方向隐式（ADI）格式，美式行权使用 Ikonen–Toivanen 分裂。默认标的、方差和时间区间数分别为 400、100、400；空间区间数至少为 3，时间区间数至少为 1，利率曲线节点会加入时间网格。
+二维有限差分使用修正 Craig–Sneyd（MCS）交替方向隐式（ADI）格式，美式行权使用 Ikonen–Toivanen 分裂。标的轴采用对数现货网格，引擎自动选择正的标的下界。默认标的、方差和时间区间数分别为 400、100、400。空间区间数至少为 3，时间区间数至少为 1，利率曲线节点会加入时间网格。
 
 `asset_upper_boundary` 和 `variance_upper_boundary` 默认为 `None`，由引擎自动选择。显式边界须为正有限值；需要相应数值网格时，标的上边界须严格高于现价与行权价，方差上边界须严格高于初始方差。评估精度时，分别细化空间、时间网格并扩大边界，比较价格变化。
 
@@ -198,4 +198,4 @@ print(result.seed, result.uncertainty_status)
 - **采样误差**：使用 `price_with_statistics()` 查看可用的标准误差和置信区间，再增加路径数比较结果。
 - **隐含参数求解误差**：求解器容差约束所选引擎价格曲线上的求根过程；使用蒙特卡洛时，同时检查采样误差。
 
-模型范围见[简介](./introduction#model-scope)。产品与算法表依据[上游 README](https://github.com/lilkui/kiyosi/blob/95dc91155223b9095d06cbbf7ba4bda5bc72b7c1/README.md#支持产品与算法)整理，更多用例见[Python 示例](https://github.com/lilkui/kiyosi/tree/95dc91155223b9095d06cbbf7ba4bda5bc72b7c1/examples/python)与[测试](https://github.com/lilkui/kiyosi/tree/95dc91155223b9095d06cbbf7ba4bda5bc72b7c1/python/tests)。
+模型范围见[简介](./introduction#model-scope)。产品与算法表依据[上游 README](https://github.com/lilkui/kiyosi/blob/d8413d14ab2f7a53ecc3df145d394bd3c5ba783e/README.md#支持产品与算法)整理，更多用例见[Python 示例](https://github.com/lilkui/kiyosi/tree/d8413d14ab2f7a53ecc3df145d394bd3c5ba783e/examples/python)与[测试](https://github.com/lilkui/kiyosi/tree/d8413d14ab2f7a53ecc3df145d394bd3c5ba783e/python/tests)。
