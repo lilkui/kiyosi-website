@@ -136,7 +136,7 @@
         <g font-size="10.2" text-anchor="middle" fill="var(--fd-ink)">
           <text x="132" y="136">子区间 I₁</text>
           <text x="240" y="62" fill="var(--fd-teal)" font-weight="600">子区间 I₂</text>
-          <text x="361" y="74" fill="var(--fd-teal)" font-weight="600">子区间 I₃（插值斜率拐点切分）</text>
+          <text x="361" y="74" fill="var(--fd-teal)" font-weight="600">子区间 I₃（插值斜率折点切分）</text>
         </g>
 
         <!-- Coordinate labels -->
@@ -160,7 +160,7 @@
     </svg>
     <figcaption>
       <strong>图 6：空间网格加密与控制体积增量跳跃投影原理。</strong>
-      （a）<code>concentrate</code> 将保留的障碍与行权价映射为对数网格节点，并在两侧按 <span class="fd-math">sinh</span> 规律加密；（b）在含间断的控制体积 <span class="fd-math">C<sub>i</sub></span> 内，<code>project_interval</code> 同时以障碍坐标 <span class="fd-math">x<sub>b</sub></span> 与单元中心 <span class="fd-math">x<sub>i</sub></span> 切分区间（消除 <span class="fd-math">I<sub>lin</sub>[V<sup>+</sup>]</span> 在 <span class="fd-math">x<sub>i</sub></span> 处的折角误差），仅对不连续跳跃量 <span class="fd-math">ΔV = V<sup>−</sup> − V<sup>+</sup></span> 做加权积分平均。
+      （a）<code>concentrate</code> 将保留的障碍与行权价映射为对数网格节点，并在两侧按 <span class="fd-math">sinh</span> 规律加密；（b）在含间断的控制体积 <span class="fd-math">C<sub>i</sub></span> 内，<code>project_interval</code> 同时以障碍坐标 <span class="fd-math">x<sub>b</sub></span> 与单元中心 <span class="fd-math">x<sub>i</sub></span> 切分区间（消除 <span class="fd-math">I<sub>lin</sub>[V<sup>+</sup>]</span> 在 <span class="fd-math">x<sub>i</sub></span> 处的折点误差），仅对不连续跳跃量 <span class="fd-math">ΔV = V<sup>−</sup> − V<sup>+</sup></span> 做加权积分平均。
     </figcaption>
   </figure>
 </template>

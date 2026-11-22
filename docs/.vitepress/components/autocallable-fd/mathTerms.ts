@@ -63,7 +63,7 @@ export const MATH_TERMS: Record<string, MathTermEntry> = {
   'dirichlet-affine': {
     title: 'Dirichlet 边界条件与仿射贴现',
     en: 'Dirichlet & Affine Boundary Condition',
-    html: '在有限计算区间两端直接指定待求函数的值称为第一类（Dirichlet）边界条件。“仿射（Affine）函数”即一次函数加常数 <span class="mt-math">V(S) ≈ A + B·S</span>：在经济学上等价于持有 <span class="mt-math">A</span> 份现金和 <span class="mt-math">B</span> 份股票，经过 <span class="mt-math">Δt</span> 后分别乘以各自折现因子 <span class="mt-math">e<sup>−rΔt</sup></span> 与 <span class="mt-math">e<sup>−qΔt</sup></span>，即可准确推算边界节点值。',
+    html: '在有限计算区间两端直接指定待求函数的值称为第一类（Dirichlet）边界条件。“仿射（Affine）函数”即一次函数加常数 <span class="mt-math">V(S) ≈ A + B·S</span>：在金融上等价于持有 <span class="mt-math">A</span> 份现金和 <span class="mt-math">B</span> 份标的资产，经过 <span class="mt-math">Δt</span> 后分别乘以贴现因子 <span class="mt-math">e<sup>−rΔt</sup></span> 与 <span class="mt-math">e<sup>−qΔt</sup></span>，即可推算边界节点值。',
   },
   'tridiagonal-thomas': {
     title: '三对角矩阵与 Thomas 追赶法',
@@ -76,9 +76,9 @@ export const MATH_TERMS: Record<string, MathTermEntry> = {
     html: '显式差分格式保持误差不发散的时间步长上限。直觉上，显式一步更新相当于用旧时刻相邻三点做加权平均；若时间步 <span class="mt-math">Δt</span> 相对于空间步长平方 <span class="mt-math">h<sup>2</sup></span> 过大，中心点权重会变为负数，导致微小舍入误差每步翻倍放大。隐式与半隐式格式通过联立方程组消除了这一步长限制。',
   },
   'c0-c1-discontinuity': {
-    title: 'C⁰ 跳跃间断与 C¹ 折角',
+    title: 'C⁰ 跳跃间断与 C¹ 折点',
     en: 'C⁰ Jump & C¹ Kink Singularity',
-    html: '按高等数学可微阶数分类：<span class="mt-math">C<sup>0</sup></span> 间断（第一类跳跃间断）指函数值本身在某点左右极限不等，出现垂直断层（如数字票息线与敲出线）；<span class="mt-math">C<sup>1</sup></span> 间断指函数本身连续（属于 <span class="mt-math">C<sup>0</sup></span>），但一阶导数左右极限不等，图像出现尖锐折角（如 <span class="mt-math">max(L, S)</span> 在行权价 <span class="mt-math">L</span> 处），这两类非光滑点是有限差分误差的主要来源。',
+    html: '按可微阶数分类：<span class="mt-math">C<sup>0</sup></span> 间断（第一类跳跃间断）指函数值本身在某点左右极限不等，出现垂直阶跃（如数字票息线与敲出线）；<span class="mt-math">C<sup>1</sup></span> 间断指函数连续（属于 <span class="mt-math">C<sup>0</sup></span>），但一阶导数左右极限不等，图像出现折点（如 <span class="mt-math">max(L, S)</span> 在行权价 <span class="mt-math">L</span> 处）。这两类非光滑点是有限差分误差的主要来源。',
   },
   'control-volume': {
     title: '对偶控制体积投影',
@@ -103,12 +103,12 @@ export const MATH_TERMS: Record<string, MathTermEntry> = {
   'rannacher-damping': {
     title: 'Crank–Nicolson、A/L-稳定与 Rannacher 阻尼',
     en: 'CN, A/L-Stability & Rannacher Time Stepping',
-    html: '按线性代数特征值分析，误差的每个空间频率模态每步乘以放大因子 <span class="mt-math">R<sub>θ</sub>(z)</span>（<span class="mt-math">z = λ<sub>k</sub>Δt &gt; 0</span>）。<b>A-稳定</b>指对一切 <span class="mt-math">z &gt; 0</span> 有 <span class="mt-math">|R(z)| ≤ 1</span>（误差不发散）；<b>L-稳定</b>进一步要求极高频锯齿模态满足 <span class="mt-math">lim<sub>z→∞</sub> R(z) = 0</span>（快速衰减）。CN 格式（<span class="mt-math">θ = ½</span>）虽有二阶精度且 A-稳定，但 <span class="mt-math">R(∞) = −1</span> 非 L-稳定，会让阶跃间断产生持久正负抖动并炸毁二阶导数；<b>Rannacher 阻尼</b>在每次事件间断后先插 4 个 L-稳定的隐式 Euler 半步（<span class="mt-math">θ = 1</span>）滤净高频毛刺，再切回 CN 保持二阶精度。',
+    html: '按线性代数特征值分析，误差的每个空间频率模态每步乘以放大因子 <span class="mt-math">R<sub>θ</sub>(z)</span>（<span class="mt-math">z = λ<sub>k</sub>Δt &gt; 0</span>）。<b>A-稳定</b>指对一切 <span class="mt-math">z &gt; 0</span> 有 <span class="mt-math">|R(z)| ≤ 1</span>（误差不发散）；<b>L-稳定</b>进一步要求极高频锯齿模态满足 <span class="mt-math">lim<sub>z→∞</sub> R(z) = 0</span>（快速衰减）。CN 格式（<span class="mt-math">θ = ½</span>）虽有二阶精度且 A-稳定，但 <span class="mt-math">R(∞) = −1</span> 非 L-稳定，会使阶跃间断产生持久正负振荡并导致二阶导数严重失真；<b>Rannacher 阻尼</b>在每次事件间断后先执行 4 个 L-稳定的隐式 Euler 半步（<span class="mt-math">θ = 1</span>）滤除高频毛刺，再切回 CN 保持二阶精度。',
   },
   'cubic-spline-bezier': {
     title: '三次样条与 Bézier 过冲保护',
     en: 'Cubic Spline & Bézier Overshoot Guard',
-    html: '三次样条在每个网格区间上用三次多项式插值，并令节点处一阶、二阶导数连续，从而直接求出一阶导（Delta）与二阶导（Gamma）。但在剧烈折角旁，光滑样条容易像弹簧一样鼓出超出两端节点值范围的伪波峰（过冲）。将区间三次多项式等价改写为四控制点 Bézier 曲线后，曲线必包络在控制点凸包内，据此可低成本检测并钳制局部过冲。',
+    html: '三次样条在每个网格区间上用三次多项式插值，并令节点处一阶、二阶导数连续，从而直接求出一阶导（Delta）与二阶导（Gamma）。但在剧烈折点附近，光滑样条容易在区间内部产生超出两端节点值范围的振荡过冲。将区间三次多项式改写为四控制点 Bézier 曲线后，曲线必包络在控制点凸包内，据此可低成本检测并钳制局部过冲。',
   },
   'dirac-delta': {
     title: 'Dirac δ 奇异性',

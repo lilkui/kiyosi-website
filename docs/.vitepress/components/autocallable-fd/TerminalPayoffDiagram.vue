@@ -161,7 +161,7 @@
       </g>
     </svg>
     <figcaption>
-      <strong>图 2：标准雪球与凤凰的到期日双层支付剖面对比（展示含下行权价 <span class="fd-math">L</span> 的限亏拐点与 <span class="fd-math">L = 0</span> 虚线延拓）。</strong>
+      <strong>图 2：标准雪球与凤凰的到期日双层支付剖面对比（展示含下行权价 <span class="fd-math">L</span> 的限亏折点与 <span class="fd-math">L = 0</span> 虚线延拓）。</strong>
       标准雪球在 <span class="fd-math">S &lt; B<sup>in</sup></span> 时同时损失累计年化到期票息 <span class="fd-math">c<sub>m</sub>τ(T)</span> 与看跌价差本金，导致 <span class="fd-math">V<sup>(0)</sup></span> 在 <span class="fd-math">B<sup>in</sup></span> 处的跳跃幅度（0.45）显著大于凤凰（0.30）；而凤凰在 <span class="fd-math">B<sup>c</sup><sub>n</sub></span> 处对两层同时施加单期数字票息阶跃 <span class="fd-math">+c</span>（基准合约中 <span class="fd-math">B<sup>c</sup><sub>n</sub> = B<sup>in</sup> = 70</span>，两处阶跃合并）。
     </figcaption>
   </figure>

@@ -80,7 +80,7 @@
 
         <!-- Coupling / Reset Arrows -->
         <line x1="126" y1="205" x2="126" y2="231" stroke="var(--fd-crimson)" stroke-width="1.8" marker-end="url(#fd-arr-st-crim)" />
-        <text x="118" y="196" text-anchor="middle" font-size="10" fill="var(--fd-crimson)" font-weight="600">拉取 V⁽¹⁾(tₖ⁺)</text>
+        <text x="118" y="196" text-anchor="middle" font-size="10" fill="var(--fd-crimson)" font-weight="600">切换至 V⁽¹⁾(tₖ⁺)</text>
 
         <line x1="334" y1="108" x2="334" y2="79" stroke="var(--fd-teal)" stroke-width="1.8" marker-end="url(#fd-arr-st-teal)" />
         <text x="348" y="68" text-anchor="middle" font-size="10.5" fill="var(--fd-teal)" font-weight="600">Qₖ = P+R+rₖτₖ</text>
