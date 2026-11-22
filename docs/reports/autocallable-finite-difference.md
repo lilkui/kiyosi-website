@@ -1068,6 +1068,7 @@ FD 自身随网格从 $400^2$ 加密至 $3200^2$ 稳定收敛，与独立 MC 的
 
 ### B.1 凤凰
 
+::: details 查看代码：phoenix_report.py
 ```python
 """Shared contract definition and independent reference pricers."""
 
@@ -1297,9 +1298,11 @@ def mc_price(daily, paths=4_000_000, batch=250_000, seed=20251115, p=BASE, obs=O
     se = math.sqrt(max(total2 / pairs - mean * mean, 0.0) / (pairs - 1))
     return float(mean), se
 ```
+:::
 
 QuantLib 静态复制（第 8.1 节）的核心函数：
 
+::: details 查看代码：QuantLib 静态复制核心函数
 ```python
 import QuantLib as ql
 
@@ -1330,11 +1333,13 @@ def static_value(p, obs, spot):
           - black("put", p["lower"], spot, p["r"], p["q"], p["sigma"], T)) / 100.0
     return v
 ```
+:::
 
 ### B.2 雪球、三元雪球和二元雪球
 
 `kind` 选择产品；`rates` 给出逐期年化敲出票息，`ko_levels` 给出逐期敲出水平，二者缺省时取常数。卷积参考要求所有合约水平落在 $70\,e^{kH_0}$ 格点上，`lattice(k)` 返回这些水平。
 
+::: details 查看代码：snowball_report.py
 ```python
 """Shared snowball contract definitions and independent reference pricers."""
 
@@ -1584,9 +1589,11 @@ def mc_price(daily, paths=4_000_000, batch=250_000, seed=20251115, p=BASE, obs=O
     se = math.sqrt(max(total2 / pairs - mean * mean, 0.0) / (pairs - 1))
     return float(mean), se
 ```
+:::
 
 单观察日雪球类合约的 QuantLib 静态复制（第 9.1 节），沿用 B.1 中的 `black`：
 
+::: details 查看代码：单观察日雪球类合约静态复制
 ```python
 from phoenix_report import black
 
@@ -1605,11 +1612,13 @@ def snowball_static_value(p, spot, expiry=OBS[-1]):
                 + ((p["upper"] - p["ki"]) * black("digital_put", p["ki"], spot, *a)
                    + black("put", p["ki"], spot, *a) - black("put", p["lower"], spot, *a)) / 100)
 ```
+:::
 
 ### B.3 独立日程、返还与批量现货查询
 
 合约在周六观察票息、周一观察敲出、周二到期。合约日历允许周六观察；方差日历在周末暂停扩散。固定返还 2% 与年化返还 5% 在现金流终止日付一次。估值在周六票息观察时刻，查询现货 95 时恰好满足含等号的票息条件。
 
+::: details 查看代码：独立日程、返还与批量现货查询
 ```python
 from datetime import datetime
 
@@ -1660,6 +1669,7 @@ for spot, result in zip(spots, results, strict=True):
 assert results[1].price > results[0].price
 assert results[1].delta is None and results[1].gamma is None
 ```
+:::
 
 输出价格依次为 `1.020296334`、`1.030296334`、`1.030296334`、`1.030243234`。现货为 95 的查询计入当期票息，Delta 与 Gamma 在支付跳跃处不可用。
 
@@ -1667,6 +1677,7 @@ assert results[1].delta is None and results[1].gamma is None
 
 以下调用复算两份基准的同步加密、独立 MC 和局部波动率比较。定价格式和计算域分别由 `scheme`、`asset_upper_boundary` 控制；静态复制使用 B.1 的 `static_value` 或 B.2 的 `snowball_static_value`。变体通过 `p` 或 `ko_levels` 同时传给 `note` 与 `reference`，市场参数变化同时传给 `context`。例如 `p=dict(snowball.BASE, kind="ternary")` 选三元雪球。
 
+::: details 查看代码：复算验证结果
 ```python
 import numpy as np
 
@@ -1710,3 +1721,4 @@ for module in (phoenix, snowball):
         print("local vol MC", module.mc_price(daily, paths=1_000_000,
                                              local=local, dtmax=0.25 / 365))
 ```
+:::
