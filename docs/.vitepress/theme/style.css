@@ -201,3 +201,152 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--vp-c-brand-1); 
   font-weight: 600;
 }
 
+/* Interactive technical term click tooltip */
+.fd-term {
+  appearance: none;
+  display: inline;
+  margin: 0;
+  padding: 0 2px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  text-align: inherit;
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-color: var(--fd-teal);
+  text-decoration-thickness: 1.25px;
+  text-underline-offset: 4px;
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease, text-decoration-color 140ms ease;
+}
+
+.fd-term:hover,
+.fd-term.is-open {
+  color: var(--vp-c-brand-1);
+  background: var(--fd-teal-soft);
+  text-decoration-style: solid;
+}
+
+.fd-term:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 2px;
+}
+
+.fd-term-popover {
+  position: fixed;
+  z-index: 200;
+  width: min(392px, calc(100vw - 24px));
+  padding: 13px 15px 14px;
+  border: 1px solid var(--fd-teal);
+  border-radius: 9px;
+  background: var(--vp-c-bg);
+  color: var(--fd-ink);
+  box-shadow: 0 12px 32px rgba(15, 28, 25, 0.16), 0 2px 8px rgba(15, 28, 25, 0.08);
+  font-family: var(--vp-font-family-base);
+  font-size: 13.5px;
+  line-height: 1.68;
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.dark .fd-term-popover {
+  background: var(--fd-panel);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.48), 0 2px 10px rgba(0, 0, 0, 0.32);
+}
+
+.fd-term-popover.is-ready {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.fd-term-popover::after {
+  content: '';
+  position: absolute;
+  left: var(--fd-tip-arrow-x, 24px);
+  width: 9px;
+  height: 9px;
+  background: inherit;
+  border-right: 1px solid var(--fd-teal);
+  border-bottom: 1px solid var(--fd-teal);
+}
+
+.fd-term-popover.is-top::after {
+  bottom: -5.5px;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.fd-term-popover.is-bottom::after {
+  top: -5.5px;
+  transform: translateX(-50%) rotate(225deg);
+}
+
+.fd-term-popover__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--fd-grid);
+}
+
+.fd-term-popover__titles {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.fd-term-popover__title {
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.35;
+  color: var(--fd-ink);
+}
+
+.fd-term-popover__en {
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--fd-muted);
+}
+
+.fd-term-popover__close {
+  appearance: none;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--fd-muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.fd-term-popover__close:hover {
+  background: var(--fd-panel-alt);
+  color: var(--fd-ink);
+}
+
+.fd-term-popover__body {
+  color: var(--vp-c-text-1);
+  text-wrap: pretty;
+}
+
+.fd-term-popover__body .mt-math {
+  font-family: 'STIX Two Math', 'Cambria Math', 'Times New Roman', serif;
+  font-style: italic;
+}
+
+
