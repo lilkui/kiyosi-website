@@ -349,4 +349,108 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--vp-c-brand-1); 
   font-style: italic;
 }
 
+/* Desktop left sidebar collapse */
+.sidebar-collapse-btn {
+  display: none;
+}
+
+@media (min-width: 960px) {
+  .sidebar-collapse-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    margin-left: 16px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--vp-c-text-2);
+    cursor: pointer;
+    transition: color 0.2s ease, background-color 0.2s ease;
+  }
+
+  .sidebar-collapse-btn:hover {
+    color: var(--vp-c-text-1);
+    background-color: var(--vp-c-default-soft);
+  }
+
+  .VPNavBar.has-sidebar .VPNavBarSearch {
+    padding-left: 16px;
+  }
+
+  .VPSidebar {
+    transition: transform 0.25s ease, opacity 0.2s ease, visibility 0.25s ease;
+  }
+
+  .VPContent.has-sidebar {
+    transition: padding-left 0.25s ease, padding-right 0.25s ease;
+  }
+
+  .sidebar-collapsed .VPSidebar {
+    transform: translateX(-100%);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .sidebar-collapsed .VPContent.has-sidebar {
+    padding-left: 0;
+  }
+
+  .sidebar-collapsed .VPNavBar.has-sidebar {
+    background-color: var(--vp-nav-bg-color);
+  }
+
+  .sidebar-collapsed .VPNavBar.has-sidebar .wrapper {
+    padding: 0 32px;
+  }
+
+  .sidebar-collapsed .VPNavBar.has-sidebar .container {
+    max-width: calc(var(--vp-layout-max-width) - 64px);
+  }
+
+  .sidebar-collapsed .VPNavBar.has-sidebar .title {
+    position: static;
+    width: auto;
+    padding: 0;
+  }
+
+  .sidebar-collapsed .VPNavBarTitle.has-sidebar .title {
+    border-bottom-color: transparent;
+  }
+
+  .sidebar-collapsed .VPNavBar.has-sidebar .content {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .sidebar-collapsed .VPNavBar.has-sidebar .content-body {
+    background-color: transparent;
+  }
+
+  .sidebar-collapsed .VPNavBar.has-sidebar .divider {
+    padding-left: 0;
+  }
+
+  .sidebar-collapsed .VPDoc.has-sidebar.has-aside .content-container {
+    max-width: 840px;
+  }
+}
+
+@media (min-width: 1440px) {
+  .sidebar-collapsed .VPContent.has-sidebar {
+    padding-left: calc((100vw - var(--vp-layout-max-width)) / 2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .VPSidebar,
+  .VPContent.has-sidebar {
+    transition: none;
+  }
+}
+
+
 
