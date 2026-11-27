@@ -4,7 +4,7 @@ description: 了解 kiyosi 的 instruments、market 和 pricing 模块，以及�
 
 # Python API 概览
 
-本页对应 **kiyosi 0.22.0**，按合约、市场输入和定价结果组织常用接口。完整签名、属性和方法见 [Python API 参考](/api/python/)，其中的英文说明来自源码文档字符串。
+本页对应 **kiyosi 0.23.0**，按合约、市场输入和定价结果组织常用接口。完整签名、属性和方法见 [Python API 参考](/api/python/)，其中的英文说明来自源码文档字符串。
 
 ## `kiyosi.instruments`
 
@@ -24,7 +24,7 @@ description: 了解 kiyosi 的 instruments、market 和 pricing 模块，以及�
 
 `Accumulator` 默认 `option_type="call"` 表示累购，`"put"` 表示累沽。`knock_out_observation_times=None` 表示每个交易日按显式的 `observation_clock_time` 观察敲出，空序列表示不提前敲出；显式时间须严格递增且位于合约期限内。每次观察先判定敲出，触发敲出时结束累计。
 
-`AutocallableObservation.snowball()` 构造雪球专用的敲出观察记录；`autocallable_observations()` 可从等长数组构建记录。雪球合约的 `autocall_observations`、`autocall_times` 分别返回记录与时间戳。
+`AutocallableObservation.snowball(time, knock_out_level, coupon_rate=...)` 构造雪球的敲出观察记录，`coupon_rate` 为必填的年化票息率，无票息时填零。`autocallable_observations(autocall_times, knock_out_levels, knock_out_coupon_rates=...)` 从三组等长序列构建记录。雪球合约的 `autocall_observations`、`autocall_times` 分别返回记录与时间戳。
 
 敲入观察单独使用 `KnockInObservation.every_trading_day(time(...))` 或 `.at_expiry()` 设置；每日敲入的预设工厂要求显式传入 `knock_in_observation_clock_time`。直接构造自动赎回合约时，必须显式提供 `calendar`；预设工厂可以继承日程的日历。
 
@@ -153,7 +153,7 @@ local_result = FiniteDifferenceVanillaEngine().price_with_greeks(
 print(local_result.price, local_result.delta, local_result.gamma)
 ```
 
-一维有限差分的所有产品族均可计算该模型的价格，以及固定绝对曲面下的 delta、gamma；其他 Greeks 返回 `None`，状态为 `unsupported`。到期时，Greeks 按支付函数判断；导数无定义或数值模板不可用时也返回 `None`，可用 `status()` 区分原因。数字期权有限差分要求利率和股息率为恒定曲线。
+一维有限差分各产品族（包括数字期权）均支持确定性利率和股息率曲线，可计算该模型的价格以及固定绝对曲面下的 delta、gamma。其他 Greeks 返回 `None`，状态为 `unsupported`。到期时，Greeks 按支付函数判断；导数无定义或数值模板不可用时也返回 `None`，可用 `status()` 区分原因。
 
 自动赎回有限差分支持该模型的隐含票息求解。局部波动率模型的定价入口为一维有限差分引擎，Greeks 通过其 `price_with_greeks()` 请求；`numerical_greeks()` 与隐含波动率求解适用于 BSM 标量波动率。
 
@@ -228,6 +228,8 @@ schedule = monthly_schedule(
 该模块提供解析与数值引擎、Greeks、隐含波动率和隐含票息求解器。
 
 欧式解析定价使用 `AnalyticEuropeanEngine`；CPU 蒙特卡洛定价可用 `MonteCarloVanillaEngine`，单／双障碍产品共用 `MonteCarloBarrierEngine`。`price(option, context)` 直接返回 `float`。有限差分引擎还提供 `solve(instrument, context, spot_range=...)` 返回可复用的 `FiniteDifferenceSolution`，用于批量查询不同现价下的价格与 Greeks。
+
+在同一市场上下文中为多组行权价和到期日计算价格，或一次提交多个合约时，可使用引擎的[批量定价接口](../guide/engines#batch-pricing)。
 
 引擎只读。构造字段可配置的引擎支持 `engine.replace(...)`，用于创建新引擎并执行构造验证；省略配置或传入 `...` 时保留原值，`None` 只用于可空配置。无配置字段的解析引擎可直接构造使用。
 
@@ -348,5 +350,5 @@ print(sigma)
 
 - [首次定价](../guide/first-price)：完整 Python 脚本与 Greeks。
 - [采样与误差估计](../guide/engines#sampling-and-error)：蒙特卡洛统计接口。
-- [上游 Python 示例](https://github.com/lilkui/kiyosi/tree/d8413d14ab2f7a53ecc3df145d394bd3c5ba783e/examples/python)：产品定价、历史输入、日历和票息求解。
-- [上游 Python 测试](https://github.com/lilkui/kiyosi/tree/d8413d14ab2f7a53ecc3df145d394bd3c5ba783e/python/tests)：更多产品用法。
+- [上游 Python 示例](https://github.com/lilkui/kiyosi/tree/9231574344cbc2173d3ccdea1e52f4cf749504ed/examples/python)：产品定价、历史输入、日历和票息求解。
+- [上游 Python 测试](https://github.com/lilkui/kiyosi/tree/9231574344cbc2173d3ccdea1e52f4cf749504ed/python/tests)：更多产品用法。

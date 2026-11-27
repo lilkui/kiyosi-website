@@ -4,7 +4,7 @@ description: 使用 Cargo 构建 kiyosi Rust 核心、生成 rustdoc，并接入
 
 # 构建 Rust 核心
 
-核心 crate `kiyosi` 可独立于 Python 构建和使用。本文档对应 **kiyosi 0.22.0**，需要 **Rust 1.85+**（edition 2024）、Cargo 和本机链接工具。
+核心 crate `kiyosi` 可独立于 Python 构建和使用。本文档对应 **kiyosi 0.23.0**，需要 **Rust 1.85+**（edition 2024）、Cargo 和本机链接工具。
 
 ## 获取源码
 
@@ -13,7 +13,7 @@ description: 使用 Cargo 构建 kiyosi Rust 核心、生成 rustdoc，并接入
 ```sh
 git clone https://github.com/lilkui/kiyosi.git
 cd kiyosi
-git checkout d8413d14ab2f7a53ecc3df145d394bd3c5ba783e
+git checkout 9231574344cbc2173d3ccdea1e52f4cf749504ed
 cargo build -p kiyosi --release --locked
 cargo test -p kiyosi --locked
 ```
@@ -26,7 +26,7 @@ cargo test -p kiyosi --locked
 
 ```toml
 [dependencies]
-kiyosi = { git = "https://github.com/lilkui/kiyosi.git", rev = "d8413d14ab2f7a53ecc3df145d394bd3c5ba783e" }
+kiyosi = { git = "https://github.com/lilkui/kiyosi.git", rev = "9231574344cbc2173d3ccdea1e52f4cf749504ed" }
 ```
 
 以下代码与 [Python 首次定价](../guide/first-price)使用相同的参数：
@@ -65,6 +65,10 @@ fn main() -> kiyosi::Result<()> {
 结果包含价格与各指标的状态。不可用指标为 `None`，通过 `status(Greek::...)` 查看原因；`require(Greek::...)` 返回指标数值，或在指标不可用时返回错误。
 
 通过各引擎的配置类型设置采样与网格；`MonteCarloBarrierEngine` 可为 `BarrierOption` 和 `DoubleBarrierOption` 定价。修改合约日历时，设置对应 `*Changes` 类型中的 `calendar` 字段，再调用 `replace()` 重新验证条款和历史。
+
+## 批量定价
+
+`FiniteDifferenceVanillaEngine` 使用 `price_strikes()` 和 `price_american_strikes()` 分别计算欧式和美式普通期权的行权价批次。`FiniteDifferenceHestonVanillaEngine` 提供 `price_european_strikes()` 和 `price_american_strikes()`。两种引擎均提供 `price_european_surface()` 和 `price_american_surface()`，结果行按到期时间排列，行内价格按行权价排列，顺序与输入一致。
 
 ## 生成原生 API 文档
 

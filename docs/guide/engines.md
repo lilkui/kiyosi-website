@@ -4,7 +4,7 @@ description: 按产品选择 kiyosi 定价算法，配置数值方法和 CPU 蒙
 
 # 定价引擎
 
-按产品与市场模型选择引擎，再设置网格、积分或采样参数。各引擎统一使用 `price(instrument, context)` 接口。本页对应 kiyosi **0.22.0**。
+按产品与市场模型选择引擎，再设置网格、积分或采样参数。各引擎统一使用 `price(instrument, context)` 接口。本页对应 kiyosi **0.23.0**。
 
 ## 支持的产品与方法 {#instrument-coverage}
 
@@ -51,7 +51,40 @@ engine = FiniteDifferenceVanillaEngine(
 
 一维有限差分使用对数现货网格，数值下界为正。普通期权和数字期权引擎在自动选域且使用非显式格式时，通常在行权价附近集中布点。对剩余演化期内波动率恒定的欧式普通期权和数字期权，自动选域的 Rannacher 格式可在回溯前按确定性持有收益调整行权价，回溯后应用相应的贴现因子。低波动率且漂移占优时，引擎也可沿行权价的漂移区间布点。
 
+一维有限差分各产品族均支持确定性利率和股息率曲线。连续监控的单／双障碍期权将障碍水平设为网格边界；连续上障碍和双障碍的上边界由障碍水平确定。离散监控使用完整价格域，并将观察时点纳入时间网格。恒定波动率下，离散监控网格若无法充分解析漂移，引擎会报错，此时可增加空间步数。
+
 自动赎回有限差分引擎默认使用 `asset_step_count=800`、`time_step_count=400`，观察事件与平滑可能增加子步。检查网格收敛性时，逐步增加空间和时间步数，比较价格与 Greeks 的变化。
+
+## 批量定价 {#batch-pricing}
+
+批量接口在同一市场上下文中计算一组价格。按行权价定价时，模板合约提供期权方向、合约日期及适用的历史输入；`strikes` 接收正有限行权价，结果元组按输入顺序返回，保留重复项。按到期日和行权价组成价格矩阵时，模板提供期权方向和生效时点，结果行对应 `expiries`，列对应 `strikes`。
+
+| 引擎 | Python 批量接口 |
+| --- | --- |
+| `FiniteDifferenceVanillaEngine`、`FiniteDifferenceHestonVanillaEngine` | `price_strikes()` 支持欧式和美式普通期权，`price_european_surface()` 和 `price_american_surface()` 计算价格矩阵 |
+| `AnalyticHestonEuropeanEngine` | `price_strikes()` 计算欧式普通期权价格 |
+| `QuadratureVanillaEngine`、`MonteCarloVanillaEngine` | `price_american_strikes()` 计算美式普通期权价格 |
+| `MonteCarloAsianEngine` | `price_arithmetic_strikes()` 计算算术平均亚式期权价格 |
+| `CoxRossRubinsteinVanillaEngine` | `price_many()` 接收一组欧式或美式普通期权，按合约输入顺序返回价格 |
+| `MonteCarloAutocallableEngine` | `price_many()` 接收一组同一具体类型的票据，按合约输入顺序返回价格 |
+
+沿用[首次定价](./first-price)中的欧式期权和市场上下文，计算两档期限和四个行权价的价格矩阵。
+
+```python
+from datetime import timedelta
+from kiyosi.pricing import FiniteDifferenceVanillaEngine
+
+engine = FiniteDifferenceVanillaEngine()
+prices = engine.price_european_surface(
+    option,
+    context,
+    expiries=(option.effective_time + timedelta(days=180), option.expiry_time),
+    strikes=(90.0, 95.0, 100.0, 105.0),
+)
+print(prices)
+```
+
+兼容的有限差分报价可共享网格或回溯计算。检查精度时，需覆盖整个行权价和到期日范围。蒙特卡洛行权价批次共享模拟路径；自动赎回批次可用 `shared_grid=True` 让兼容的每日敲入票据在同一网格上共享路径。批量结果与逐笔定价可能存在数值差异。市场条件、计算预算和完整签名见[定价 API](/api/python/kiyosi-pricing)。
 
 ## 有限差分可复用求解 {#finite-difference-solutions}
 
@@ -95,6 +128,10 @@ print(engine.price(option, context))
 评估固定网格积分的精度时，分别增加空间步数、扩大积分范围、细化美式行权时间步，并调整数值 Greeks 扰动，比较结果变化以检查收敛性。
 
 `QuadratureAutocallableEngine` 的空间范围同时考虑正向漂移和事件边界的反向移动。低波动率、每日观察等情况下，应分别检查空间分辨率和积分范围。
+
+## 美式普通期权 CRR 二叉树 {#crr-american-pricing}
+
+`CoxRossRubinsteinVanillaEngine` 的 `rollback_tolerance` 默认为 `None`，采用完整回溯。对恒定利率和股息率的 BSM 美式普通期权，可将其设为正数，按价格单位限制回溯时截去的树尾部对价格的贡献。该设置适用于价格、Greeks 和隐含波动率计算。也可在单次调用中使用 `price_with_rollback_tolerance()` 或 `price_with_greeks_with_rollback_tolerance()` 并传入 `absolute_tolerance`。检查精度时，还需改变 `step_count` 评估树离散化误差。
 
 ## 单／双障碍蒙特卡洛 {#barrier-monte-carlo}
 
@@ -184,9 +221,9 @@ print(result.seed, result.uncertainty_status)
 
 `step_count` 仅由 `MonteCarloVanillaEngine` 和 `MonteCarloAsianEngine` 接受；其他蒙特卡洛引擎按各自的观察或监控日程计算。
 
-美式蒙特卡洛行权网格每次调用最多保留 1 GiB 路径数据，大小为 `8 * path_count * step_count` 字节；对偶采样的路径数为奇数时，按下一个偶数预留，其他缓冲区另计。超限时在抽样前抛出 `InvalidInputError`，需减少路径数或时间区间数。
+美式最小二乘蒙特卡洛的行权工作区每次调用上限为 1 GiB。大型行权网格可逐时点反向生成路径坐标，极端现货范围可使用检查点分段重放。每次回溯的模拟路径步数与行权更新合计上限为十亿次，重放步数和各 Greeks 情景的行权更新均计入相应的工作量。达到工作区或计算预算上限时，可减少 `path_count` 或 `step_count`。
 
-到期、确定性定价，以及股息率非正且利率非负、仅需终值采样的美式看涨期权，不分配该网格，也不受此限额约束。
+对恒定利率和股息率、采用自然时间的 BSM 美式普通期权，`price_american_out_of_sample(..., training_path_count=...)` 用一组路径拟合行权规则，再用独立路径估值。估值路径数由引擎的 `path_count` 设置，两个随机流均由引擎种子确定。Sobol 采样的训练路径数也必须为二的幂。
 
 未来的障碍、敲入、敲出、票息和加速观察直接使用模拟的对数价格变化判定，以保留阈值附近的精度；单／双障碍期权的到期收益也使用这一精度。估值时点的观察使用传入的现价。
 
@@ -198,4 +235,4 @@ print(result.seed, result.uncertainty_status)
 - **采样误差**：使用 `price_with_statistics()` 查看可用的标准误差和置信区间，再增加路径数比较结果。
 - **隐含参数求解误差**：求解器容差约束所选引擎价格曲线上的求根过程；使用蒙特卡洛时，同时检查采样误差。
 
-模型范围见[简介](./introduction#model-scope)。产品与算法表依据[上游 README](https://github.com/lilkui/kiyosi/blob/d8413d14ab2f7a53ecc3df145d394bd3c5ba783e/README.md#支持产品与算法)整理，更多用例见[Python 示例](https://github.com/lilkui/kiyosi/tree/d8413d14ab2f7a53ecc3df145d394bd3c5ba783e/examples/python)与[测试](https://github.com/lilkui/kiyosi/tree/d8413d14ab2f7a53ecc3df145d394bd3c5ba783e/python/tests)。
+模型范围见[简介](./introduction#model-scope)。产品与算法表依据[上游 README](https://github.com/lilkui/kiyosi/blob/9231574344cbc2173d3ccdea1e52f4cf749504ed/README.md#支持产品与算法)整理，更多用例见[Python 示例](https://github.com/lilkui/kiyosi/tree/9231574344cbc2173d3ccdea1e52f4cf749504ed/examples/python)与[测试](https://github.com/lilkui/kiyosi/tree/9231574344cbc2173d3ccdea1e52f4cf749504ed/python/tests)。
